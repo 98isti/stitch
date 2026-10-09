@@ -468,16 +468,16 @@ export default function POSPage() {
             <div className="px-4 pt-4 pb-3 border-b border-gray-100 text-center">
               <div className="flex items-center justify-center gap-1.5 mb-2">
               {/* Business name — prominent */}
-              <div className="text-center px-2 mb-0.5">
+              <div className="text-center px-2">
                 {accountProfile?.logoUrl
                   ? <img src={accountProfile.logoUrl} alt={accountProfile.businessName} className="h-10 object-contain mx-auto" />
-                  : <p className="font-bold text-navy text-base leading-tight">{accountProfile?.businessName ?? 'Your Business'}</p>
+                  : <p className="font-bold text-navy text-sm leading-tight">{accountProfile?.businessName ?? 'Your Business'}</p>
                 }
               </div>
-              {/* Powered by Stitch */}
-              <div className="flex items-center justify-center gap-1">
-                <span className="text-gray-300 text-xs">powered by</span>
-                <img src="/stitch-logo.png" alt="Stitch" className="h-3.5 object-contain opacity-40" />
+              {/* Powered by Stitch — separate line below */}
+              <div className="flex items-center justify-center gap-1 mt-1">
+                <span className="text-gray-400 text-xs">powered by</span>
+                <img src="/stitch-logo.png" alt="Stitch" className="h-3 object-contain opacity-30" />
               </div>
               </div>
               <div className="w-full flex flex-col items-center gap-1 px-2.5 py-1">
