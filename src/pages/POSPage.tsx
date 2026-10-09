@@ -546,7 +546,7 @@ export default function POSPage() {
             </div>
             <div className="border-t border-gray-200 bg-white px-4 py-2.5 flex items-center gap-3">
               <div className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center shrink-0">
-                <span className="text-sm font-bold text-gray-600">{items.length}</span>
+                <span className="text-sm font-bold text-gray-600">{[...new Set(items.map(i => i.garmentId))].length}</span>
               </div>
               <span className="text-sm text-gray-400">
               {items.length === 0 ? 'items in current sale' : 
