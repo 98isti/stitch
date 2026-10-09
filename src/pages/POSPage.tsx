@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useDailyRevenue } from '../hooks/useDailyRevenue'
 import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, Pencil, Trash2, MapPin, Check, CheckCircle } from 'lucide-react'
 import {
   collection, query, getDocs, addDoc, serverTimestamp, orderBy,
@@ -290,7 +292,11 @@ export default function POSPage() {
   const { accountId } = useAuth()
   const { categories, loading: catsLoading } = useCategories(accountId)
   const { loading: itemsLoading, getItemsForCategory, getSubCategories } = useItems(accountId)
+  const navigate = useNavigate()
   const { locations, loading: locsLoading, activeLocation, setActiveLocation } = useLocations(accountId)
+  const { revenue: dailyRevenue } = useDailyRevenue(accountId, activeLocation?.name ?? null)
+  const [revenueTarget] = useState(() => parseFloat(localStorage.getItem('stitch_revenue_target') ?? '500'))
+  const progressPct = revenueTarget > 0 ? Math.min(100, (dailyRevenue / revenueTarget) * 100) : 0
   const loading = catsLoading || itemsLoading || locsLoading
 
   const [amount, setAmount] = useState('0')
@@ -490,6 +496,18 @@ export default function POSPage() {
               </button>
             </div>
 
+            {/* Daily revenue progress bar */}
+            <div className="px-3 pb-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-gray-400">Today</span>
+                <span className="text-xs font-semibold text-gray-600">${dailyRevenue.toFixed(0)} / ${revenueTarget.toFixed(0)}</span>
+              </div>
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${progressPct}%`, background: progressPct >= 100 ? '#16a34a' : '#1B2A4A' }} />
+              </div>
+            </div>
+
             <div className="px-3 pb-3">
               <button onClick={handleAddToSale}
                 className="w-full py-2.5 rounded-xl bg-gray-600 hover:bg-gray-700 text-white font-semibold text-sm transition-colors active:scale-95">
@@ -534,7 +552,8 @@ export default function POSPage() {
 
         {/* BOTTOM ACTION BAR */}
         <div className="flex shrink-0 bg-white border-t border-gray-200 px-3 py-2 gap-2">
-          <button className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 active:scale-95 text-white text-sm font-semibold transition-all">
+          <button onClick={() => navigate('/todaysdue')}
+            className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 active:scale-95 text-white text-sm font-semibold transition-all">
             Today's Due
           </button>
           <button onClick={() => setShowDiscountSheet(true)}
