@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, X, ChevronRight, ArrowLeft, Loader } from 'lucide-react'
 import type { PriceItem } from '../hooks/useItems'
 import type { Category } from '../hooks/useCategories'
@@ -14,15 +14,29 @@ interface Props {
   getItemsForCategory: (cat: string) => PriceItem[]
   getSubCategories: (cat: string) => string[]
   loading: boolean
+  initialCategory?: string | null
 }
 
 export default function ItemPickerSheet({
   isOpen, onClose, onSelectItem, categoryCount,
-  categories, getItemsForCategory, getSubCategories, loading
+  categories, getItemsForCategory, getSubCategories, loading, initialCategory
 }: Props) {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+
+  // Auto-select category when opened from a category button
+  useEffect(() => {
+    if (isOpen && initialCategory) {
+      const cat = categories.find(c => c.categoryName === initialCategory)
+      if (cat) setSelectedCategory(cat)
+    }
+    if (!isOpen) {
+      setSelectedCategory(null)
+      setSelectedSubCategory(null)
+      setSearch('')
+    }
+  }, [isOpen, initialCategory, categories])
 
   if (!isOpen) return null
 
@@ -89,7 +103,6 @@ export default function ItemPickerSheet({
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
-                autoFocus
                 type="text"
                 placeholder="Search items..."
                 value={search}

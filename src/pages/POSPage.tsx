@@ -30,6 +30,7 @@ export default function POSPage() {
   const [amount, setAmount] = useState('0')
   const [items, setItems] = useState<SaleItem[]>([])
   const [showPicker, setShowPicker] = useState(false)
+  const [pickerCategory, setPickerCategory] = useState<string | null>(null)
 
   const total = items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0)
   const subtotal = total / 1.1
@@ -74,6 +75,7 @@ export default function POSPage() {
     }])
     if (item.itemPrice > 0) setAmount('0')
     setShowPicker(false)
+    setPickerCategory(null)
   }
 
   function removeItem(id: string) {
@@ -151,13 +153,9 @@ export default function POSPage() {
           ) : (
             <div className="grid grid-cols-3 gap-2">
               {categories.map(cat => (
-                <button key={cat.id} onClick={() => setShowPicker(true)}
-                  className="flex flex-col items-center justify-center rounded-2xl bg-white border border-gray-200 text-gray-800 hover:bg-navy hover:text-white hover:border-navy active:scale-95 transition-all shadow-sm min-h-[80px] px-2 text-center group"
-                  onClickCapture={() => {}}>
+                <button key={cat.id} onClick={() => { setPickerCategory(cat.categoryName); setShowPicker(true) }}
+                  className="flex items-center justify-center rounded-2xl bg-white border border-gray-200 text-gray-800 hover:bg-navy hover:text-white hover:border-navy active:scale-95 transition-all shadow-sm min-h-[80px] px-2 text-center">
                   <span className="font-semibold text-sm leading-tight">{cat.categoryName}</span>
-                  <span className="text-xs text-gray-400 group-hover:text-white/60 mt-1">
-                    {getItemsForCategory(cat.categoryName).length} items
-                  </span>
                 </button>
               ))}
             </div>
@@ -243,13 +241,14 @@ export default function POSPage() {
       {/* Item Picker — now driven by Firebase */}
       <ItemPickerSheet
         isOpen={showPicker}
-        onClose={() => setShowPicker(false)}
+        onClose={() => { setShowPicker(false); setPickerCategory(null) }}
         onSelectItem={handleItemSelected}
         categoryCount={categoryCount}
         categories={categories}
         getItemsForCategory={getItemsForCategory}
         getSubCategories={getSubCategories}
         loading={loading}
+        initialCategory={pickerCategory}
       />
     </div>
   )
