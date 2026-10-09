@@ -26,8 +26,8 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <img src="/stitch-logo.png" alt="Stitch" className="h-16 object-contain mx-auto brightness-0 invert" />
-          <p className="text-white/50 text-sm mt-3">Alterations & Tailoring POS</p>
+          <img src="/stitch-logo.png" alt="Stitch" className="h-16 object-contain mx-auto" />
+          <p className="text-white/50 text-sm mt-3">Alterations & Dry Cleaning POS</p>
         </div>
 
         {/* Card */}
