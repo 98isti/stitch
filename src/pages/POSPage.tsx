@@ -1,18 +1,15 @@
 import { useState } from 'react'
-import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal } from 'lucide-react'
-
-const CATEGORIES = [
-  'Wedding', 'Blazer', 'Blouse',
-  'Button', 'Dress', 'Dry Cleaning',
-  'Elastic', 'Evening / Formal', 'Measurement',
-  'Miscellaneous', 'Pant', 'Patch',
-  'Pocket', 'Repair', 'School',
-  'Shirt', 'Skirt', 'Trouser',
-]
+import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import ItemPickerSheet, { MOCK_CATEGORIES } from '../components/ItemPickerSheet'
+import type { PriceItem } from '../components/ItemPickerSheet'
 
 interface SaleItem {
+  id: string
   category: string
-  amount: number
+  name: string
+  quantity: number
+  unitPrice: number
+  note: string
 }
 
 const PICKUP_DATE = new Intl.DateTimeFormat('en-AU', {
@@ -22,8 +19,18 @@ const PICKUP_DATE = new Intl.DateTimeFormat('en-AU', {
 export default function POSPage() {
   const [amount, setAmount] = useState('0')
   const [items, setItems] = useState<SaleItem[]>([])
-  const total = items.reduce((sum, i) => sum + i.amount, 0)
+  const [showPicker, setShowPicker] = useState(false)
+  const [pendingCategory, setPendingCategory] = useState<string | null>(null)
+
+  const total = items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0)
   const subtotal = total / 1.1
+
+  // Count how many items per category (for numbering: Pant 1, Pant 2...)
+  const categoryCount: Record<string, number> = {}
+  items.forEach(i => {
+    const base = i.category.replace(/ \d+$/, '')
+    categoryCount[base] = (categoryCount[base] ?? 0) + 1
+  })
 
   function handleKey(key: string) {
     setAmount(prev => {
@@ -31,7 +38,6 @@ export default function POSPage() {
       if (key === '.' && prev.includes('.')) return prev
       if (prev === '0' && key !== '.') return key
       const next = prev + key
-      // Max 2 decimal places
       const parts = next.split('.')
       if (parts[1]?.length > 2) return prev
       return next
@@ -39,21 +45,55 @@ export default function POSPage() {
   }
 
   function handleDelete() {
-    setAmount(prev => {
-      if (prev.length <= 1) return '0'
-      return prev.slice(0, -1)
-    })
+    setAmount(prev => prev.length <= 1 ? '0' : prev.slice(0, -1))
   }
 
-  function addToSale(category: string) {
+  // Add to Sale (custom amount — no category picker)
+  function handleAddToSale() {
     const val = parseFloat(amount)
     if (!val) return
-    setItems(prev => [...prev, { category, amount: val }])
+    const newItem: SaleItem = {
+      id: crypto.randomUUID(),
+      category: 'Custom',
+      name: 'Custom Amount',
+      quantity: 1,
+      unitPrice: val,
+      note: '',
+    }
+    setItems(prev => [...prev, newItem])
     setAmount('0')
   }
 
-  function removeItem(idx: number) {
-    setItems(prev => prev.filter((_, i) => i !== idx))
+  // Category tapped → open picker (with amount pre-set as context)
+  function handleCategoryTap(categoryName: string) {
+    setPendingCategory(categoryName)
+    setShowPicker(true)
+  }
+
+  // Item selected from picker
+  function handleItemSelected(categoryLabel: string, item: PriceItem) {
+    const price = item.price > 0 ? item.price : parseFloat(amount) || 0
+    const newItem: SaleItem = {
+      id: crypto.randomUUID(),
+      category: categoryLabel,
+      name: item.name,
+      quantity: 1,
+      unitPrice: price,
+      note: '',
+    }
+    setItems(prev => [...prev, newItem])
+    if (item.price > 0) setAmount('0')
+    setShowPicker(false)
+    setPendingCategory(null)
+  }
+
+  function removeItem(id: string) {
+    setItems(prev => prev.filter(i => i.id !== id))
+  }
+
+  function clearSale() {
+    setItems([])
+    setAmount('0')
   }
 
   return (
@@ -62,51 +102,52 @@ export default function POSPage() {
       {/* ── LEFT PANEL ── */}
       <div className="w-56 shrink-0 bg-white border-r border-gray-200 flex flex-col">
         {/* Location + staff */}
-        <div className="px-4 pt-4 pb-2 border-b border-gray-100 text-center">
-          <div className="flex items-center justify-center gap-1.5 mb-1">
-            <div className="w-5 h-5 bg-navy rounded flex items-center justify-center">
+        <div className="px-4 pt-4 pb-3 border-b border-gray-100 text-center">
+          <div className="flex items-center justify-center gap-1.5 mb-1.5">
+            <div className="w-6 h-6 bg-navy rounded-md flex items-center justify-center">
               <span className="text-white text-xs font-bold">S</span>
             </div>
-            <span className="font-bold text-navy text-sm">Stitch</span>
+            <span className="font-bold text-navy text-base tracking-tight">Stitch</span>
           </div>
-          <p className="text-sm font-semibold text-gray-700">Carlingford</p>
+          <p className="text-sm font-semibold text-gray-800">Carlingford</p>
           <p className="text-xs text-gray-400 mt-0.5">Staff: Isti</p>
         </div>
 
         {/* Amount display */}
         <div className="px-4 py-3 border-b border-gray-100">
-          <div className="bg-gray-50 rounded-xl px-4 py-3 text-center">
-            <span className="text-4xl font-bold text-gray-900">
-              ${parseFloat(amount).toFixed(2) === amount || !amount.includes('.') ? amount : amount}
+          <div className="bg-gray-50 rounded-xl px-3 py-3 text-center border border-gray-200">
+            <span className="text-4xl font-bold text-gray-900 tabular-nums">
+              ${amount}
             </span>
           </div>
         </div>
 
         {/* Keypad */}
-        <div className="px-3 py-2 grid grid-cols-3 gap-1.5 flex-1">
-          {['1','2','3','4','5','6','7','8','9','.','0'].map(k => (
-            <button
-              key={k}
-              onClick={() => handleKey(k)}
-              className="aspect-square rounded-xl bg-gray-50 text-gray-800 text-xl font-semibold hover:bg-gray-100 active:bg-gray-200 transition-colors flex items-center justify-center"
-            >
+        <div className="px-3 py-2 grid grid-cols-3 gap-1.5">
+          {['1','2','3','4','5','6','7','8','9'].map(k => (
+            <button key={k} onClick={() => handleKey(k)}
+              className="h-12 rounded-xl bg-gray-50 text-gray-800 text-xl font-semibold hover:bg-gray-100 active:scale-95 transition-all border border-gray-100">
               {k}
             </button>
           ))}
-          <button
-            onClick={handleDelete}
-            className="aspect-square rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100 active:bg-gray-200 transition-colors flex items-center justify-center"
-          >
-            <Delete size={18} />
+          <button onClick={() => handleKey('.')}
+            className="h-12 rounded-xl bg-gray-50 text-gray-800 text-xl font-semibold hover:bg-gray-100 active:scale-95 transition-all border border-gray-100">
+            .
+          </button>
+          <button onClick={() => handleKey('0')}
+            className="h-12 rounded-xl bg-gray-50 text-gray-800 text-xl font-semibold hover:bg-gray-100 active:scale-95 transition-all border border-gray-100">
+            0
+          </button>
+          <button onClick={handleDelete}
+            className="h-12 rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100 active:scale-95 transition-all border border-gray-100 flex items-center justify-center">
+            <Delete size={17} />
           </button>
         </div>
 
         {/* Add to Sale */}
         <div className="px-3 pb-2">
-          <button
-            onClick={() => {}}
-            className="w-full py-3 rounded-xl bg-gray-700 hover:bg-gray-800 text-white font-semibold text-sm transition-colors"
-          >
+          <button onClick={handleAddToSale}
+            className="w-full py-2.5 rounded-xl bg-gray-600 hover:bg-gray-700 text-white font-semibold text-sm transition-colors active:scale-95">
             Add to Sale
           </button>
         </div>
@@ -123,8 +164,7 @@ export default function POSPage() {
             Open Drawer
           </button>
           <button className="py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold flex items-center justify-center gap-1 transition-colors">
-            <ScanLine size={13} />
-            Scan Order
+            <ScanLine size={12} /> Scan
           </button>
         </div>
       </div>
@@ -132,37 +172,32 @@ export default function POSPage() {
       {/* ── MIDDLE PANEL — Category grid ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <div className="flex-1 overflow-y-auto p-3">
-          <div className="grid grid-cols-3 gap-2 h-full auto-rows-fr">
-            {CATEGORIES.map(cat => (
+          <div className="grid grid-cols-3 gap-2">
+            {MOCK_CATEGORIES.map(cat => (
               <button
-                key={cat}
-                onClick={() => addToSale(cat)}
-                className="flex items-center justify-center rounded-2xl bg-white border border-gray-200 text-gray-800 font-medium text-sm hover:bg-navy hover:text-white hover:border-navy active:scale-95 transition-all shadow-sm min-h-[64px] px-2 text-center leading-tight"
+                key={cat.id}
+                onClick={() => handleCategoryTap(cat.name)}
+                className="flex flex-col items-center justify-center rounded-2xl bg-white border border-gray-200 text-gray-800 hover:bg-navy hover:text-white hover:border-navy active:scale-95 transition-all shadow-sm min-h-[80px] px-2 text-center group"
               >
-                {cat}
+                <span className="font-semibold text-sm leading-tight">{cat.name}</span>
+                <span className="text-xs text-gray-400 group-hover:text-white/60 mt-1">
+                  {cat.items.length} items
+                </span>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Item count */}
-        <div className="border-t border-gray-200 bg-white px-4 py-2 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full border-2 border-gray-400 flex items-center justify-center">
+        {/* Item count bar */}
+        <div className="border-t border-gray-200 bg-white px-4 py-2.5 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center shrink-0">
             <span className="text-sm font-bold text-gray-600">{items.length}</span>
           </div>
-          <span className="text-sm text-gray-500">items</span>
+          <span className="text-sm text-gray-400">items in current sale</span>
           {items.length > 0 && (
-            <div className="ml-2 flex gap-1.5 flex-wrap">
-              {items.map((item, i) => (
-                <button
-                  key={i}
-                  onClick={() => removeItem(i)}
-                  className="text-xs bg-navy/10 text-navy px-2 py-0.5 rounded-full hover:bg-red-100 hover:text-red-600 transition-colors"
-                >
-                  {item.category} ${item.amount.toFixed(2)} ×
-                </button>
-              ))}
-            </div>
+            <button onClick={clearSale} className="ml-auto text-xs text-red-400 hover:text-red-600 transition-colors">
+              Clear all
+            </button>
           )}
         </div>
       </div>
@@ -172,67 +207,85 @@ export default function POSPage() {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <h2 className="font-bold text-gray-900 text-base">Current Sale</h2>
-          <button className="text-gray-400 hover:text-gray-600">
-            <MoreHorizontal size={20} />
-          </button>
+          <button className="text-gray-400 hover:text-gray-600"><MoreHorizontal size={18} /></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {/* Add customer */}
-          <button className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-3 text-sm text-gray-500 hover:border-navy hover:text-navy transition-colors">
-            <UserPlus size={16} />
-            Add Customer +
+          <button className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-2.5 text-sm text-gray-400 hover:border-navy hover:text-navy transition-colors">
+            <UserPlus size={15} /> Add Customer +
           </button>
 
           {/* Pickup date */}
-          <button className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-500 rounded-xl py-2.5 text-sm font-medium hover:bg-red-100 transition-colors">
-            Pick up: {PICKUP_DATE}
-            <ChevronDown size={14} />
+          <button className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-500 rounded-xl py-2 text-xs font-medium hover:bg-red-100 transition-colors">
+            Pick up: {PICKUP_DATE} <ChevronDown size={13} />
           </button>
 
-          {/* Items list */}
-          {items.length > 0 && (
-            <div className="space-y-1">
-              {items.map((item, i) => (
-                <div key={i} className="flex items-center justify-between py-1.5 border-b border-gray-50">
-                  <span className="text-sm text-gray-700">{item.category}</span>
-                  <span className="text-sm font-semibold text-gray-900">${item.amount.toFixed(2)}</span>
+          {/* Items */}
+          {items.length === 0 ? (
+            <div className="text-center py-6 text-gray-300 text-sm">
+              <p className="text-3xl mb-2">🧵</p>
+              <p>No items added yet</p>
+            </div>
+          ) : (
+            <div className="space-y-1 mt-1">
+              {items.map(item => (
+                <div key={item.id}
+                  className="flex items-start gap-2 py-2 px-2 rounded-lg hover:bg-gray-50 group transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-navy truncate">{item.category}</p>
+                    <p className="text-sm text-gray-700 truncate">{item.name}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="font-bold text-gray-900 text-sm">${item.unitPrice.toFixed(2)}</span>
+                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button className="p-1 text-gray-400 hover:text-navy"><Pencil size={12} /></button>
+                      <button onClick={() => removeItem(item.id)} className="p-1 text-gray-400 hover:text-red-500">
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Totals + payment */}
+        {/* Totals */}
         <div className="border-t border-gray-100">
-          <div className="px-4 py-3 space-y-1.5 bg-gray-50">
+          <div className="px-4 py-3 bg-gray-50 space-y-1">
             <div className="flex justify-between text-sm text-gray-500">
               <span>Subtotal</span>
               <span>${subtotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between font-bold text-gray-900">
-              <span>Total <span className="text-xs font-normal text-gray-400">(incl 10% GST)</span></span>
-              <span className="text-lg">${total.toFixed(2)}</span>
+            <div className="flex justify-between items-baseline">
+              <span className="font-bold text-gray-900">Total</span>
+              <span className="text-xs text-gray-400 mx-1">(incl 10% GST)</span>
+              <span className="font-bold text-gray-900 text-lg">${total.toFixed(2)}</span>
             </div>
           </div>
 
+          {/* Payment buttons */}
           <div className="grid grid-cols-2 gap-2 p-3">
-            <button
-              disabled={!total}
-              className="py-3.5 rounded-xl bg-gray-200 hover:bg-gray-300 disabled:opacity-40 text-gray-700 font-semibold text-sm transition-colors"
-            >
+            <button disabled={!total}
+              className="py-3.5 rounded-xl bg-gray-200 hover:bg-gray-300 disabled:opacity-40 text-gray-700 font-semibold text-sm transition-colors active:scale-95">
               Cash ${total.toFixed(2)}
             </button>
-            <button
-              disabled={!total}
-              className="py-3.5 rounded-xl bg-navy hover:bg-navy-light disabled:opacity-40 text-white font-semibold text-sm transition-colors"
-            >
+            <button disabled={!total}
+              className="py-3.5 rounded-xl bg-navy hover:bg-navy-light disabled:opacity-40 text-white font-semibold text-sm transition-colors active:scale-95">
               Card ${total.toFixed(2)}
             </button>
           </div>
         </div>
       </div>
 
+      {/* Item Picker Sheet */}
+      <ItemPickerSheet
+        isOpen={showPicker}
+        onClose={() => { setShowPicker(false); setPendingCategory(null) }}
+        onSelectItem={handleItemSelected}
+        categoryCount={categoryCount}
+      />
     </div>
   )
 }
