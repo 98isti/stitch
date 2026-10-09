@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage'
 import StaffPinPage from './pages/StaffPinPage'
 import OnboardingPage from './pages/OnboardingPage'
 import AppShell from './layouts/AppShell'
+import POSLayout from './layouts/POSLayout'
 import OrdersPage from './pages/OrdersPage'
 import POSPage from './pages/POSPage'
 import PlaceholderPage from './pages/PlaceholderPage'
@@ -33,8 +34,13 @@ function AppRoutes() {
         !onboarded ? <Navigate to="/onboarding" /> :
         <Navigate to="/pos" />
       } />
-      <Route element={user && onboarded ? <AppShell /> : <Navigate to="/" />}>
+      {/* POS — full screen, no sidebar */}
+      <Route element={user && onboarded ? <POSLayout /> : <Navigate to="/" />}>
         <Route path="/pos" element={<POSPage />} />
+      </Route>
+
+      {/* Other screens — sidebar layout */}
+      <Route element={user && onboarded ? <AppShell /> : <Navigate to="/" />}>
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/reports" element={<PlaceholderPage title="Reports" />} />
         <Route path="/signin" element={<PlaceholderPage title="Sign-In Book" />} />
