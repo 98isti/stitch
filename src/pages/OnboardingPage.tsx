@@ -17,6 +17,7 @@ interface FormData {
   country: string
   phone: string
   shopType: 'alterations' | 'dryCleaning'
+  dailyTarget: string
 }
 
 const INITIAL: FormData = {
@@ -29,6 +30,7 @@ const INITIAL: FormData = {
   country: 'Australia',
   phone: '',
   shopType: 'alterations',
+  dailyTarget: '500',
 }
 
 const STEPS = ['Business', 'Location', 'Done']
@@ -77,6 +79,7 @@ export default function OnboardingPage() {
         country: form.country,
         phone: form.phone.trim(),
         shopType: form.shopType,
+        dailyTarget: parseFloat(form.dailyTarget) || 500,
         createdAt: serverTimestamp(),
       })
 
@@ -208,6 +211,18 @@ export default function OnboardingPage() {
                   <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)}
                     placeholder="e.g. 02 9123 4567"
                     className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Daily Sales Target ($)</label>
+                  <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus-within:border-navy">
+                    <span className="text-gray-400 font-medium">$</span>
+                    <input type="number" value={form.dailyTarget} onChange={e => set('dailyTarget', e.target.value)}
+                      placeholder="500"
+                      className="flex-1 bg-transparent text-gray-900 text-sm focus:outline-none"
+                      inputMode="numeric" />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Used for the daily revenue progress bar</p>
                 </div>
 
                 <div>

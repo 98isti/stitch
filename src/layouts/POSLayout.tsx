@@ -44,7 +44,7 @@ export default function POSLayout() {
   const { accountId } = useAuth()
   const { activeLocation } = useLocations(accountId)
   const { revenue: dailyRevenue } = useDailyRevenue(accountId, activeLocation?.name ?? null)
-  const revenueTarget = parseFloat(localStorage.getItem('stitch_revenue_target') ?? '500')
+  const revenueTarget = activeLocation?.dailyTarget ?? parseFloat(localStorage.getItem('stitch_revenue_target') ?? '500')
   const progressPct = revenueTarget > 0 ? Math.min(100, (dailyRevenue / revenueTarget) * 100) : 0
   const [showMore, setShowMore] = useState(false)
   const [showScreenSaver, setShowScreenSaver] = useState(false)
