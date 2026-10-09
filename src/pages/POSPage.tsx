@@ -663,7 +663,7 @@ export default function POSPage() {
           </button>
 
           {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-start h-full pt-12 select-none pointer-events-none">
+            <div className="flex flex-col items-center justify-center h-full select-none pointer-events-none">
               <img src="/stitch-logo.png" alt="" className="w-48 object-contain opacity-[0.12]" />
             </div>
           ) : (() => {
