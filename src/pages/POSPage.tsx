@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDailyRevenue } from '../hooks/useDailyRevenue'
-import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, MapPin, Check, CheckCircle } from 'lucide-react'
+import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, MapPin, Check, CheckCircle, X } from 'lucide-react'
 import EditSaleItemSheet from '../components/EditSaleItemSheet'
 import {
   collection, query, getDocs, addDoc, serverTimestamp, orderBy,
