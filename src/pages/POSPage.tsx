@@ -124,18 +124,18 @@ function SuccessToast({
   onDone: () => void
 }) {
   useEffect(() => {
-    const t = setTimeout(onDone, 2000)
+    const t = setTimeout(onDone, 3500)
     return () => clearTimeout(t)
   }, [onDone])
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] animate-fade-in">
-      <div className="flex items-center gap-3 bg-gray-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl">
-        <CheckCircle size={22} className="text-green-400 shrink-0" strokeWidth={2} />
-        <div>
-          <p className="font-semibold text-sm">{orderNumber} saved — ${total.toFixed(2)}</p>
-          <p className="text-white/50 text-xs">{paymentMethod}</p>
-        </div>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
+      <div className="bg-gray-900 text-white rounded-3xl shadow-2xl px-10 py-8 text-center pointer-events-auto min-w-[280px]">
+        <CheckCircle size={52} className="text-green-400 mx-auto mb-4" strokeWidth={1.5} />
+        <p className="text-white/60 text-sm mb-1">Order Saved</p>
+        <p className="text-2xl font-bold mb-1">{orderNumber}</p>
+        <p className="text-3xl font-bold text-green-400 mb-1">${total.toFixed(2)}</p>
+        <p className="text-white/50 text-sm">{paymentMethod}</p>
       </div>
     </div>
   )
