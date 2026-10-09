@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useDailyRevenue } from '../hooks/useDailyRevenue'
 import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, MapPin, Check, CheckCircle } from 'lucide-react'
 import EditSaleItemSheet from '../components/EditSaleItemSheet'
-import SwipeToDeleteItem from '../components/SwipeToDeleteItem'
 import {
   collection, query, getDocs, addDoc, serverTimestamp, orderBy,
   doc, runTransaction
@@ -676,15 +675,18 @@ export default function POSPage() {
                     </div>
                     {/* Service lines */}
                     {group.items.map(item => (
-                      <SwipeToDeleteItem key={item.id} onTap={() => setEditingItem(item)} onDelete={() => removeItem(item.id)}>
-                        <div className="flex items-start gap-2 py-2 px-3 cursor-pointer ml-1">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-800 truncate">{item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ''}</p>
-                            {item.note ? <p className="text-xs text-gray-400 truncate mt-0.5">{item.note}</p> : null}
-                          </div>
-                          <span className="font-semibold text-gray-900 text-sm shrink-0">${(item.unitPrice * item.quantity).toFixed(2)}</span>
+                      <div key={item.id}
+                        className="flex items-center gap-2 py-2 px-3 rounded-xl active:bg-gray-50 ml-1">
+                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setEditingItem(item)}>
+                          <p className="text-sm text-gray-800 truncate">{item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ''}</p>
+                          {item.note ? <p className="text-xs text-gray-400 truncate mt-0.5">{item.note}</p> : null}
                         </div>
-                      </SwipeToDeleteItem>
+                        <span className="font-semibold text-gray-900 text-sm shrink-0 cursor-pointer" onClick={() => setEditingItem(item)}>${(item.unitPrice * item.quantity).toFixed(2)}</span>
+                        <button onClick={() => removeItem(item.id)}
+                          className="w-7 h-7 rounded-full bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-400 flex items-center justify-center shrink-0 transition-colors ml-1">
+                          <X size={13} />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 ))}
