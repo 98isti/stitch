@@ -4,7 +4,6 @@ import { ClipboardList, List, Calendar, MoreHorizontal, LogOut, ChevronLeft, Bar
 import { useAuth } from '../context/AuthContext'
 import { useDailyRevenue } from '../hooks/useDailyRevenue'
 import { useLocations } from '../hooks/useLocations'
-import type { Location as StitchLocation } from '../hooks/useLocations'
 import { signOut } from 'firebase/auth'
 import { auth } from '../lib/firebase'
 import ScreenSaver from '../components/ScreenSaver'
@@ -45,7 +44,8 @@ export default function POSLayout() {
   const { accountId } = useAuth()
   const { activeLocation } = useLocations(accountId)
   const { revenue: dailyRevenue } = useDailyRevenue(accountId, activeLocation?.name ?? null)
-  const revenueTarget = (activeLocation as StitchLocation | null)?.dailyTarget ?? parseFloat(localStorage.getItem('stitch_revenue_target') ?? '500')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const revenueTarget = ((activeLocation as any)?.dailyTarget as number | undefined) ?? parseFloat(localStorage.getItem('stitch_revenue_target') ?? '500')
   const progressPct = revenueTarget > 0 ? Math.min(100, (dailyRevenue / revenueTarget) * 100) : 0
   const [showMore, setShowMore] = useState(false)
   const [showScreenSaver, setShowScreenSaver] = useState(false)
