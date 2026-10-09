@@ -1,13 +1,6 @@
 import { useState, useEffect } from 'react'
 
-interface SaleItem {
-  id: string
-  category: string
-  name: string
-  quantity: number
-  unitPrice: number
-  note: string
-}
+import type { SaleItem } from '../types/sale'
 
 interface Discount {
   type: 'percent' | 'flat'

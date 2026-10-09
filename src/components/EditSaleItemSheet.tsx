@@ -1,14 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Minus, Plus } from 'lucide-react'
 
-interface SaleItem {
-  id: string
-  category: string
-  name: string
-  quantity: number
-  unitPrice: number
-  note: string
-}
+import type { SaleItem } from '../types/sale'
 
 interface Props {
   item: SaleItem | null
@@ -38,7 +31,7 @@ export default function EditSaleItemSheet({ item, onClose, onSave }: Props) {
 
   function handleSave() {
     if (!item) return
-    onSave({ id: item.id, category: item.category, name, unitPrice, note, quantity })
+    onSave({ id: item.id, garmentId: item.garmentId, category: item.category, name, unitPrice, note, quantity })
     onClose()
   }
 

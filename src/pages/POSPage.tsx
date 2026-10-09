@@ -16,14 +16,7 @@ import { useItems } from '../hooks/useItems'
 import { useLocations } from '../hooks/useLocations'
 import { useAuth } from '../context/AuthContext'
 
-interface SaleItem {
-  id: string
-  category: string
-  name: string
-  quantity: number
-  unitPrice: number
-  note: string
-}
+import type { SaleItem } from '../types/sale'
 
 interface Customer {
   id: string
@@ -311,6 +304,7 @@ export default function POSPage() {
   const [showPicker, setShowPicker] = useState(false)
   const [editingItem, setEditingItem] = useState<SaleItem | null>(null)
   const [pickerCategory, setPickerCategory] = useState<string | null>(null)
+  const [longPressGarmentId, setLongPressGarmentId] = useState<string | null>(null)
   const [showLocationPicker, setShowLocationPicker] = useState(false)
 
 
@@ -362,21 +356,24 @@ export default function POSPage() {
     const val = parseFloat(amount)
     if (!val) return
     setItems(prev => [...prev, {
-      id: crypto.randomUUID(), category: 'Custom',
-      name: 'Custom Amount', quantity: 1, unitPrice: val, note: ''
+      id: crypto.randomUUID(), garmentId: crypto.randomUUID(),
+      category: 'Custom', name: 'Custom Amount', quantity: 1, unitPrice: val, note: ''
     }])
     setAmount('0')
   }
 
   function handleItemSelected(categoryLabel: string, item: PriceItem) {
     const price = item.itemPrice > 0 ? item.itemPrice : parseFloat(amount) || 0
+    // If long-pressed from an existing garment, reuse its garmentId (same group)
+    const garmentId = longPressGarmentId ?? crypto.randomUUID()
     setItems(prev => [...prev, {
-      id: crypto.randomUUID(), category: categoryLabel,
-      name: item.itemName, quantity: 1, unitPrice: price, note: ''
+      id: crypto.randomUUID(), garmentId,
+      category: categoryLabel, name: item.itemName, quantity: 1, unitPrice: price, note: ''
     }])
     if (item.itemPrice > 0) setAmount('0')
     setShowPicker(false)
     setPickerCategory(null)
+    setLongPressGarmentId(null)
   }
 
   function updateItem(updated: SaleItem) {
@@ -549,7 +546,10 @@ export default function POSPage() {
               <div className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center shrink-0">
                 <span className="text-sm font-bold text-gray-600">{items.length}</span>
               </div>
-              <span className="text-sm text-gray-400">items in current sale</span>
+              <span className="text-sm text-gray-400">
+              {items.length === 0 ? 'items in current sale' : 
+                `${[...new Set(items.map(i => i.garmentId))].length} garment${[...new Set(items.map(i => i.garmentId))].length !== 1 ? 's' : ''}, ${items.length} service${items.length !== 1 ? 's' : ''}`}
+            </span>
               {items.length > 0 && (
                 <button onClick={clearSale} className="ml-auto text-xs text-red-400 hover:text-red-600">Clear all</button>
               )}
@@ -602,28 +602,58 @@ export default function POSPage() {
               <p className="text-3xl mb-2">🧵</p>
               <p>No items added yet</p>
             </div>
-          ) : (
-            <div className="space-y-1 mt-1">
-              {items.map(item => (
-                <div key={item.id}
-                  onClick={() => setEditingItem(item)}
-                  className="flex items-start gap-2 py-2 px-2 rounded-lg hover:bg-gray-50 active:bg-gray-100 group transition-colors cursor-pointer">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-navy truncate">{item.category}</p>
-                    <p className="text-sm text-gray-700 truncate">{item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ''}</p>
-                    {item.note ? <p className="text-xs text-gray-400 truncate mt-0.5">{item.note}</p> : null}
+          ) : (() => {
+            // Group items by garmentId
+            const groups: { garmentId: string; category: string; items: SaleItem[] }[] = []
+            items.forEach(item => {
+              const g = groups.find(g => g.garmentId === item.garmentId)
+              if (g) g.items.push(item)
+              else groups.push({ garmentId: item.garmentId, category: item.category, items: [item] })
+            })
+            return (
+              <div className="space-y-3 mt-1">
+                {groups.map(group => (
+                  <div key={group.garmentId}>
+                    {/* Garment header — long press to add more services */}
+                    <div className="flex items-center justify-between px-2 mb-1">
+                      <p className="text-xs font-bold text-navy uppercase tracking-wide">{group.category}</p>
+                      <button
+                        onPointerDown={() => {
+                          const t = setTimeout(() => {
+                            setLongPressGarmentId(group.garmentId)
+                            setPickerCategory(null)
+                            setShowPicker(true)
+                          }, 500)
+                          const up = () => { clearTimeout(t); window.removeEventListener('pointerup', up) }
+                          window.addEventListener('pointerup', up)
+                        }}
+                        className="text-xs text-navy/50 hover:text-navy transition-colors px-1">
+                        + Add service
+                      </button>
+                    </div>
+                    {/* Service lines */}
+                    {group.items.map(item => (
+                      <div key={item.id}
+                        onClick={() => setEditingItem(item)}
+                        className="flex items-start gap-2 py-2 px-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 group transition-colors cursor-pointer ml-1">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-800 truncate">{item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ''}</p>
+                          {item.note ? <p className="text-xs text-gray-400 truncate mt-0.5">{item.note}</p> : null}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="font-semibold text-gray-900 text-sm">${(item.unitPrice * item.quantity).toFixed(2)}</span>
+                          <button onClick={e => { e.stopPropagation(); removeItem(item.id) }}
+                            className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span className="font-bold text-gray-900 text-sm">${(item.unitPrice * item.quantity).toFixed(2)}</span>
-                    <button onClick={e => { e.stopPropagation(); removeItem(item.id) }}
-                      className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
-                      <Trash2 size={11} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )
+          })()}
         </div>
 
         <div className="border-t border-gray-100">
