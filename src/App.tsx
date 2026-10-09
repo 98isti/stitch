@@ -2,6 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import LoginPage from './pages/LoginPage'
 import StaffPinPage from './pages/StaffPinPage'
+import AppShell from './layouts/AppShell'
+import OrdersPage from './pages/OrdersPage'
+import PlaceholderPage from './pages/PlaceholderPage'
 
 function AppRoutes() {
   const { user, loading } = useAuth()
@@ -16,9 +19,16 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
+      <Route path="/login" element={user ? <Navigate to="/orders" /> : <LoginPage />} />
       <Route path="/pin" element={<StaffPinPage />} />
-      <Route path="/" element={user ? <div className="p-8 text-2xl">Dashboard (coming soon)</div> : <Navigate to="/login" />} />
+      <Route path="/" element={user ? <Navigate to="/orders" /> : <Navigate to="/login" />} />
+      <Route element={user ? <AppShell /> : <Navigate to="/login" />}>
+        <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/reports" element={<PlaceholderPage title="Reports" />} />
+        <Route path="/signin" element={<PlaceholderPage title="Sign-In Book" />} />
+        <Route path="/roster" element={<PlaceholderPage title="Roster" />} />
+        <Route path="/staff" element={<PlaceholderPage title="Staff" />} />
+      </Route>
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   )
