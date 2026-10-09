@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Test collection — remove before launch
+    match /_test/{doc} {
+      allow read, write: if true;
+    }
+
+    // Account data — only authenticated users belonging to that account
+    match /accounts/{accountId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == accountId;
+    }
+
+    // User profile mapping
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
