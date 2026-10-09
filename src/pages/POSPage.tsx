@@ -85,7 +85,10 @@ export default function POSPage() {
   function clearSale() { setItems([]); setAmount('0') }
 
   return (
-    <div className="flex h-full bg-gray-100 overflow-hidden">
+    <div className="flex flex-col h-full bg-gray-100 overflow-hidden">
+
+      {/* ── MAIN ROW (3 panels) ── */}
+      <div className="flex flex-1 overflow-hidden">
 
       {/* ── LEFT PANEL ── */}
       <div className="w-56 shrink-0 bg-white border-r border-gray-200 flex flex-col">
@@ -130,14 +133,6 @@ export default function POSPage() {
           </button>
         </div>
 
-        <div className="px-3 pb-3 grid grid-cols-2 gap-1.5">
-          <button className="py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold">Today's Due</button>
-          <button className="py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-semibold">Discount</button>
-          <button className="py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold">Open Drawer</button>
-          <button className="py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold flex items-center justify-center gap-1">
-            <ScanLine size={12} /> Scan
-          </button>
-        </div>
       </div>
 
       {/* ── MIDDLE PANEL ── */}
@@ -236,6 +231,24 @@ export default function POSPage() {
             </button>
           </div>
         </div>
+      </div>
+
+      </div> {/* end main row */}
+
+      {/* ── BOTTOM ACTION BAR — full width ── */}
+      <div className="flex shrink-0 bg-white border-t border-gray-200 px-3 py-2 gap-2">
+        <button className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 active:scale-95 text-white text-sm font-semibold transition-all">
+          Today's Due
+        </button>
+        <button className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 active:scale-95 text-white text-sm font-semibold transition-all">
+          Discount
+        </button>
+        <button className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-sm font-semibold transition-all">
+          Open Drawer
+        </button>
+        <button className="flex-1 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 active:scale-95 text-white text-sm font-semibold transition-all flex items-center justify-center gap-1.5">
+          <ScanLine size={15} /> Scan Order
+        </button>
       </div>
 
       {/* Item Picker — now driven by Firebase */}
