@@ -684,7 +684,7 @@ export default function POSPage() {
       {/* Item Picker Sheet */}
       <ItemPickerSheet
         isOpen={showPicker}
-        onClose={() => { setShowPicker(false); setPickerCategory(null) }}
+        onClose={() => { setShowPicker(false); setPickerCategory(null); setLongPressGarmentId(null) }}
         onSelectItem={handleItemSelected}
         categoryCount={categoryCount}
         categories={categories}
