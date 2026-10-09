@@ -13,6 +13,7 @@ import { useCategories } from '../hooks/useCategories'
 import { usePersistedSale } from '../hooks/usePersistedSale'
 import { useItems } from '../hooks/useItems'
 import { useLocations } from '../hooks/useLocations'
+import { useAccountProfile } from '../hooks/useAccountProfile'
 import { useAuth } from '../context/AuthContext'
 import { useStaff } from '../context/StaffContext'
 
@@ -289,6 +290,7 @@ export default function POSPage() {
   const { categories, loading: catsLoading } = useCategories(accountId)
   const { loading: itemsLoading, getItemsForCategory, getSubCategories } = useItems(accountId)
   const { loading: locsLoading, activeLocation } = useLocations(accountId)
+  const accountProfile = useAccountProfile(accountId)
   const loading = catsLoading || itemsLoading || locsLoading
 
   const {
@@ -465,7 +467,18 @@ export default function POSPage() {
           <div className="w-56 shrink-0 bg-white border-r border-gray-200 flex flex-col">
             <div className="px-4 pt-4 pb-3 border-b border-gray-100 text-center">
               <div className="flex items-center justify-center gap-1.5 mb-2">
-                <img src="/stitch-logo.png" alt="Stitch" className="h-8 object-contain" />
+              {/* Business name — prominent */}
+              <div className="text-center px-2 mb-0.5">
+                {accountProfile?.logoUrl
+                  ? <img src={accountProfile.logoUrl} alt={accountProfile.businessName} className="h-10 object-contain mx-auto" />
+                  : <p className="font-bold text-navy text-base leading-tight">{accountProfile?.businessName ?? 'Your Business'}</p>
+                }
+              </div>
+              {/* Powered by Stitch */}
+              <div className="flex items-center justify-center gap-1">
+                <span className="text-gray-300 text-xs">powered by</span>
+                <img src="/stitch-logo.png" alt="Stitch" className="h-3.5 object-contain opacity-40" />
+              </div>
               </div>
               <div className="w-full flex flex-col items-center gap-1 px-2.5 py-1">
                 <div className="flex items-center gap-1.5">
