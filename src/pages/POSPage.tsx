@@ -663,9 +663,8 @@ export default function POSPage() {
           </button>
 
           {items.length === 0 ? (
-            <div className="text-center py-6 text-gray-300 text-sm">
-              <p className="text-3xl mb-2">🧵</p>
-              <p>No items added yet</p>
+            <div className="flex flex-col items-center justify-center h-full py-6 select-none pointer-events-none">
+              <img src="/stitch-logo.png" alt="" className="w-32 object-contain opacity-[0.06]" />
             </div>
           ) : (() => {
             // Group items by garmentId
