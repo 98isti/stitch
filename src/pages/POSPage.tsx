@@ -620,14 +620,10 @@ export default function POSPage() {
                     <div className="flex items-center justify-between px-2 mb-1">
                       <p className="text-xs font-bold text-navy uppercase tracking-wide">{group.category}</p>
                       <button
-                        onPointerDown={() => {
-                          const t = setTimeout(() => {
-                            setLongPressGarmentId(group.garmentId)
-                            setPickerCategory(null)
-                            setShowPicker(true)
-                          }, 500)
-                          const up = () => { clearTimeout(t); window.removeEventListener('pointerup', up) }
-                          window.addEventListener('pointerup', up)
+                        onClick={() => {
+                          setLongPressGarmentId(group.garmentId)
+                          setPickerCategory(null)
+                          setShowPicker(true)
                         }}
                         className="text-xs text-navy/50 hover:text-navy transition-colors px-1">
                         + Add service
