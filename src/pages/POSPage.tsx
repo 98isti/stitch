@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDailyRevenue } from '../hooks/useDailyRevenue'
-import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, Pencil, Trash2, MapPin, Check, CheckCircle } from 'lucide-react'
+import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, Trash2, MapPin, Check, CheckCircle } from 'lucide-react'
+import EditSaleItemSheet from '../components/EditSaleItemSheet'
 import {
   collection, query, getDocs, addDoc, serverTimestamp, orderBy,
   doc, runTransaction
@@ -302,6 +303,7 @@ export default function POSPage() {
   const [amount, setAmount] = useState('0')
   const [items, setItems] = useState<SaleItem[]>([])
   const [showPicker, setShowPicker] = useState(false)
+  const [editingItem, setEditingItem] = useState<SaleItem | null>(null)
   const [pickerCategory, setPickerCategory] = useState<string | null>(null)
   const [showLocationPicker, setShowLocationPicker] = useState(false)
 
@@ -372,6 +374,10 @@ export default function POSPage() {
     if (item.itemPrice > 0) setAmount('0')
     setShowPicker(false)
     setPickerCategory(null)
+  }
+
+  function updateItem(updated: SaleItem) {
+    setItems(prev => prev.map(i => i.id === updated.id ? updated : i))
   }
 
   function removeItem(id: string) {
@@ -598,17 +604,20 @@ export default function POSPage() {
           ) : (
             <div className="space-y-1 mt-1">
               {items.map(item => (
-                <div key={item.id} className="flex items-start gap-2 py-2 px-2 rounded-lg hover:bg-gray-50 group transition-colors">
+                <div key={item.id}
+                  onClick={() => setEditingItem(item)}
+                  className="flex items-start gap-2 py-2 px-2 rounded-lg hover:bg-gray-50 active:bg-gray-100 group transition-colors cursor-pointer">
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-navy truncate">{item.category}</p>
-                    <p className="text-sm text-gray-700 truncate">{item.name}</p>
+                    <p className="text-sm text-gray-700 truncate">{item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ''}</p>
+                    {item.note ? <p className="text-xs text-gray-400 truncate mt-0.5">{item.note}</p> : null}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <span className="font-bold text-gray-900 text-sm">${item.unitPrice.toFixed(2)}</span>
-                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-1 text-gray-400 hover:text-navy"><Pencil size={11} /></button>
-                      <button onClick={() => removeItem(item.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 size={11} /></button>
-                    </div>
+                    <span className="font-bold text-gray-900 text-sm">${(item.unitPrice * item.quantity).toFixed(2)}</span>
+                    <button onClick={e => { e.stopPropagation(); removeItem(item.id) }}
+                      className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+                      <Trash2 size={11} />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -691,6 +700,13 @@ export default function POSPage() {
           </div>
         </div>
       )}
+
+      {/* Edit Sale Item Sheet */}
+      <EditSaleItemSheet
+        item={editingItem}
+        onClose={() => setEditingItem(null)}
+        onSave={updateItem}
+      />
 
       {/* Date Picker */}
       {showDatePicker && (
