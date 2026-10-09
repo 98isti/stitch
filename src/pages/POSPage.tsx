@@ -477,7 +477,7 @@ export default function POSPage() {
                 {/* Powered by Stitch */}
                 <div className="flex items-center gap-1 mt-1">
                   <span className="text-gray-400 text-xs">powered by</span>
-                  <img src="/stitch-logo.png" alt="Stitch" className="h-3 object-contain opacity-30" />
+                  <img src="/stitch-logo.png" alt="Stitch" className="h-5 object-contain opacity-40" />
                 </div>
               </div>
               <div className="w-full flex flex-col items-center gap-1 px-2.5 py-1">
@@ -663,8 +663,8 @@ export default function POSPage() {
           </button>
 
           {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full py-6 select-none pointer-events-none">
-              <img src="/stitch-logo.png" alt="" className="w-32 object-contain opacity-[0.06]" />
+            <div className="flex flex-col items-center justify-start h-full pt-16 select-none pointer-events-none">
+              <img src="/stitch-logo.png" alt="" className="w-48 object-contain opacity-[0.12]" />
             </div>
           ) : (() => {
             // Group items by garmentId
