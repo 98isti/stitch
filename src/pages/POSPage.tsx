@@ -87,89 +87,113 @@ export default function POSPage() {
   return (
     <div className="flex h-full bg-gray-100 overflow-hidden">
 
-      {/* ── LEFT + MIDDLE wrapper ── */}
+      {/* ── LEFT + MIDDLE wrapper (with bottom action bar) ── */}
       <div className="flex flex-col flex-1 overflow-hidden">
-      <div className="flex flex-1 overflow-hidden">
 
-      {/* ── LEFT PANEL ── */
-      <div className="w-56 shrink-0 bg-white border-r border-gray-200 flex flex-col">
-        <div className="px-4 pt-4 pb-3 border-b border-gray-100 text-center">
-          <div className="flex items-center justify-center gap-1.5 mb-1.5">
-            <div className="w-6 h-6 bg-navy rounded-md flex items-center justify-center">
-              <span className="text-white text-xs font-bold">S</span>
+        {/* Top row: left panel + category grid */}
+        <div className="flex flex-1 overflow-hidden">
+
+          {/* ── LEFT PANEL ── */}
+          <div className="w-56 shrink-0 bg-white border-r border-gray-200 flex flex-col">
+            <div className="px-4 pt-4 pb-3 border-b border-gray-100 text-center">
+              <div className="flex items-center justify-center gap-1.5 mb-1.5">
+                <div className="w-6 h-6 bg-navy rounded-md flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">S</span>
+                </div>
+                <span className="font-bold text-navy text-base tracking-tight">Stitch</span>
+              </div>
+              <p className="text-sm font-semibold text-gray-800">Carlingford</p>
+              <p className="text-xs text-gray-400 mt-0.5">Staff: Isti</p>
             </div>
-            <span className="font-bold text-navy text-base tracking-tight">Stitch</span>
-          </div>
-          <p className="text-sm font-semibold text-gray-800">Carlingford</p>
-          <p className="text-xs text-gray-400 mt-0.5">Staff: Isti</p>
-        </div>
 
-        <div className="px-4 py-3 border-b border-gray-100">
-          <div className="bg-gray-50 rounded-xl px-3 py-3 text-center border border-gray-200">
-            <span className="text-4xl font-bold text-gray-900 tabular-nums">${amount}</span>
-          </div>
-        </div>
-
-        <div className="px-3 py-2 grid grid-cols-3 gap-1.5">
-          {['1','2','3','4','5','6','7','8','9'].map(k => (
-            <button key={k} onClick={() => handleKey(k)}
-              className="h-12 rounded-xl bg-gray-50 text-gray-800 text-xl font-semibold hover:bg-gray-100 active:scale-95 transition-all border border-gray-100">
-              {k}
-            </button>
-          ))}
-          <button onClick={() => handleKey('.')}
-            className="h-12 rounded-xl bg-gray-50 text-gray-800 text-xl font-semibold hover:bg-gray-100 active:scale-95 transition-all border border-gray-100">.</button>
-          <button onClick={() => handleKey('0')}
-            className="h-12 rounded-xl bg-gray-50 text-gray-800 text-xl font-semibold hover:bg-gray-100 active:scale-95 transition-all border border-gray-100">0</button>
-          <button onClick={handleDelete}
-            className="h-12 rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100 active:scale-95 transition-all border border-gray-100 flex items-center justify-center">
-            <Delete size={17} />
-          </button>
-        </div>
-
-        <div className="px-3 pb-2">
-          <button onClick={handleAddToSale}
-            className="w-full py-2.5 rounded-xl bg-gray-600 hover:bg-gray-700 text-white font-semibold text-sm transition-colors active:scale-95">
-            Add to Sale
-          </button>
-        </div>
-
-      </div>
-
-      {/* ── MIDDLE PANEL ── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-3">
-          {loading ? (
-            <div className="flex items-center justify-center h-full text-gray-400">
-              <div className="text-center">
-                <div className="w-8 h-8 border-2 border-navy border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                <p className="text-sm">Loading categories...</p>
+            <div className="px-4 py-3 border-b border-gray-100">
+              <div className="bg-gray-50 rounded-xl px-3 py-3 text-center border border-gray-200">
+                <span className="text-4xl font-bold text-gray-900 tabular-nums">${amount}</span>
               </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-2">
-              {categories.map(cat => (
-                <button key={cat.id} onClick={() => { setPickerCategory(cat.categoryName); setShowPicker(true) }}
-                  className="flex items-center justify-center rounded-2xl bg-white border border-gray-200 text-gray-800 hover:bg-navy hover:text-white hover:border-navy active:scale-95 transition-all shadow-sm min-h-[80px] px-2 text-center">
-                  <span className="font-semibold text-sm leading-tight">{cat.categoryName}</span>
+
+            <div className="px-3 py-2 grid grid-cols-3 gap-1.5">
+              {['1','2','3','4','5','6','7','8','9'].map(k => (
+                <button key={k} onClick={() => handleKey(k)}
+                  className="h-12 rounded-xl bg-gray-50 text-gray-800 text-xl font-semibold hover:bg-gray-100 active:scale-95 transition-all border border-gray-100">
+                  {k}
                 </button>
               ))}
+              <button onClick={() => handleKey('.')}
+                className="h-12 rounded-xl bg-gray-50 text-gray-800 text-xl font-semibold hover:bg-gray-100 active:scale-95 transition-all border border-gray-100">.
+              </button>
+              <button onClick={() => handleKey('0')}
+                className="h-12 rounded-xl bg-gray-50 text-gray-800 text-xl font-semibold hover:bg-gray-100 active:scale-95 transition-all border border-gray-100">0
+              </button>
+              <button onClick={handleDelete}
+                className="h-12 rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100 active:scale-95 transition-all border border-gray-100 flex items-center justify-center">
+                <Delete size={17} />
+              </button>
             </div>
-          )}
-        </div>
 
-        <div className="border-t border-gray-200 bg-white px-4 py-2.5 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center shrink-0">
-            <span className="text-sm font-bold text-gray-600">{items.length}</span>
+            <div className="px-3 pb-3">
+              <button onClick={handleAddToSale}
+                className="w-full py-2.5 rounded-xl bg-gray-600 hover:bg-gray-700 text-white font-semibold text-sm transition-colors active:scale-95">
+                Add to Sale
+              </button>
+            </div>
           </div>
-          <span className="text-sm text-gray-400">items in current sale</span>
-          {items.length > 0 && (
-            <button onClick={clearSale} className="ml-auto text-xs text-red-400 hover:text-red-600">Clear all</button>
-          )}
-        </div>
-      </div>
 
-      {/* ── RIGHT PANEL (Current Sale — wider) ── */}
+          {/* ── MIDDLE PANEL ── */}
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-3">
+              {loading ? (
+                <div className="flex items-center justify-center h-full text-gray-400">
+                  <div className="text-center">
+                    <div className="w-8 h-8 border-2 border-navy border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-sm">Loading categories...</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {categories.map(cat => (
+                    <button key={cat.id}
+                      onClick={() => { setPickerCategory(cat.categoryName); setShowPicker(true) }}
+                      className="flex items-center justify-center rounded-2xl bg-white border border-gray-200 text-gray-800 hover:bg-navy hover:text-white hover:border-navy active:scale-95 transition-all shadow-sm min-h-[80px] px-2 text-center">
+                      <span className="font-semibold text-sm leading-tight">{cat.categoryName}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-gray-200 bg-white px-4 py-2.5 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center shrink-0">
+                <span className="text-sm font-bold text-gray-600">{items.length}</span>
+              </div>
+              <span className="text-sm text-gray-400">items in current sale</span>
+              {items.length > 0 && (
+                <button onClick={clearSale} className="ml-auto text-xs text-red-400 hover:text-red-600">Clear all</button>
+              )}
+            </div>
+          </div>
+
+        </div>{/* end top row */}
+
+        {/* ── BOTTOM ACTION BAR — under left+middle only ── */}
+        <div className="flex shrink-0 bg-white border-t border-gray-200 px-3 py-2 gap-2">
+          <button className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 active:scale-95 text-white text-sm font-semibold transition-all">
+            Today's Due
+          </button>
+          <button className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 active:scale-95 text-white text-sm font-semibold transition-all">
+            Discount
+          </button>
+          <button className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-sm font-semibold transition-all">
+            Open Drawer
+          </button>
+          <button className="flex-1 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 active:scale-95 text-white text-sm font-semibold transition-all flex items-center justify-center gap-1.5">
+            <ScanLine size={15} /> Scan Order
+          </button>
+        </div>
+
+      </div>{/* end left+middle wrapper */}
+
+      {/* ── RIGHT PANEL — Current Sale (wider) ── */}
       <div className="w-96 shrink-0 bg-white border-l border-gray-200 flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <h2 className="font-bold text-gray-900 text-base">Current Sale</h2>
@@ -234,20 +258,7 @@ export default function POSPage() {
         </div>
       </div>
 
-      </div> {/* end left+middle top row */}
-
-      {/* ── BOTTOM ACTION BAR — under left+middle only ── */}
-      <div className="flex shrink-0 bg-white border-t border-gray-200 px-3 py-2 gap-2">
-        <button className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 active:scale-95 text-white text-sm font-semibold transition-all">Today's Due</button>
-        <button className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 active:scale-95 text-white text-sm font-semibold transition-all">Discount</button>
-        <button className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-sm font-semibold transition-all">Open Drawer</button>
-        <button className="flex-1 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 active:scale-95 text-white text-sm font-semibold transition-all flex items-center justify-center gap-1.5">
-          <ScanLine size={15} /> Scan Order
-        </button>
-      </div>
-      </div> {/* end left+middle wrapper */
-
-      {/* Item Picker — now driven by Firebase */}
+      {/* Item Picker */}
       <ItemPickerSheet
         isOpen={showPicker}
         onClose={() => { setShowPicker(false); setPickerCategory(null) }}
