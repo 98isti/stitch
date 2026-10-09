@@ -7,6 +7,7 @@ import POSLayout from './layouts/POSLayout'
 import POSPage from './pages/POSPage'
 import OrdersPage from './pages/OrdersPage'
 import PlaceholderPage from './pages/PlaceholderPage'
+import OrderDetailPage from './pages/OrderDetailPage'
 
 function AppRoutes() {
   const { user, loading, onboarded } = useAuth()
@@ -38,6 +39,7 @@ function AppRoutes() {
       <Route element={user && onboarded ? <POSLayout /> : <Navigate to="/" />}>
         <Route path="/pos"        element={<POSPage />} />
         <Route path="/orders"     element={<OrdersPage />} />
+        <Route path="/orders/:id"  element={<OrderDetailPage />} />
         <Route path="/signin"     element={<PlaceholderPage title="Sign In / Sign Out" />} />
         <Route path="/roster"     element={<PlaceholderPage title="PickUp Calendar" />} />
         <Route path="/reports"    element={<PlaceholderPage title="Reports" />} />
