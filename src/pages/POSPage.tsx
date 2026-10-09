@@ -22,11 +22,8 @@ const PICKUP_DATE = new Intl.DateTimeFormat('en-AU', {
 export default function POSPage() {
   const [amount, setAmount] = useState('0')
   const [items, setItems] = useState<SaleItem[]>([])
-  const [customer, setCustomer] = useState<string | null>(null)
-
   const total = items.reduce((sum, i) => sum + i.amount, 0)
   const subtotal = total / 1.1
-  const gstAmount = total - subtotal
 
   function handleKey(key: string) {
     setAmount(prev => {
