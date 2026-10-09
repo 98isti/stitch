@@ -23,12 +23,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  // DEV MODE: bypass auth so UI can be previewed without Firebase
-  const DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true'
-  const mockUser = DEV_MODE ? { uid: 'dev-user' } as User : null
-
   return (
-    <AuthContext.Provider value={{ user: DEV_MODE ? mockUser : user, loading: DEV_MODE ? false : loading, accountId: DEV_MODE ? 'dev-account' : (user?.uid ?? null) }}>
+    <AuthContext.Provider value={{ user, loading, accountId: user?.uid ?? null }}>
       {children}
     </AuthContext.Provider>
   )
