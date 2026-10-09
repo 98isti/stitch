@@ -1,0 +1,110 @@
+import { useState } from 'react'
+import { Delete } from 'lucide-react'
+
+const MOCK_STAFF = [
+  { name: 'Konica', pin: '1234', role: 'Manager' },
+  { name: 'Mina', pin: '5678', role: 'Staff' },
+  { name: 'Ali', pin: '9012', role: 'Staff' },
+]
+
+export default function StaffPinPage() {
+  const [pin, setPin] = useState('')
+  const [error, setError] = useState('')
+  const [loggedIn, setLoggedIn] = useState<string | null>(null)
+
+  function handleKey(digit: string) {
+    if (pin.length >= 6) return
+    const next = pin + digit
+    setPin(next)
+    setError('')
+
+    // Auto-submit at 4 digits (configurable)
+    if (next.length === 4) {
+      const staff = MOCK_STAFF.find(s => s.pin === next)
+      if (staff) {
+        setLoggedIn(staff.name)
+      } else {
+        setTimeout(() => {
+          setPin('')
+          setError('Wrong PIN — try again')
+        }, 300)
+      }
+    }
+  }
+
+  function handleDelete() {
+    setPin(p => p.slice(0, -1))
+    setError('')
+  }
+
+  if (loggedIn) {
+    return (
+      <div className="min-h-screen bg-navy flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="text-4xl mb-4">👋</div>
+          <p className="text-2xl font-semibold">Hi, {loggedIn}!</p>
+          <p className="text-white/50 mt-2">Loading your dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-navy flex flex-col items-center justify-center p-4">
+      <div className="text-center mb-8">
+        <div className="inline-flex items-center gap-3 mb-2">
+          <div className="w-8 h-8 bg-tan rounded-lg flex items-center justify-center">
+            <span className="text-navy font-bold">S</span>
+          </div>
+          <span className="text-white text-xl font-bold">Stitch</span>
+        </div>
+        <p className="text-white/50 text-sm">Enter your PIN</p>
+      </div>
+
+      {/* PIN dots */}
+      <div className="flex gap-3 mb-8">
+        {[0, 1, 2, 3].map(i => (
+          <div
+            key={i}
+            className={`w-4 h-4 rounded-full border-2 transition-all ${
+              i < pin.length ? 'bg-tan border-tan' : 'border-white/30'
+            }`}
+          />
+        ))}
+      </div>
+
+      {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+
+      {/* Numpad */}
+      <div className="grid grid-cols-3 gap-3 w-64">
+        {['1','2','3','4','5','6','7','8','9'].map(d => (
+          <button
+            key={d}
+            onClick={() => handleKey(d)}
+            className="h-16 rounded-xl bg-white/10 text-white text-xl font-semibold hover:bg-white/20 active:bg-white/30 transition-colors"
+          >
+            {d}
+          </button>
+        ))}
+        <div /> {/* empty */}
+        <button
+          onClick={() => handleKey('0')}
+          className="h-16 rounded-xl bg-white/10 text-white text-xl font-semibold hover:bg-white/20 active:bg-white/30 transition-colors"
+        >
+          0
+        </button>
+        <button
+          onClick={handleDelete}
+          className="h-16 rounded-xl bg-white/10 text-white flex items-center justify-center hover:bg-white/20 active:bg-white/30 transition-colors"
+        >
+          <Delete size={20} />
+        </button>
+      </div>
+
+      <p className="text-white/30 text-xs mt-8">
+        Business owner?{' '}
+        <a href="/login" className="text-tan hover:underline">Sign in here</a>
+      </p>
+    </div>
+  )
+}
