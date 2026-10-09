@@ -307,7 +307,6 @@ export default function POSPage() {
   const [longPressGarmentId, setLongPressGarmentId] = useState<string | null>(null)
   const [showSaleMenu, setShowSaleMenu] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
-  const [showLocationPicker, setShowLocationPicker] = useState(false)
 
 
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -472,12 +471,10 @@ export default function POSPage() {
                 </div>
                 <span className="font-bold text-navy text-base tracking-tight">Stitch</span>
               </div>
-              <button onClick={() => setShowLocationPicker(true)}
-                className="w-full flex items-center justify-between gap-1 px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors">
+              <div className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5">
                 <MapPin size={12} className="text-navy shrink-0" />
-                <span className="text-xs font-semibold text-gray-800 truncate flex-1 text-left">{locationLabel}</span>
-                <ChevronDown size={12} className="text-gray-400 shrink-0" />
-              </button>
+                <span className="text-sm font-semibold text-gray-800 truncate">{locationLabel}</span>
+              </div>
             </div>
 
             <div className="px-4 py-3 border-b border-gray-100">
@@ -740,36 +737,7 @@ export default function POSPage() {
         <PaymentSheet total={total} onPay={handlePay} onClose={() => setShowPayment(false)} />
       )}
 
-      {/* Location Picker */}
-      {showLocationPicker && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowLocationPicker(false)}>
-          <div className="absolute inset-0 bg-black/30" />
-          <div className="relative z-10 bg-white rounded-t-3xl w-full max-w-sm pb-8 pt-4 shadow-2xl"
-            onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
-            <h3 className="text-center font-bold text-gray-900 text-base mb-3 px-4">Select Location</h3>
-            <div className="space-y-1 px-4">
-              {locations.map(loc => (
-                <button key={loc.id}
-                  onClick={() => { setActiveLocation(loc); setShowLocationPicker(false) }}
-                  className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-left transition-colors ${
-                    activeLocation?.id === loc.id ? 'bg-navy text-white' : 'bg-gray-50 hover:bg-gray-100 text-gray-800'
-                  }`}>
-                  <div>
-                    <p className="font-semibold text-sm">{loc.name}</p>
-                    {(loc.suburb || loc.streetAddress) && (
-                      <p className={`text-xs mt-0.5 ${activeLocation?.id === loc.id ? 'text-blue-100' : 'text-gray-400'}`}>
-                        {loc.suburb ?? loc.streetAddress}
-                      </p>
-                    )}
-                  </div>
-                  {activeLocation?.id === loc.id && <Check size={16} className="text-white shrink-0" />}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Edit Sale Item Sheet */}
       <EditSaleItemSheet
