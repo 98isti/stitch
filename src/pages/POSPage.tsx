@@ -204,10 +204,8 @@ function CustomerSheet({
     getDocs(query(collection(db, 'accounts', accountId, 'customers'), orderBy('firstName')))
       .then(snap => {
         const all = snap.docs.map(d => ({ id: d.id, ...d.data() } as Customer))
-        const term = search.toLowerCase()
         setResults(all.filter(c =>
-          `${c.firstName} ${c.lastName}`.toLowerCase().includes(term) ||
-          c.phone?.includes(term)
+          c.phone?.includes(search.trim())
         ).slice(0, 8))
         setSearching(false)
       }).catch(() => setSearching(false))
@@ -225,21 +223,21 @@ function CustomerSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/30" />
-      <div className="relative z-10 bg-white rounded-t-3xl w-full max-w-sm pb-8 pt-4 shadow-2xl max-h-[80vh] flex flex-col"
+      <div className="relative z-10 bg-white rounded-2xl w-full max-w-sm shadow-2xl max-h-[80vh] flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}>
-        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
-        <div className="flex items-center justify-between px-4 mb-3">
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100">
           <h3 className="font-bold text-gray-900 text-base">{addMode ? 'New Customer' : 'Customer Lookup'}</h3>
-          {addMode && <button onClick={() => setAddMode(false)} className="text-sm text-navy">← Back</button>}
+          {addMode && <button onClick={() => setAddMode(false)} className="text-sm text-navy font-medium">← Back</button>}
         </div>
 
         {!addMode ? (
           <>
             <div className="px-4 mb-3">
               <input ref={inputRef} value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search name or phone…"
+                placeholder="Search by phone number…"
+                inputMode="tel"
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-navy" />
             </div>
             <div className="flex-1 overflow-y-auto px-4 space-y-1">
@@ -262,7 +260,7 @@ function CustomerSheet({
               )}
             </div>
             <div className="px-4 mt-3">
-              <button onClick={() => setAddMode(true)}
+              <button onClick={() => { setAddMode(true); setForm(f => ({ ...f, phone: search.trim() })) }}
                 className="w-full py-3 rounded-xl border-2 border-dashed border-gray-200 text-navy text-sm font-semibold hover:border-navy transition-colors">
                 + Add New Customer
               </button>
