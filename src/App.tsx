@@ -3,10 +3,9 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import LoginPage from './pages/LoginPage'
 import StaffPinPage from './pages/StaffPinPage'
 import OnboardingPage from './pages/OnboardingPage'
-import AppShell from './layouts/AppShell'
 import POSLayout from './layouts/POSLayout'
-import OrdersPage from './pages/OrdersPage'
 import POSPage from './pages/POSPage'
+import OrdersPage from './pages/OrdersPage'
 import PlaceholderPage from './pages/PlaceholderPage'
 
 function AppRoutes() {
@@ -34,19 +33,24 @@ function AppRoutes() {
         !onboarded ? <Navigate to="/onboarding" /> :
         <Navigate to="/pos" />
       } />
-      {/* POS — full screen, no sidebar */}
+
+      {/* All app screens — POSLayout (full screen, back button nav) */}
       <Route element={user && onboarded ? <POSLayout /> : <Navigate to="/" />}>
-        <Route path="/pos" element={<POSPage />} />
+        <Route path="/pos"        element={<POSPage />} />
+        <Route path="/orders"     element={<OrdersPage />} />
+        <Route path="/signin"     element={<PlaceholderPage title="Sign In / Sign Out" />} />
+        <Route path="/roster"     element={<PlaceholderPage title="PickUp Calendar" />} />
+        <Route path="/reports"    element={<PlaceholderPage title="Reports" />} />
+        <Route path="/staff"      element={<PlaceholderPage title="Staff" />} />
+        <Route path="/customers"  element={<PlaceholderPage title="Customers" />} />
+        <Route path="/items"      element={<PlaceholderPage title="Items" />} />
+        <Route path="/categories" element={<PlaceholderPage title="Categories" />} />
+        <Route path="/vouchers"   element={<PlaceholderPage title="Vouchers" />} />
+        <Route path="/settings"   element={<PlaceholderPage title="Settings" />} />
+        <Route path="/timesheet"  element={<PlaceholderPage title="My Timesheet" />} />
+        <Route path="/leave"      element={<PlaceholderPage title="Leave" />} />
       </Route>
 
-      {/* Other screens — sidebar layout */}
-      <Route element={user && onboarded ? <AppShell /> : <Navigate to="/" />}>
-        <Route path="/orders" element={<OrdersPage />} />
-        <Route path="/reports" element={<PlaceholderPage title="Reports" />} />
-        <Route path="/signin" element={<PlaceholderPage title="Sign-In Book" />} />
-        <Route path="/roster" element={<PlaceholderPage title="Roster" />} />
-        <Route path="/staff" element={<PlaceholderPage title="Staff" />} />
-      </Route>
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   )
