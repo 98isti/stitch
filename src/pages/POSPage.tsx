@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDailyRevenue } from '../hooks/useDailyRevenue'
-import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, MapPin, Check, CheckCircle, X } from 'lucide-react'
+import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, MapPin, CheckCircle, X } from 'lucide-react'
 import EditSaleItemSheet from '../components/EditSaleItemSheet'
 import {
   collection, query, getDocs, addDoc, serverTimestamp, orderBy,
@@ -286,7 +286,7 @@ export default function POSPage() {
   const { categories, loading: catsLoading } = useCategories(accountId)
   const { loading: itemsLoading, getItemsForCategory, getSubCategories } = useItems(accountId)
   const navigate = useNavigate()
-  const { locations, loading: locsLoading, activeLocation, setActiveLocation } = useLocations(accountId)
+  const { loading: locsLoading, activeLocation } = useLocations(accountId)
   const { revenue: dailyRevenue } = useDailyRevenue(accountId, activeLocation?.name ?? null)
   const [revenueTarget] = useState(() => parseFloat(localStorage.getItem('stitch_revenue_target') ?? '500'))
   const progressPct = revenueTarget > 0 ? Math.min(100, (dailyRevenue / revenueTarget) * 100) : 0
