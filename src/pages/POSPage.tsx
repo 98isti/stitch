@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDailyRevenue } from '../hooks/useDailyRevenue'
-import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, Trash2, MapPin, Check, CheckCircle } from 'lucide-react'
+import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, MapPin, Check, CheckCircle } from 'lucide-react'
 import EditSaleItemSheet from '../components/EditSaleItemSheet'
+import SwipeToDeleteItem from '../components/SwipeToDeleteItem'
 import {
   collection, query, getDocs, addDoc, serverTimestamp, orderBy,
   doc, runTransaction
@@ -675,21 +676,15 @@ export default function POSPage() {
                     </div>
                     {/* Service lines */}
                     {group.items.map(item => (
-                      <div key={item.id}
-                        onClick={() => setEditingItem(item)}
-                        className="flex items-start gap-2 py-2 px-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 group transition-colors cursor-pointer ml-1">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-800 truncate">{item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ''}</p>
-                          {item.note ? <p className="text-xs text-gray-400 truncate mt-0.5">{item.note}</p> : null}
+                      <SwipeToDeleteItem key={item.id} onTap={() => setEditingItem(item)} onDelete={() => removeItem(item.id)}>
+                        <div className="flex items-start gap-2 py-2 px-3 cursor-pointer ml-1">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-gray-800 truncate">{item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ''}</p>
+                            {item.note ? <p className="text-xs text-gray-400 truncate mt-0.5">{item.note}</p> : null}
+                          </div>
+                          <span className="font-semibold text-gray-900 text-sm shrink-0">${(item.unitPrice * item.quantity).toFixed(2)}</span>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <span className="font-semibold text-gray-900 text-sm">${(item.unitPrice * item.quantity).toFixed(2)}</span>
-                          <button onClick={e => { e.stopPropagation(); removeItem(item.id) }}
-                            className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Trash2 size={11} />
-                          </button>
-                        </div>
-                      </div>
+                      </SwipeToDeleteItem>
                     ))}
                   </div>
                 ))}
