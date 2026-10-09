@@ -2,13 +2,14 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import LoginPage from './pages/LoginPage'
 import StaffPinPage from './pages/StaffPinPage'
+import OnboardingPage from './pages/OnboardingPage'
 import AppShell from './layouts/AppShell'
 import OrdersPage from './pages/OrdersPage'
 import POSPage from './pages/POSPage'
 import PlaceholderPage from './pages/PlaceholderPage'
 
 function AppRoutes() {
-  const { user, loading } = useAuth()
+  const { user, loading, onboarded } = useAuth()
 
   if (loading) {
     return (
@@ -20,10 +21,19 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/orders" /> : <LoginPage />} />
+      <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
       <Route path="/pin" element={<StaffPinPage />} />
-      <Route path="/" element={user ? <Navigate to="/pos" /> : <Navigate to="/login" />} />
-      <Route element={user ? <AppShell /> : <Navigate to="/login" />}>
+      <Route path="/onboarding" element={
+        !user ? <Navigate to="/login" /> :
+        onboarded ? <Navigate to="/pos" /> :
+        <OnboardingPage />
+      } />
+      <Route path="/" element={
+        !user ? <Navigate to="/login" /> :
+        !onboarded ? <Navigate to="/onboarding" /> :
+        <Navigate to="/pos" />
+      } />
+      <Route element={user && onboarded ? <AppShell /> : <Navigate to="/" />}>
         <Route path="/pos" element={<POSPage />} />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/reports" element={<PlaceholderPage title="Reports" />} />
