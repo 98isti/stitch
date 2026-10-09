@@ -6,10 +6,18 @@ import OnboardingPage from './pages/OnboardingPage'
 import POSLayout from './layouts/POSLayout'
 import POSPage from './pages/POSPage'
 import OrdersPage from './pages/OrdersPage'
-import PlaceholderPage from './pages/PlaceholderPage'
 import OrderDetailPage from './pages/OrderDetailPage'
 import EditOrderPage from './pages/EditOrderPage'
 import TodaysDuePage from './pages/TodaysDuePage'
+import StaffPage from './pages/StaffPage'
+import SignInPage from './pages/SignInPage'
+import SettingsPage from './pages/SettingsPage'
+import CategoriesPage from './pages/CategoriesPage'
+import ItemsPage from './pages/ItemsPage'
+import CustomersPage from './pages/CustomersPage'
+import LocationsPage from './pages/LocationsPage'
+import VouchersPage from './pages/VouchersPage'
+import PlaceholderPage from './pages/PlaceholderPage'
 
 function AppRoutes() {
   const { user, loading, onboarded } = useAuth()
@@ -37,24 +45,24 @@ function AppRoutes() {
         <Navigate to="/pos" />
       } />
 
-      {/* All app screens — POSLayout (full screen, back button nav) */}
       <Route element={user && onboarded ? <POSLayout /> : <Navigate to="/" />}>
-        <Route path="/pos"        element={<POSPage />} />
-        <Route path="/orders"     element={<OrdersPage />} />
-        <Route path="/orders/:id"  element={<OrderDetailPage />} />
-        <Route path="/orders/:id/edit" element={<EditOrderPage />} />
-        <Route path="/todaysdue"   element={<TodaysDuePage />} />
-        <Route path="/signin"     element={<PlaceholderPage title="Sign In / Sign Out" />} />
-        <Route path="/roster"     element={<PlaceholderPage title="PickUp Calendar" />} />
-        <Route path="/reports"    element={<PlaceholderPage title="Reports" />} />
-        <Route path="/staff"      element={<PlaceholderPage title="Staff" />} />
-        <Route path="/customers"  element={<PlaceholderPage title="Customers" />} />
-        <Route path="/items"      element={<PlaceholderPage title="Items" />} />
-        <Route path="/categories" element={<PlaceholderPage title="Categories" />} />
-        <Route path="/vouchers"   element={<PlaceholderPage title="Vouchers" />} />
-        <Route path="/settings"   element={<PlaceholderPage title="Settings" />} />
-        <Route path="/timesheet"  element={<PlaceholderPage title="My Timesheet" />} />
-        <Route path="/leave"      element={<PlaceholderPage title="Leave" />} />
+        <Route path="/pos"               element={<POSPage />} />
+        <Route path="/orders"            element={<OrdersPage />} />
+        <Route path="/orders/:id"        element={<OrderDetailPage />} />
+        <Route path="/orders/:id/edit"   element={<EditOrderPage />} />
+        <Route path="/todaysdue"         element={<TodaysDuePage />} />
+        <Route path="/signin"            element={<SignInPage />} />
+        <Route path="/staff"             element={<StaffPage />} />
+        <Route path="/settings"          element={<SettingsPage />} />
+        <Route path="/categories"        element={<CategoriesPage />} />
+        <Route path="/items"             element={<ItemsPage />} />
+        <Route path="/customers"         element={<CustomersPage />} />
+        <Route path="/locations"         element={<LocationsPage />} />
+        <Route path="/vouchers"          element={<VouchersPage />} />
+        <Route path="/roster"            element={<PlaceholderPage title="PickUp Calendar" />} />
+        <Route path="/reports"           element={<PlaceholderPage title="Reports" />} />
+        <Route path="/timesheet"         element={<PlaceholderPage title="My Timesheet" />} />
+        <Route path="/leave"             element={<PlaceholderPage title="Leave" />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" />} />
