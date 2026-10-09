@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage'
 import StaffPinPage from './pages/StaffPinPage'
 import AppShell from './layouts/AppShell'
 import OrdersPage from './pages/OrdersPage'
+import POSPage from './pages/POSPage'
 import PlaceholderPage from './pages/PlaceholderPage'
 
 function AppRoutes() {
@@ -21,8 +22,9 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/orders" /> : <LoginPage />} />
       <Route path="/pin" element={<StaffPinPage />} />
-      <Route path="/" element={user ? <Navigate to="/orders" /> : <Navigate to="/login" />} />
+      <Route path="/" element={user ? <Navigate to="/pos" /> : <Navigate to="/login" />} />
       <Route element={user ? <AppShell /> : <Navigate to="/login" />}>
+        <Route path="/pos" element={<POSPage />} />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/reports" element={<PlaceholderPage title="Reports" />} />
         <Route path="/signin" element={<PlaceholderPage title="Sign-In Book" />} />

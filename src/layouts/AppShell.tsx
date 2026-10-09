@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import {
   ShoppingBag, BarChart2, ClipboardList, Users,
-  Calendar, LogOut, ChevronDown, Menu
+  Calendar, LogOut, ChevronDown, Menu, Layers
 } from 'lucide-react'
 import { signOut } from 'firebase/auth'
 import { auth } from '../lib/firebase'
@@ -10,6 +10,7 @@ import { auth } from '../lib/firebase'
 const MOCK_LOCATIONS = ['Carlingford', 'Eastgardens', 'Bondi', 'St Ives', 'Warringah', 'Sydney']
 
 const NAV = [
+  { to: '/pos',      icon: Layers,       label: 'POS'       },
   { to: '/orders',   icon: ShoppingBag,  label: 'Orders'    },
   { to: '/reports',  icon: BarChart2,    label: 'Reports'   },
   { to: '/signin',   icon: ClipboardList,label: 'Sign-In'   },
