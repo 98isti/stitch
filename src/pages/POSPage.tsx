@@ -465,10 +465,7 @@ export default function POSPage() {
           <div className="w-56 shrink-0 bg-white border-r border-gray-200 flex flex-col">
             <div className="px-4 pt-4 pb-3 border-b border-gray-100 text-center">
               <div className="flex items-center justify-center gap-1.5 mb-2">
-                <div className="w-6 h-6 bg-navy rounded-md flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">S</span>
-                </div>
-                <span className="font-bold text-navy text-base tracking-tight">Stitch</span>
+                <img src="/stitch-logo.png" alt="Stitch" className="h-8 object-contain" />
               </div>
               <div className="w-full flex flex-col items-center gap-1 px-2.5 py-1">
                 <div className="flex items-center gap-1.5">

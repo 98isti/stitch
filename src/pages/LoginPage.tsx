@@ -21,15 +21,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-navy flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3">
-            <div className="w-10 h-10 bg-tan rounded-lg flex items-center justify-center">
-              <span className="text-navy font-bold text-xl">S</span>
-            </div>
-            <span className="text-white text-2xl font-bold tracking-tight">Stitch</span>
+    <img src="/stitch-logo.png" alt="Stitch" className="h-14 object-contain" />
           </div>
           <p className="text-white/50 text-sm mt-2">Alterations & Tailoring POS</p>
         </div>
