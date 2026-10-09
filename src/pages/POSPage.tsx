@@ -576,7 +576,7 @@ export default function POSPage() {
       </div>
 
       {/* ── RIGHT PANEL — Current Sale ── */}
-      <div className="w-96 shrink-0 bg-white border-l border-gray-200 flex flex-col">
+      <div className="w-[440px] shrink-0 bg-white border-l border-gray-200 flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <h2 className="font-bold text-gray-900 text-base">Current Sale</h2>
           <button className="text-gray-400 hover:text-gray-600"><MoreHorizontal size={18} /></button>
