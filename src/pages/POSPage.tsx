@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useDailyRevenue } from '../hooks/useDailyRevenue'
 import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, MapPin, CheckCircle, X } from 'lucide-react'
 import EditSaleItemSheet from '../components/EditSaleItemSheet'
 import {
@@ -290,9 +289,6 @@ export default function POSPage() {
   const { categories, loading: catsLoading } = useCategories(accountId)
   const { loading: itemsLoading, getItemsForCategory, getSubCategories } = useItems(accountId)
   const { loading: locsLoading, activeLocation } = useLocations(accountId)
-  const { revenue: dailyRevenue } = useDailyRevenue(accountId, activeLocation?.name ?? null)
-  const [revenueTarget] = useState(() => parseFloat(localStorage.getItem('stitch_revenue_target') ?? '500'))
-  const progressPct = revenueTarget > 0 ? Math.min(100, (dailyRevenue / revenueTarget) * 100) : 0
   const loading = catsLoading || itemsLoading || locsLoading
 
   const {
@@ -527,17 +523,7 @@ export default function POSPage() {
               </button>
             </div>
 
-            {/* Daily revenue progress bar */}
-            <div className="px-3 pb-2">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-400">Today</span>
-                <span className="text-xs font-semibold text-gray-600">${dailyRevenue.toFixed(0)} / ${revenueTarget.toFixed(0)}</span>
-              </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${progressPct}%`, background: progressPct >= 100 ? '#16a34a' : '#1B2A4A' }} />
-              </div>
-            </div>
+
 
             <div className="px-3 pb-3">
               <button onClick={handleAddToSale}

@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { ClipboardList, List, Calendar, MoreHorizontal, LogOut, ChevronLeft } from 'lucide-react'
+import { ClipboardList, List, Calendar, MoreHorizontal, LogOut, ChevronLeft, BarChart2 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import { useDailyRevenue } from '../hooks/useDailyRevenue'
+import { useLocations } from '../hooks/useLocations'
 import { signOut } from 'firebase/auth'
 import { auth } from '../lib/firebase'
 import ScreenSaver from '../components/ScreenSaver'
@@ -38,6 +41,11 @@ const PAGE_TITLES: Record<string, string> = {
 export default function POSLayout() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { accountId } = useAuth()
+  const { activeLocation } = useLocations(accountId)
+  const { revenue: dailyRevenue } = useDailyRevenue(accountId, activeLocation?.name ?? null)
+  const revenueTarget = parseFloat(localStorage.getItem('stitch_revenue_target') ?? '500')
+  const progressPct = revenueTarget > 0 ? Math.min(100, (dailyRevenue / revenueTarget) * 100) : 0
   const [showMore, setShowMore] = useState(false)
   const [showScreenSaver, setShowScreenSaver] = useState(false)
 
@@ -139,11 +147,32 @@ export default function POSLayout() {
               <Calendar size={17} />
               <span>PickUp</span>
             </button>
+            <button onClick={() => navigate('/reports')}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors text-sm font-medium">
+              <BarChart2 size={17} />
+              <span>Reports</span>
+            </button>
             <button onClick={() => setShowMore(m => !m)}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl transition-colors text-sm font-medium ${showMore ? 'bg-navy text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
               <MoreHorizontal size={17} />
               <span>More</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── REVENUE BAR — full width, below nav, only on POS ── */}
+      {isPos && (
+        <div className="bg-white border-t border-gray-100 shrink-0">
+          <div className="relative h-7 bg-gray-100 overflow-hidden">
+            <div
+              className="absolute inset-y-0 left-0 transition-all duration-700"
+              style={{ width: `${progressPct}%`, background: progressPct >= 100 ? '#16a34a' : '#1B2A4A' }}
+            />
+            <div className="absolute inset-0 flex items-center justify-between px-4">
+              <span className="text-xs font-semibold text-white mix-blend-difference">Today: ${dailyRevenue.toFixed(0)}</span>
+              <span className="text-xs font-semibold text-white mix-blend-difference">${revenueTarget.toFixed(0)} target</span>
+            </div>
           </div>
         </div>
       )}
