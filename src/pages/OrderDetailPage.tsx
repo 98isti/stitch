@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
-import { ChevronLeft, Check, Package, Phone, Calendar, CreditCard, MapPin } from 'lucide-react'
+import { ChevronLeft, Check, Package, Phone, Calendar, CreditCard, MapPin, Pencil } from 'lucide-react'
 
 interface OrderItem {
   id: string; category: string; name: string; quantity: number; unitPrice: number; note: string
@@ -106,8 +106,14 @@ export default function OrderDetailPage() {
           <p className="font-bold text-gray-900">{order.orderNumberString}</p>
           <p className="text-xs text-gray-400">{order.orderDate}</p>
         </div>
-        <div className={`px-3 py-1 rounded-full text-xs font-semibold border ${STATUS_COLOR[order.status] ?? 'bg-gray-100 text-gray-500'}`}>
-          {order.status}
+        <div className="flex items-center gap-2">
+          <div className={`px-3 py-1 rounded-full text-xs font-semibold border ${STATUS_COLOR[order.status] ?? 'bg-gray-100 text-gray-500'}`}>
+            {order.status}
+          </div>
+          <button onClick={() => navigate(`/orders/${id}/edit`)}
+            className="p-2 rounded-lg hover:bg-gray-100 text-navy transition-colors">
+            <Pencil size={15} />
+          </button>
         </div>
       </div>
 
