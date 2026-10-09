@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { doc, setDoc, collection, addDoc, FieldValue } from 'firebase/firestore'
+import { doc, setDoc, collection, addDoc } from 'firebase/firestore'
 import { serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
@@ -81,7 +81,7 @@ export default function OnboardingPage() {
       })
 
       // 3. Copy default template (categories + items)
-      const { getDocs, collection: col, addDoc: add, doc: docRef, setDoc: set } = await import('firebase/firestore')
+      const { getDocs, collection: col, doc: docRef, setDoc: set } = await import('firebase/firestore')
       const catSnap = await getDocs(col(db, 'defaults', 'sewSmart', 'categories'))
       for (const d of catSnap.docs) {
         await set(docRef(db, 'accounts', accountId, 'categories', d.id), { ...d.data(), source: 'default' })
