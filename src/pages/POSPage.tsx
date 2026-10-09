@@ -20,7 +20,7 @@ export default function POSPage() {
   const [amount, setAmount] = useState('0')
   const [items, setItems] = useState<SaleItem[]>([])
   const [showPicker, setShowPicker] = useState(false)
-  const [pendingCategory, setPendingCategory] = useState<string | null>(null)
+  const [, setPendingCategory] = useState<string | null>(null)
 
   const total = items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0)
   const subtotal = total / 1.1
