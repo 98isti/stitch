@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { StaffProvider } from './context/StaffContext'
 import LoginPage from './pages/LoginPage'
 import StaffPinPage from './pages/StaffPinPage'
 import OnboardingPage from './pages/OnboardingPage'
@@ -77,9 +78,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <StaffProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </StaffProvider>
     </AuthProvider>
   )
 }

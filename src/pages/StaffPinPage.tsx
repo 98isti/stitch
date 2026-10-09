@@ -3,6 +3,8 @@ import { Delete } from 'lucide-react'
 import { collection, getDocs, query } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
+import { useStaff } from '../context/StaffContext'
+import { useNavigate } from 'react-router-dom'
 
 interface StaffMember { id: string; firstName: string; lastName: string; pinHash: string; role: string; isActive: boolean }
 
@@ -13,9 +15,10 @@ async function hashPin(pin: string): Promise<string> {
 
 export default function StaffPinPage() {
   const { accountId } = useAuth()
+  const { setStaff } = useStaff()
+  const navigate = useNavigate()
   const [pin, setPin] = useState('')
   const [error, setError] = useState('')
-  const [loggedIn, setLoggedIn] = useState<string | null>(null)
   const [checking, setChecking] = useState(false)
 
   async function handleKey(digit: string) {
@@ -33,7 +36,9 @@ export default function StaffPinPage() {
         const all = snap.docs.map(d => ({ id: d.id, ...d.data() } as StaffMember))
         const match = all.find(s => s.pinHash === hash && s.isActive)
         if (match) {
-          setLoggedIn(`${match.firstName} ${match.lastName}`)
+          setStaff({ id: match.id, name: `${match.firstName} ${match.lastName}`, role: match.role })
+          navigate('/pos')
+          return
         } else {
           setTimeout(() => { setPin(''); setError('Wrong PIN — try again'); setChecking(false) }, 300)
           return
@@ -46,18 +51,6 @@ export default function StaffPinPage() {
   }
 
   function handleDelete() { setPin(p => p.slice(0, -1)); setError('') }
-
-  if (loggedIn) {
-    return (
-      <div className="min-h-screen bg-navy flex items-center justify-center">
-        <div className="text-center text-white">
-          <div className="text-5xl mb-4">👋</div>
-          <p className="text-2xl font-semibold">Hi, {loggedIn}!</p>
-          <p className="text-white/50 mt-2">Loading…</p>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen bg-navy flex flex-col items-center justify-center p-4">

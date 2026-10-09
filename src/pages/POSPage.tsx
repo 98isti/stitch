@@ -15,6 +15,7 @@ import { usePersistedSale } from '../hooks/usePersistedSale'
 import { useItems } from '../hooks/useItems'
 import { useLocations } from '../hooks/useLocations'
 import { useAuth } from '../context/AuthContext'
+import { useStaff } from '../context/StaffContext'
 
 import type { SaleItem } from '../types/sale'
 
@@ -283,9 +284,11 @@ function CustomerSheet({
 // ── Main POS Page ─────────────────────────────────────────────────────────────
 export default function POSPage() {
   const { accountId } = useAuth()
+  const { staff, clearStaff } = useStaff()
+  const navigate = useNavigate()
+  const [showStaffMenu, setShowStaffMenu] = useState(false)
   const { categories, loading: catsLoading } = useCategories(accountId)
   const { loading: itemsLoading, getItemsForCategory, getSubCategories } = useItems(accountId)
-  const navigate = useNavigate()
   const { loading: locsLoading, activeLocation } = useLocations(accountId)
   const { revenue: dailyRevenue } = useDailyRevenue(accountId, activeLocation?.name ?? null)
   const [revenueTarget] = useState(() => parseFloat(localStorage.getItem('stitch_revenue_target') ?? '500'))
@@ -471,9 +474,32 @@ export default function POSPage() {
                 </div>
                 <span className="font-bold text-navy text-base tracking-tight">Stitch</span>
               </div>
-              <div className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5">
-                <MapPin size={12} className="text-navy shrink-0" />
-                <span className="text-sm font-semibold text-gray-800 truncate">{locationLabel}</span>
+              <div className="w-full flex flex-col items-center gap-1 px-2.5 py-1">
+                <div className="flex items-center gap-1.5">
+                  <MapPin size={12} className="text-navy shrink-0" />
+                  <span className="text-sm font-semibold text-gray-800 truncate">{locationLabel}</span>
+                </div>
+                {staff && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowStaffMenu(m => !m)}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 transition-colors">
+                      <span className="text-xs text-gray-600 font-medium">Staff: {staff.name}</span>
+                    </button>
+                    {showStaffMenu && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setShowStaffMenu(false)} />
+                        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden w-40">
+                          <button
+                            onClick={() => { clearStaff(); setShowStaffMenu(false); navigate('/pin') }}
+                            className="w-full flex items-center gap-2 px-4 py-3 hover:bg-red-50 text-red-500 text-sm font-medium transition-colors">
+                            🔒 Log out?
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
