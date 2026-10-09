@@ -555,7 +555,7 @@ export default function POSPage() {
                 `${[...new Set(items.map(i => i.garmentId))].length} garment${[...new Set(items.map(i => i.garmentId))].length !== 1 ? 's' : ''}, ${items.length} service${items.length !== 1 ? 's' : ''}`}
             </span>
               {items.length > 0 && (
-                <button onClick={clearSale} className="ml-auto text-xs text-red-400 hover:text-red-600">Clear all</button>
+
               )}
             </div>
           </div>
