@@ -1,49 +1,59 @@
 import { useState } from 'react'
 import { Delete } from 'lucide-react'
+import { collection, getDocs, query } from 'firebase/firestore'
+import { db } from '../lib/firebase'
+import { useAuth } from '../context/AuthContext'
 
-const MOCK_STAFF = [
-  { name: 'Konica', pin: '1234', role: 'Manager' },
-  { name: 'Mina', pin: '5678', role: 'Staff' },
-  { name: 'Ali', pin: '9012', role: 'Staff' },
-]
+interface StaffMember { id: string; firstName: string; lastName: string; pinHash: string; role: string; isActive: boolean }
+
+async function hashPin(pin: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin))
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
 
 export default function StaffPinPage() {
+  const { accountId } = useAuth()
   const [pin, setPin] = useState('')
   const [error, setError] = useState('')
   const [loggedIn, setLoggedIn] = useState<string | null>(null)
+  const [checking, setChecking] = useState(false)
 
-  function handleKey(digit: string) {
-    if (pin.length >= 6) return
+  async function handleKey(digit: string) {
+    if (pin.length >= 4 || checking) return
     const next = pin + digit
     setPin(next)
     setError('')
 
-    // Auto-submit at 4 digits (configurable)
     if (next.length === 4) {
-      const staff = MOCK_STAFF.find(s => s.pin === next)
-      if (staff) {
-        setLoggedIn(staff.name)
-      } else {
-        setTimeout(() => {
-          setPin('')
-          setError('Wrong PIN — try again')
-        }, 300)
+      setChecking(true)
+      try {
+        if (!accountId) { setError('Not signed in'); setPin(''); setChecking(false); return }
+        const hash = await hashPin(next)
+        const snap = await getDocs(query(collection(db, 'accounts', accountId, 'staff')))
+        const all = snap.docs.map(d => ({ id: d.id, ...d.data() } as StaffMember))
+        const match = all.find(s => s.pinHash === hash && s.isActive)
+        if (match) {
+          setLoggedIn(`${match.firstName} ${match.lastName}`)
+        } else {
+          setTimeout(() => { setPin(''); setError('Wrong PIN — try again'); setChecking(false) }, 300)
+          return
+        }
+      } catch {
+        setPin(''); setError('Error checking PIN'); 
       }
+      setChecking(false)
     }
   }
 
-  function handleDelete() {
-    setPin(p => p.slice(0, -1))
-    setError('')
-  }
+  function handleDelete() { setPin(p => p.slice(0, -1)); setError('') }
 
   if (loggedIn) {
     return (
       <div className="min-h-screen bg-navy flex items-center justify-center">
         <div className="text-center text-white">
-          <div className="text-4xl mb-4">👋</div>
+          <div className="text-5xl mb-4">👋</div>
           <p className="text-2xl font-semibold">Hi, {loggedIn}!</p>
-          <p className="text-white/50 mt-2">Loading your dashboard...</p>
+          <p className="text-white/50 mt-2">Loading…</p>
         </div>
       </div>
     )
@@ -61,49 +71,35 @@ export default function StaffPinPage() {
         <p className="text-white/50 text-sm">Enter your PIN</p>
       </div>
 
-      {/* PIN dots */}
       <div className="flex gap-3 mb-8">
         {[0, 1, 2, 3].map(i => (
-          <div
-            key={i}
-            className={`w-4 h-4 rounded-full border-2 transition-all ${
-              i < pin.length ? 'bg-tan border-tan' : 'border-white/30'
-            }`}
-          />
+          <div key={i} className={`w-4 h-4 rounded-full border-2 transition-all ${i < pin.length ? 'bg-tan border-tan' : 'border-white/30'}`} />
         ))}
       </div>
 
       {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
 
-      {/* Numpad */}
       <div className="grid grid-cols-3 gap-3 w-64">
         {['1','2','3','4','5','6','7','8','9'].map(d => (
-          <button
-            key={d}
-            onClick={() => handleKey(d)}
-            className="h-16 rounded-xl bg-white/10 text-white text-xl font-semibold hover:bg-white/20 active:bg-white/30 transition-colors"
-          >
+          <button key={d} onClick={() => handleKey(d)}
+            className="h-16 rounded-xl bg-white/10 text-white text-xl font-semibold hover:bg-white/20 active:bg-white/30 transition-colors disabled:opacity-50"
+            disabled={checking}>
             {d}
           </button>
         ))}
-        <div /> {/* empty */}
-        <button
-          onClick={() => handleKey('0')}
-          className="h-16 rounded-xl bg-white/10 text-white text-xl font-semibold hover:bg-white/20 active:bg-white/30 transition-colors"
-        >
+        <div />
+        <button onClick={() => handleKey('0')} disabled={checking}
+          className="h-16 rounded-xl bg-white/10 text-white text-xl font-semibold hover:bg-white/20 active:bg-white/30 transition-colors disabled:opacity-50">
           0
         </button>
-        <button
-          onClick={handleDelete}
-          className="h-16 rounded-xl bg-white/10 text-white flex items-center justify-center hover:bg-white/20 active:bg-white/30 transition-colors"
-        >
+        <button onClick={handleDelete} disabled={checking}
+          className="h-16 rounded-xl bg-white/10 text-white flex items-center justify-center hover:bg-white/20 active:bg-white/30 transition-colors">
           <Delete size={20} />
         </button>
       </div>
 
       <p className="text-white/30 text-xs mt-8">
-        Business owner?{' '}
-        <a href="/login" className="text-tan hover:underline">Sign in here</a>
+        Business owner? <a href="/login" className="text-tan hover:underline">Sign in here</a>
       </p>
     </div>
   )

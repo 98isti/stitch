@@ -1,18 +1,21 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { ClipboardList, List, Calendar, MoreHorizontal, LogOut, ChevronLeft } from 'lucide-react'
 import { signOut } from 'firebase/auth'
 import { auth } from '../lib/firebase'
+import ScreenSaver from '../components/ScreenSaver'
+
+const IDLE_TIMEOUT = 5 * 60 * 1000 // 5 min
 
 const MORE_ITEMS = [
+  { label: 'Staff',        icon: '👤', path: '/staff' },
   { label: 'Customers',    icon: '👥', path: '/customers' },
-  { label: 'Items',        icon: '🏷️', path: '/items' },
   { label: 'Categories',   icon: '📂', path: '/categories' },
+  { label: 'Items',        icon: '🏷️', path: '/items' },
   { label: 'Vouchers',     icon: '🎟️', path: '/vouchers' },
+  { label: 'Locations',    icon: '📍', path: '/locations' },
   { label: 'Settings',     icon: '⚙️', path: '/settings' },
-  { label: 'Daily Reports',icon: '📊', path: '/reports' },
-  { label: 'My Timesheet', icon: '🕐', path: '/timesheet' },
-  { label: 'Leave',        icon: '🌴', path: '/leave' },
+  { label: 'Daily Reports', icon: '📊', path: '/reports' },
 ]
 
 const PAGE_TITLES: Record<string, string> = {
@@ -22,30 +25,61 @@ const PAGE_TITLES: Record<string, string> = {
   '/reports':   'Reports',
   '/staff':     'Staff',
   '/customers': 'Customers',
-  '/items':     'Items',
+  '/items':     'Price List',
   '/categories':'Categories',
-  '/vouchers':  'Vouchers',
+  '/vouchers':  'Gift Vouchers',
   '/settings':  'Settings',
+  '/locations': 'Locations',
   '/timesheet': 'My Timesheet',
   '/leave':     'Leave',
+  '/todaysdue': "Today's Due",
 }
 
 export default function POSLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [showMore, setShowMore] = useState(false)
+  const [showScreenSaver, setShowScreenSaver] = useState(false)
 
   const isPos = location.pathname === '/pos'
+
+  // Dynamic title — handle nested routes like /orders/:id
   const pageTitle = PAGE_TITLES[location.pathname]
+    ?? (location.pathname.startsWith('/orders/') && location.pathname.endsWith('/edit') ? 'Edit Order'
+    : location.pathname.startsWith('/orders/') ? 'Order Detail'
+    : undefined)
+
+  // Screen saver idle timer
+  const resetIdle = useCallback(() => {
+    setShowScreenSaver(false)
+  }, [])
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>
+    function resetTimer() {
+      clearTimeout(timer)
+      timer = setTimeout(() => setShowScreenSaver(true), IDLE_TIMEOUT)
+    }
+    const events = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart']
+    events.forEach(e => window.addEventListener(e, resetTimer, { passive: true }))
+    resetTimer()
+    return () => {
+      clearTimeout(timer)
+      events.forEach(e => window.removeEventListener(e, resetTimer))
+    }
+  }, [])
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-100">
 
-      {/* Sub-page header — shown when not on POS */}
+      {/* Screen saver */}
+      {showScreenSaver && <ScreenSaver onDismiss={resetIdle} />}
+
+      {/* Sub-page header */}
       {!isPos && (
         <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 shrink-0">
           <button
-            onClick={() => navigate('/pos')}
+            onClick={() => navigate(-1)}
             className="flex items-center gap-1 text-navy font-medium text-sm hover:opacity-70 transition-opacity"
           >
             <ChevronLeft size={20} />
@@ -60,14 +94,13 @@ export default function POSLayout() {
         <Outlet />
       </div>
 
-      {/* ── BOTTOM NAV — only on POS ── */}
+      {/* Bottom nav — only on POS */}
       {isPos && (
         <div className="relative">
-          {/* More menu popup */}
           {showMore && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowMore(false)} />
-              <div className="absolute bottom-full right-0 z-50 mb-2 mr-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden w-64">
+              <div className="absolute bottom-full right-0 z-50 mb-2 mr-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden w-72">
                 <div className="grid grid-cols-2">
                   {MORE_ITEMS.map((item, i) => (
                     <button key={item.label}
@@ -76,8 +109,7 @@ export default function POSLayout() {
                         ${i % 2 === 0 ? 'border-r border-gray-100' : ''}
                         ${i < MORE_ITEMS.length - 2 ? 'border-b border-gray-100' : ''}
                       `}>
-                      <span>{item.icon}</span>
-                      {item.label}
+                      <span>{item.icon}</span>{item.label}
                     </button>
                   ))}
                 </div>
@@ -91,30 +123,24 @@ export default function POSLayout() {
             </>
           )}
 
-          {/* Nav bar */}
           <div className="bg-white border-t border-gray-200 flex items-center px-2 py-1.5 gap-1">
             <button onClick={() => navigate('/signin')}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors text-sm font-medium">
               <ClipboardList size={17} />
-              <span>Sign In / Out</span>
+              <span>Sign In/Out</span>
             </button>
-
             <button onClick={() => navigate('/orders')}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors text-sm font-medium">
               <List size={17} />
               <span>Orders</span>
             </button>
-
-            <button onClick={() => navigate('/roster')}
+            <button onClick={() => navigate('/todaysdue')}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors text-sm font-medium">
               <Calendar size={17} />
               <span>PickUp</span>
             </button>
-
             <button onClick={() => setShowMore(m => !m)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl transition-colors text-sm font-medium ${
-                showMore ? 'bg-navy text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}>
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl transition-colors text-sm font-medium ${showMore ? 'bg-navy text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
               <MoreHorizontal size={17} />
               <span>More</span>
             </button>
