@@ -17,6 +17,8 @@ import ItemsPage from './pages/ItemsPage'
 import CustomersPage from './pages/CustomersPage'
 import LocationsPage from './pages/LocationsPage'
 import VouchersPage from './pages/VouchersPage'
+import BillingPage from './pages/BillingPage'
+import AdminPage from './pages/AdminPage'
 import PlaceholderPage from './pages/PlaceholderPage'
 
 function AppRoutes() {
@@ -63,6 +65,8 @@ function AppRoutes() {
         <Route path="/reports"           element={<PlaceholderPage title="Reports" />} />
         <Route path="/timesheet"         element={<PlaceholderPage title="My Timesheet" />} />
         <Route path="/leave"             element={<PlaceholderPage title="Leave" />} />
+        <Route path="/billing"           element={<BillingPage />} />
+        <Route path="/admin"             element={<AdminPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" />} />
