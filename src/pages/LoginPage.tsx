@@ -21,9 +21,13 @@ export default function LoginPage() {
   }
 
   return (
-    <img src="/stitch-logo.png" alt="Stitch" className="h-14 object-contain" />
-          </div>
-          <p className="text-white/50 text-sm mt-2">Alterations & Tailoring POS</p>
+    <div className="min-h-screen bg-navy flex items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <img src="/stitch-logo.png" alt="Stitch" className="h-16 object-contain mx-auto brightness-0 invert" />
+          <p className="text-white/50 text-sm mt-3">Alterations & Tailoring POS</p>
         </div>
 
         {/* Card */}
@@ -36,7 +40,7 @@ export default function LoginPage() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={e => setEmail(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy text-sm"
                 placeholder="you@yourbusiness.com"
                 required
@@ -48,22 +52,17 @@ export default function LoginPage() {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy text-sm"
                 placeholder="••••••••"
                 required
               />
             </div>
 
-            {error && (
-              <p className="text-red-500 text-sm">{error}</p>
-            )}
+            {error && <p className="text-red-500 text-sm">{error}</p>}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-navy text-white py-2.5 rounded-lg font-medium text-sm hover:bg-navy-light transition-colors disabled:opacity-50"
-            >
+            <button type="submit" disabled={loading}
+              className="w-full bg-navy text-white py-2.5 rounded-lg font-medium text-sm hover:bg-navy-light transition-colors disabled:opacity-50">
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
