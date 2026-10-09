@@ -554,9 +554,7 @@ export default function POSPage() {
               {items.length === 0 ? 'items in current sale' : 
                 `${[...new Set(items.map(i => i.garmentId))].length} garment${[...new Set(items.map(i => i.garmentId))].length !== 1 ? 's' : ''}, ${items.length} service${items.length !== 1 ? 's' : ''}`}
             </span>
-              {items.length > 0 && (
 
-              )}
             </div>
           </div>
         </div>
