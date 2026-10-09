@@ -112,7 +112,7 @@ async function saveOrder({
 }
 
 // ── Success Screen ────────────────────────────────────────────────────────────
-function SuccessScreen({
+function SuccessToast({
   orderNumber,
   total,
   paymentMethod,
@@ -123,17 +123,20 @@ function SuccessScreen({
   paymentMethod: string
   onDone: () => void
 }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 2000)
+    return () => clearTimeout(t)
+  }, [onDone])
+
   return (
-    <div className="fixed inset-0 z-[100] bg-navy flex flex-col items-center justify-center text-white px-8">
-      <CheckCircle size={72} className="text-green-400 mb-6" strokeWidth={1.5} />
-      <h2 className="text-3xl font-bold mb-2">Order Saved</h2>
-      <p className="text-blue-200 text-lg mb-1">{orderNumber}</p>
-      <p className="text-2xl font-bold mb-1">${total.toFixed(2)}</p>
-      <p className="text-blue-300 text-sm mb-10">{paymentMethod}</p>
-      <button onClick={onDone}
-        className="px-12 py-4 rounded-2xl bg-white text-navy font-bold text-lg hover:bg-gray-100 transition-colors active:scale-95">
-        New Sale
-      </button>
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] animate-fade-in">
+      <div className="flex items-center gap-3 bg-gray-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl">
+        <CheckCircle size={22} className="text-green-400 shrink-0" strokeWidth={2} />
+        <div>
+          <p className="font-semibold text-sm">{orderNumber} saved — ${total.toFixed(2)}</p>
+          <p className="text-white/50 text-xs">{paymentMethod}</p>
+        </div>
+      </div>
     </div>
   )
 }
@@ -441,7 +444,7 @@ export default function POSPage() {
 
       {/* Success overlay */}
       {success && (
-        <SuccessScreen
+        <SuccessToast
           orderNumber={success.orderNumber}
           total={success.total}
           paymentMethod={success.method}
