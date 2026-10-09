@@ -11,6 +11,7 @@ import { db } from '../lib/firebase'
 import ItemPickerSheet from '../components/ItemPickerSheet'
 import type { PriceItem } from '../hooks/useItems'
 import { useCategories } from '../hooks/useCategories'
+import { usePersistedSale } from '../hooks/usePersistedSale'
 import { useItems } from '../hooks/useItems'
 import { useLocations } from '../hooks/useLocations'
 import { useAuth } from '../context/AuthContext'
@@ -298,24 +299,28 @@ export default function POSPage() {
   const progressPct = revenueTarget > 0 ? Math.min(100, (dailyRevenue / revenueTarget) * 100) : 0
   const loading = catsLoading || itemsLoading || locsLoading
 
-  const [amount, setAmount] = useState('0')
-  const [items, setItems] = useState<SaleItem[]>([])
+  const {
+    items, setItems,
+    amount, setAmount,
+    customerName, setCustomerName,
+    customerPhone, setCustomerPhone,
+    pickupDate, setPickupDate,
+    discount, setDiscount,
+    clearSale: clearPersistedSale,
+  } = usePersistedSale(defaultPickup())
   const [showPicker, setShowPicker] = useState(false)
   const [editingItem, setEditingItem] = useState<SaleItem | null>(null)
   const [pickerCategory, setPickerCategory] = useState<string | null>(null)
   const [showLocationPicker, setShowLocationPicker] = useState(false)
 
-  const [pickupDate, setPickupDate] = useState<Date>(defaultPickup)
+
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [calMonth, setCalMonth] = useState(() => {
     const d = defaultPickup(); return { year: d.getFullYear(), month: d.getMonth() }
   })
 
-  const [customerName, setCustomerName] = useState('')
-  const [customerPhone, setCustomerPhone] = useState('')
   const [showCustomerSheet, setShowCustomerSheet] = useState(false)
 
-  const [discount, setDiscount] = useState<{ type: 'percent' | 'flat'; value: number } | null>(null)
   const [showDiscountSheet, setShowDiscountSheet] = useState(false)
   const [discountInput, setDiscountInput] = useState('')
   const [discountType, setDiscountType] = useState<'percent' | 'flat'>('percent')
@@ -383,9 +388,7 @@ export default function POSPage() {
   }
 
   function clearSale() {
-    setItems([]); setAmount('0'); setDiscount(null)
-    setCustomerName(''); setCustomerPhone('')
-    setPickupDate(defaultPickup())
+    clearPersistedSale()
     setCalMonth(() => { const d = defaultPickup(); return { year: d.getFullYear(), month: d.getMonth() } })
   }
 
