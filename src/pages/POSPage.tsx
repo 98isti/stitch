@@ -305,6 +305,8 @@ export default function POSPage() {
   const [editingItem, setEditingItem] = useState<SaleItem | null>(null)
   const [pickerCategory, setPickerCategory] = useState<string | null>(null)
   const [longPressGarmentId, setLongPressGarmentId] = useState<string | null>(null)
+  const [showSaleMenu, setShowSaleMenu] = useState(false)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [showLocationPicker, setShowLocationPicker] = useState(false)
 
 
@@ -580,9 +582,53 @@ export default function POSPage() {
 
       {/* ── RIGHT PANEL — Current Sale ── */}
       <div className="w-[440px] shrink-0 bg-white border-l border-gray-200 flex flex-col">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 relative">
           <h2 className="font-bold text-gray-900 text-base">Current Sale</h2>
-          <button className="text-gray-400 hover:text-gray-600"><MoreHorizontal size={18} /></button>
+          <button onClick={() => setShowSaleMenu(m => !m)}
+            className={`p-1.5 rounded-lg transition-colors ${showSaleMenu ? 'bg-navy text-white' : 'text-gray-400 hover:text-gray-600'}`}>
+            <MoreHorizontal size={18} />
+          </button>
+          {/* Sale menu */}
+          {showSaleMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowSaleMenu(false)} />
+              <div className="absolute top-full right-3 z-50 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden w-48">
+                <button onClick={() => { setShowSaleMenu(false); setShowClearConfirm(true) }}
+                  className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-red-50 text-red-500 text-sm font-medium transition-colors border-b border-gray-50">
+                  🗑️ Clear Sale
+                </button>
+                <button onClick={() => setShowSaleMenu(false)}
+                  className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-gray-50 text-gray-600 text-sm font-medium transition-colors border-b border-gray-50">
+                  ⏸️ Save for Later
+                </button>
+                <button onClick={() => setShowSaleMenu(false)}
+                  className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-gray-50 text-gray-600 text-sm font-medium transition-colors">
+                  📝 Order Note
+                </button>
+              </div>
+            </>
+          )}
+          {/* Clear Sale confirmation */}
+          {showClearConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/30" onClick={() => setShowClearConfirm(false)} />
+              <div className="relative z-10 bg-white rounded-2xl shadow-xl p-6 w-72 text-center">
+                <p className="text-2xl mb-2">🗑️</p>
+                <h3 className="font-bold text-gray-900 text-base mb-1">Clear Sale?</h3>
+                <p className="text-sm text-gray-500 mb-5">This will remove all items from the current sale.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => setShowClearConfirm(false)}
+                    className="py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
+                    Cancel
+                  </button>
+                  <button onClick={() => { clearSale(); setShowClearConfirm(false) }}
+                    className="py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors">
+                    Clear
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
