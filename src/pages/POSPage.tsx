@@ -366,9 +366,11 @@ export default function POSPage() {
     const price = item.itemPrice > 0 ? item.itemPrice : parseFloat(amount) || 0
     // If long-pressed from an existing garment, reuse its garmentId (same group)
     const garmentId = longPressGarmentId ?? crypto.randomUUID()
+    // Use base category name (no numbering — cleaner UI)
+    const baseCategoryLabel = categoryLabel.replace(/ \d+$/, '')
     setItems(prev => [...prev, {
       id: crypto.randomUUID(), garmentId,
-      category: categoryLabel, name: item.itemName, quantity: 1, unitPrice: price, note: ''
+      category: baseCategoryLabel, name: item.itemName, quantity: 1, unitPrice: price, note: ''
     }])
     if (item.itemPrice > 0) setAmount('0')
     setShowPicker(false)
