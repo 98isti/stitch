@@ -6,7 +6,6 @@ import { useAuth } from '../context/AuthContext'
 import { useStaff } from '../context/StaffContext'
 import { useNavigate } from 'react-router-dom'
 
-interface StaffMember { id: string; firstName: string; lastName: string; pinHash: string; role: string; isActive: boolean }
 
 async function hashPin(pin: string): Promise<string> {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin))
@@ -20,7 +19,7 @@ export default function StaffPinPage() {
   const [pin, setPin] = useState('')
   const [error, setError] = useState('')
   const [checking, setChecking] = useState(false)
-  const [staffCache, setStaffCache] = useState<{ pinHash: string; name: string; role: string; isActive: boolean }[]>([])
+  const [staffCache, setStaffCache] = useState<{ id: string; firstName: string; lastName: string; pinHash: string; role: string; isActive: boolean }[]>([])
 
   // Pre-load staff list on mount so PIN check is instant
   useEffect(() => {
@@ -41,9 +40,9 @@ export default function StaffPinPage() {
       try {
         if (!accountId) { setError('Not signed in'); setPin(''); setChecking(false); return }
         const hash = await hashPin(next)
-        const match = staffCache.find((s: any) => s.pinHash === hash && s.isActive)
+        const match = staffCache.find(s => s.pinHash === hash && s.isActive)
         if (match) {
-          setStaff({ id: match.id, name: `${match.firstName} ${match.lastName}`, role: match.role })
+          setStaff({ id: match.id, name: `${match.firstName} ${match.lastName}`.trim(), role: match.role })
           navigate('/pos')
           return
         } else {
