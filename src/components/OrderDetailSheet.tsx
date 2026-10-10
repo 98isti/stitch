@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Phone, ChevronDown, X } from 'lucide-react'
+import { Phone, ChevronDown, X, Pencil } from 'lucide-react'
 import { doc, getDoc, getDocs, updateDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useStaff } from '../context/StaffContext'
+import { useNavigate } from 'react-router-dom'
 import { useAccountProfile } from '../hooks/useAccountProfile'
 
 interface OrderItem {
@@ -51,6 +52,7 @@ const SMS_WORKER_URL = 'https://stitch-sms.supto98.workers.dev'
 
 export default function OrderDetailSheet({ orderId, accountId, onClose }: Props) {
   const { staff } = useStaff()
+  const navigate = useNavigate()
   const accountProfile = useAccountProfile(accountId)
   const [order, setOrder] = useState<OrderDoc | null>(null)
   const [loading, setLoading] = useState(false)
@@ -212,6 +214,12 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
                   </>
                 )}
               </div>
+              {order && (
+                <button onClick={() => { onClose(); navigate(`/orders/${orderId}/edit`) }}
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+                  <Pencil size={14} className="text-white" />
+                </button>
+              )}
               <button onClick={onClose}
                 className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
                 <X size={15} className="text-white" />
