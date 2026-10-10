@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { ClipboardList, List, Calendar, MoreHorizontal, LogOut, ChevronLeft, BarChart2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -42,6 +42,21 @@ export default function POSLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { accountId } = useAuth()
+  const [requirePin, setRequirePin] = useState(true)
+
+  useEffect(() => {
+    if (!accountId) return
+    import('../lib/firebase').then(({ db }) => {
+      import('firebase/firestore').then(({ doc, getDoc }) => {
+        getDoc(doc(db, 'accounts', accountId)).then(snap => {
+          if (snap.exists()) {
+            const v = snap.data().requirePinAfterLock
+            setRequirePin(v !== false)
+          }
+        }).catch(() => {})
+      })
+    })
+  }, [accountId])
   const { activeLocation } = useLocations(accountId)
   const { revenue: dailyRevenue } = useDailyRevenue(accountId, activeLocation?.name ?? null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -59,9 +74,7 @@ export default function POSLayout() {
     : undefined)
 
   // Screen saver idle timer
-  const resetIdle = useCallback(() => {
-    setShowScreenSaver(false)
-  }, [])
+
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>
@@ -82,7 +95,10 @@ export default function POSLayout() {
     <div className="flex flex-col h-screen overflow-hidden bg-gray-100">
 
       {/* Screen saver */}
-      {showScreenSaver && <ScreenSaver onDismiss={resetIdle} />}
+      {showScreenSaver && <ScreenSaver onDismiss={() => {
+        setShowScreenSaver(false)
+        if (requirePin) navigate('/pin')
+      }} />}
 
       {/* Sub-page header */}
       {!isPos && (

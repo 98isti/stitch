@@ -10,6 +10,9 @@ const COUNTRIES = ['Australia', 'New Zealand', 'United Kingdom', 'United States'
 interface FormData {
   companyName: string
   abn: string
+  ownerFirstName: string
+  ownerLastName: string
+  ownerPin: string
   locationName: string
   streetAddress: string
   suburb: string
@@ -23,6 +26,9 @@ interface FormData {
 const INITIAL: FormData = {
   companyName: '',
   abn: '',
+  ownerFirstName: '',
+  ownerLastName: '',
+  ownerPin: '',
   locationName: '',
   streetAddress: '',
   suburb: '',
@@ -47,7 +53,7 @@ export default function OnboardingPage() {
   }
 
   function canNext() {
-    if (step === 0) return form.companyName.trim().length > 0
+    if (step === 0) return form.companyName.trim().length > 0 && form.ownerFirstName.trim().length > 0 && form.ownerPin.length === 4
     if (step === 1) return form.locationName.trim().length > 0 && form.phone.trim().length > 0
     return true
   }
@@ -72,7 +78,22 @@ export default function OnboardingPage() {
         templateApplied: 'sewSmart',
       })
 
-      // 2. Create first location
+      // 2. Create Owner staff record
+      const ownerPinHash = await (async () => {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(form.ownerPin))
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+      })()
+      await addDoc(collection(db, 'accounts', accountId, 'staff'), {
+        firstName: form.ownerFirstName.trim(),
+        lastName: form.ownerLastName.trim(),
+        pinHash: ownerPinHash,
+        role: 'Owner',
+        payRate: 0,
+        isActive: true,
+        createdAt: serverTimestamp(),
+      })
+
+      // 3. Create first location
       await addDoc(collection(db, 'accounts', accountId, 'locations'), {
         name: form.locationName.trim(),
         streetAddress: form.streetAddress.trim(),
@@ -85,7 +106,7 @@ export default function OnboardingPage() {
         createdAt: serverTimestamp(),
       })
 
-      // 3. Copy default template (categories + items)
+      // 4. Copy default template (categories + items)
       const { getDocs, collection: col, doc: docRef, setDoc: set } = await import('firebase/firestore')
       const catSnap = await getDocs(col(db, 'defaults', 'sewSmart', 'categories'))
       for (const d of catSnap.docs) {
@@ -97,7 +118,7 @@ export default function OnboardingPage() {
         await set(docRef(db, 'accounts', accountId, 'items', d.id), { ...d.data(), source: 'default' })
       }
 
-      // 4. Mark user profile
+      // 5. Mark user profile
       await setDoc(doc(db, 'users', accountId), {
         accountId,
         email: user.email,
@@ -158,6 +179,31 @@ export default function OnboardingPage() {
                   <input type="text" value={form.abn} onChange={e => set('abn', e.target.value)}
                     placeholder="e.g. 12 345 678 901"
                     className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
+                </div>
+
+                <div className="pt-2 border-t border-gray-100">
+                  <p className="text-sm font-semibold text-gray-700 mb-3">Your Owner Account</p>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">First Name <span className="text-red-400">*</span></label>
+                      <input type="text" value={form.ownerFirstName} onChange={e => set('ownerFirstName', e.target.value)}
+                        placeholder="Isti"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                      <input type="text" value={form.ownerLastName} onChange={e => set('ownerLastName', e.target.value)}
+                        placeholder="Islam"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Owner PIN <span className="text-red-400">*</span></label>
+                    <input type="password" inputMode="numeric" maxLength={4} value={form.ownerPin} onChange={e => set('ownerPin', e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      placeholder="4-digit PIN for Settings & Admin access"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy tracking-widest" />
+                    <p className="text-xs text-gray-400 mt-1">Used to access Settings and mark orders as complete</p>
+                  </div>
                 </div>
               </div>
             </div>
