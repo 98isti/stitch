@@ -24,7 +24,7 @@ export interface Order {
   items: string
 }
 
-const FILTERS = ['All', 'Active', 'Ready', 'Collected']
+const FILTERS = ['All', 'In progress', 'Ready for Pick Up', 'Picked Up', 'Redo']
 
 function formatDate(str: string) {
   if (!str) return '—'
@@ -137,7 +137,7 @@ export default function OrdersPage() {
             <tbody className="bg-white">
               {filtered.map((order, idx) => {
                 const isNewest = idx === 0
-                const isDue = order.stillDueAmount > 0 && order.status !== 'Collected'
+                const isDue = order.stillDueAmount > 0 && order.status !== 'Picked Up'
 
                 return (
                   <tr key={order.id}
@@ -186,9 +186,9 @@ export default function OrdersPage() {
                     {/* Status */}
                     <td className="px-3 py-4">
                       <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        order.status === 'Active'    ? 'bg-blue-50 text-blue-600' :
-                        order.status === 'Ready'     ? 'bg-green-100 text-green-700' :
-                        order.status === 'Collected' ? 'bg-gray-100 text-gray-500' :
+                        order.status === 'In progress'    ? 'bg-blue-50 text-blue-600' :
+                        order.status === 'Ready for Pick Up'     ? 'bg-green-100 text-green-700' :
+                        order.status === 'Picked Up' ? 'bg-gray-100 text-gray-500' :
                         'bg-gray-100 text-gray-500'
                       }`}>
                         {order.status}

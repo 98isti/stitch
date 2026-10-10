@@ -101,7 +101,7 @@ async function saveOrder({
       paidAmount: isPaid ? Math.round(total * 100) / 100 : 0,
       stillDueAmount: isPaid ? 0 : Math.round(total * 100) / 100,
       isPaid,
-      status: 'Active',
+      status: 'In progress',
       location: locationName,
       paymentMethod,
       createdAt: serverTimestamp(),

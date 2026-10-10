@@ -26,7 +26,7 @@ interface OrderDoc {
   subTotalAmount: number
 }
 
-const STATUS_OPTIONS = ['Active', 'Ready', 'Collected']
+const STATUS_OPTIONS = ['In progress', 'Ready for Pick Up', 'Picked Up', 'Redo']
 
 function formatDate(str: string) {
   if (!str) return '—'
@@ -102,9 +102,9 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
   })
 
   const STATUS_COLOR: Record<string, string> = {
-    'Active':    'bg-blue-500',
-    'Ready':     'bg-green-500',
-    'Collected': 'bg-gray-400',
+    'In progress':    'bg-blue-500',
+    'Ready for Pick Up':     'bg-green-500',
+    'Picked Up': 'bg-gray-400',
   }
 
   return (
