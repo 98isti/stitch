@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Search, RefreshCw } from 'lucide-react'
 import OrderDetailSheet from '../components/OrderDetailSheet'
-import { useNavigate } from 'react-router-dom'
 import { collection, query, orderBy, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
@@ -35,7 +34,6 @@ function formatDate(str: string) {
 }
 
 export default function OrdersPage() {
-  const navigate = useNavigate()
   const { accountId } = useAuth()
   const { activeLocation } = useLocations(accountId)
 

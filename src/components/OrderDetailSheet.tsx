@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Phone, Calendar, Package, MapPin, CreditCard, Pencil, Check } from 'lucide-react'
+import { X, Phone, Calendar, Package, MapPin, CreditCard, Check } from 'lucide-react'
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 
