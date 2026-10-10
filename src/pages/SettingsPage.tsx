@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, getDocs, updateDoc, collection, query, limit, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
@@ -86,13 +86,16 @@ export default function SettingsPage() {
 
   const [testPhone, setTestPhone] = useState('')
 
+  const [locationId, setLocationId] = useState<string | null>(null)
+
   useEffect(() => {
     if (!accountId || !unlocked) return
     setLoading(true)
 
     Promise.all([
       getDoc(doc(db, 'accounts', accountId)),
-    ]).then(([accSnap]) => {
+      getDocs(query(collection(db, 'accounts', accountId, 'locations'), limit(1))),
+    ]).then(([accSnap, locSnap]) => {
       if (accSnap.exists()) {
         const d = accSnap.data()
         setProfile({
@@ -107,16 +110,20 @@ export default function SettingsPage() {
             template: d.sms?.template ?? DEFAULT_SMS_TEMPLATE,
           },
         })
-        // Location info from same doc (for now)
+      }
+      if (!locSnap.empty) {
+        const locDoc = locSnap.docs[0]
+        const l = locDoc.data()
+        setLocationId(locDoc.id)
         setLocation({
-          name: d.locationName ?? '',
-          streetAddress: d.streetAddress ?? '',
-          suburb: d.suburb ?? '',
-          state: d.state ?? 'NSW',
-          country: d.country ?? 'Australia',
-          phone: d.locationPhone ?? '',
-          dailyTarget: d.dailyTarget ?? 500,
-          shopType: d.shopType ?? 'alterations',
+          name: l.name ?? '',
+          streetAddress: l.streetAddress ?? '',
+          suburb: l.suburb ?? '',
+          state: l.state ?? 'NSW',
+          country: l.country ?? 'Australia',
+          phone: l.phone ?? '',
+          dailyTarget: l.dailyTarget ?? 500,
+          shopType: l.shopType ?? 'alterations',
         })
       }
       setLoading(false)
@@ -127,6 +134,7 @@ export default function SettingsPage() {
     if (!accountId) return
     setSaving(true)
     try {
+      // Save account profile
       await updateDoc(doc(db, 'accounts', accountId), {
         businessName: profile.businessName,
         abn: profile.abn,
@@ -134,15 +142,22 @@ export default function SettingsPage() {
         phone: profile.phone,
         shopType: profile.shopType,
         sms: profile.sms,
-        locationName: location.name,
-        streetAddress: location.streetAddress,
-        suburb: location.suburb,
-        state: location.state,
-        country: location.country,
-        locationPhone: location.phone,
-        dailyTarget: location.dailyTarget,
         updatedAt: serverTimestamp(),
       })
+      // Save location to its subcollection doc
+      if (locationId) {
+        await updateDoc(doc(db, 'accounts', accountId, 'locations', locationId), {
+          name: location.name,
+          streetAddress: location.streetAddress,
+          suburb: location.suburb,
+          state: location.state,
+          country: location.country,
+          phone: location.phone,
+          dailyTarget: location.dailyTarget,
+          shopType: location.shopType,
+          updatedAt: serverTimestamp(),
+        })
+      }
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
     } finally { setSaving(false) }

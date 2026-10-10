@@ -64,6 +64,8 @@ export default function OnboardingPage() {
         businessName: form.companyName.trim(),
         abn: form.abn.trim(),
         email: user.email,
+        phone: form.phone.trim(),
+        shopType: form.shopType,
         plan: 'trial',
         trialEndsAt: new Date(Date.now() + 14 * 86400000),
         createdAt: serverTimestamp(),
