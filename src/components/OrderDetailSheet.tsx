@@ -52,6 +52,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showStatusMenu, setShowStatusMenu] = useState(false)
+  const [showPaymentPrompt, setShowPaymentPrompt] = useState(false)
 
   useEffect(() => {
     if (!orderId || !accountId) { setOrder(null); return }
@@ -73,14 +74,16 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
     } finally { setSaving(false) }
   }
 
-  async function markPaid() {
+  async function markPaid(method: string) {
     if (!accountId || !orderId || !order) return
     setSaving(true)
+    setShowPaymentPrompt(false)
     try {
       await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), {
-        isPaid: true, paidAmount: order.orderAmount, stillDueAmount: 0, updatedAt: serverTimestamp()
+        isPaid: true, paidAmount: order.orderAmount, stillDueAmount: 0,
+        paymentMethod: method, updatedAt: serverTimestamp()
       })
-      setOrder(o => o ? { ...o, isPaid: true, paidAmount: o.orderAmount, stillDueAmount: 0 } : o)
+      setOrder(o => o ? { ...o, isPaid: true, paidAmount: o.orderAmount, stillDueAmount: 0, paymentMethod: method } : o)
     } finally { setSaving(false) }
   }
 
@@ -109,7 +112,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Card */}
-      <div className="relative z-10 bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden"
+      <div className="relative z-10 bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden relative"
         style={{ maxHeight: '82vh' }}>
 
         {/* ── Dark header ── */}
@@ -227,6 +230,30 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
           )}
         </div>
 
+        {/* Payment method prompt */}
+        {showPaymentPrompt && order && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/30 rounded-3xl">
+            <div className="bg-white rounded-2xl shadow-xl p-6 mx-6 w-full">
+              <p className="text-center font-bold text-gray-900 text-base mb-1">Collect Payment</p>
+              <p className="text-center text-gray-500 text-sm mb-5">${order.stillDueAmount.toFixed(2)} due</p>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <button onClick={() => markPaid('Cash')}
+                  className="py-4 rounded-2xl bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-800 font-bold text-base transition-all">
+                  💵 Cash
+                </button>
+                <button onClick={() => markPaid('Card')}
+                  className="py-4 rounded-2xl bg-navy hover:bg-navy-light active:scale-95 text-white font-bold text-base transition-all">
+                  💳 Card
+                </button>
+              </div>
+              <button onClick={() => setShowPaymentPrompt(false)}
+                className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── Bottom action bar ── */}
         {order && (
           <div className="shrink-0 border-t border-gray-100 px-5 py-4">
@@ -235,7 +262,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
                 Print Labels
               </button>
               <button
-                onClick={!order.isPaid ? markPaid : undefined}
+                onClick={!order.isPaid ? () => setShowPaymentPrompt(true) : undefined}
                 disabled={saving}
                 className={`py-3 rounded-2xl text-white text-sm font-bold transition-colors ${
                   order.isPaid ? 'bg-green-500' : 'bg-red-400 hover:bg-red-500'
