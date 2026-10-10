@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { ClipboardList, List, Calendar, MoreHorizontal, LogOut, ChevronLeft, BarChart2 } from 'lucide-react'
+import { ClipboardList, List, Calendar, MoreHorizontal, LogOut, BarChart2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useDailyRevenue } from '../hooks/useDailyRevenue'
 import { useLocations } from '../hooks/useLocations'
@@ -20,23 +20,6 @@ const MORE_ITEMS = [
   { label: 'Settings',     icon: '⚙️', path: '/settings' },
   { label: 'Daily Reports', icon: '📊', path: '/reports' },
 ]
-
-const PAGE_TITLES: Record<string, string> = {
-  '/orders':    'Orders',
-  '/signin':    'Sign In / Sign Out',
-  '/roster':    'PickUp Calendar',
-  '/reports':   'Reports',
-  '/staff':     'Staff',
-  '/customers': 'Customers',
-  '/items':     'Price List',
-  '/categories':'Categories',
-  '/vouchers':  'Gift Vouchers',
-  '/settings':  'Settings',
-  '/locations': 'Locations',
-  '/timesheet': 'My Timesheet',
-  '/leave':     'Leave',
-  '/todaysdue': "Today's Due",
-}
 
 export default function POSLayout() {
   const navigate = useNavigate()
@@ -67,12 +50,6 @@ export default function POSLayout() {
 
   const isPos = location.pathname === '/pos'
 
-  // Dynamic title — handle nested routes like /orders/:id
-  const pageTitle = PAGE_TITLES[location.pathname]
-    ?? (location.pathname.startsWith('/orders/') && location.pathname.endsWith('/edit') ? 'Edit Order'
-    : location.pathname.startsWith('/orders/') ? 'Order Detail'
-    : undefined)
-
   // Screen saver idle timer
 
 
@@ -101,18 +78,7 @@ export default function POSLayout() {
       }} />}
 
       {/* Sub-page header */}
-      {!isPos && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 shrink-0">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-1 text-navy font-medium text-sm hover:opacity-70 transition-opacity"
-          >
-            <ChevronLeft size={20} />
-            Back
-          </button>
-          <h1 className="flex-1 text-center font-bold text-gray-900 text-base pr-12">{pageTitle}</h1>
-        </div>
-      )}
+
 
       {/* Main content */}
       <div className="flex-1 overflow-hidden">
