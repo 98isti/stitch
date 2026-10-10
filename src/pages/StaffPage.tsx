@@ -3,6 +3,7 @@ import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { Plus, Pencil, Trash2, ChevronLeft } from 'lucide-react'
+import SettingsPinGate from '../components/SettingsPinGate'
 import { useNavigate } from 'react-router-dom'
 
 export interface StaffMember {
@@ -27,6 +28,7 @@ const EMPTY_FORM: FormState = { firstName: '', lastName: '', pin: '', payRate: '
 
 export default function StaffPage() {
   const { accountId } = useAuth()
+  const [unlocked, setUnlocked] = useState(false)
   const navigate = useNavigate()
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [loading, setLoading] = useState(true)
@@ -80,6 +82,10 @@ export default function StaffPage() {
     if (!accountId || !confirm(`Delete ${s.firstName} ${s.lastName}?`)) return
     await deleteDoc(doc(db, 'accounts', accountId, 'staff', s.id))
     setStaff(prev => prev.filter(x => x.id !== s.id))
+  }
+
+  if (!unlocked) {
+    return <SettingsPinGate accountId={accountId} onUnlocked={() => setUnlocked(true)} />
   }
 
   return (
