@@ -80,22 +80,6 @@ export default function OrdersPage() {
       {/* Top controls */}
       <div className="bg-white border-b border-gray-200 px-5 pt-4 pb-3 shrink-0">
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="bg-gray-50 rounded-xl px-4 py-3">
-            <p className="text-xs text-gray-400 mb-0.5">Today's Revenue</p>
-            <p className="text-lg font-bold text-navy">${todayRevenue.toFixed(2)}</p>
-          </div>
-          <div className="bg-green-50 rounded-xl px-4 py-3">
-            <p className="text-xs text-gray-400 mb-0.5">Ready for Pickup</p>
-            <p className="text-lg font-bold text-green-600">{readyCount}</p>
-          </div>
-          <div className="bg-amber-50 rounded-xl px-4 py-3">
-            <p className="text-xs text-gray-400 mb-0.5">Unpaid</p>
-            <p className="text-lg font-bold text-amber-600">{unpaidCount}</p>
-          </div>
-        </div>
-
         {/* Search + filters */}
         <div className="flex items-center gap-3">
           <div className="relative flex-1">
