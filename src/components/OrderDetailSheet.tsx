@@ -55,7 +55,10 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
   const [showPaymentPrompt, setShowPaymentPrompt] = useState(false)
 
   useEffect(() => {
-    if (!orderId || !accountId) { setOrder(null); return }
+    setOrder(null)
+    setShowStatusMenu(false)
+    setShowPaymentPrompt(false)
+    if (!orderId || !accountId) { return }
     setLoading(true)
     getDoc(doc(db, 'accounts', accountId, 'orders', orderId))
       .then(snap => {
