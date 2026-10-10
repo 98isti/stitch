@@ -583,11 +583,19 @@ export default function POSPage() {
             </div>
             <div className="border-t border-gray-200 bg-white px-4 py-2.5 flex items-center gap-3">
               <div className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center shrink-0">
-                <span className="text-sm font-bold text-gray-600">{[...new Set(items.map(i => i.garmentId))].length}</span>
+                <span className="text-sm font-bold text-gray-600">
+                  {(() => {
+                    const groups = [...new Map(items.map(i => [i.garmentId, i])).values()]
+                    return groups.reduce((sum, i) => sum + i.quantity, 0)
+                  })()}
+                </span>
               </div>
               <span className="text-sm text-gray-400">
-              {items.length === 0 ? 'items in current sale' : 
-                `${[...new Set(items.map(i => i.garmentId))].length} garment${[...new Set(items.map(i => i.garmentId))].length !== 1 ? 's' : ''}, ${items.length} service${items.length !== 1 ? 's' : ''}`}
+              {items.length === 0 ? 'items in current sale' : (() => {
+                  const uGroups = [...new Map(items.map(i => [i.garmentId, i])).values()]
+                  const total = uGroups.reduce((s, i) => s + i.quantity, 0)
+                  return `${total} garment${total !== 1 ? 's' : ''}, ${items.length} service${items.length !== 1 ? 's' : ''}`
+                })()}
             </span>
 
             </div>
@@ -696,7 +704,12 @@ export default function POSPage() {
                   <div key={group.garmentId}>
                     {/* Garment header — long press to add more services */}
                     <div className="flex items-center justify-between px-2 mb-1">
-                      <p className="text-xs font-bold text-navy uppercase tracking-wide">{group.category}</p>
+                      <p className="text-xs font-bold text-navy uppercase tracking-wide">
+                        {group.category}
+                        {group.items[0]?.quantity > 1 && (
+                          <span className="text-navy/50 font-normal ml-1">×{group.items[0].quantity}</span>
+                        )}
+                      </p>
                       <button
                         onClick={() => {
                           setLongPressGarmentId(group.garmentId)
