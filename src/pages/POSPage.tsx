@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, MapPin, CheckCircle, X } from 'lucide-react'
+import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, MapPin, CheckCircle } from 'lucide-react'
 import EditSaleItemSheet from '../components/EditSaleItemSheet'
 import {
   collection, query, getDocs, addDoc, serverTimestamp, orderBy,
@@ -402,10 +402,6 @@ export default function POSPage() {
       if (next <= 0) return [] // remove if qty hits 0
       return [{ ...it, quantity: next }]
     }))
-  }
-
-  function removeItem(id: string) {
-    setItems(prev => prev.filter(i => i.id !== id))
   }
 
   function clearSale() {
