@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Phone, ChevronDown, X, Pencil } from 'lucide-react'
+import { Phone, ChevronDown, Pencil } from 'lucide-react'
 import { doc, getDoc, getDocs, updateDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useStaff } from '../context/StaffContext'
@@ -215,14 +215,10 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
               </div>
               {order && onEdit && (
                 <button onClick={() => onEdit(orderId!)}
-                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors ml-4">
                   <Pencil size={14} className="text-white" />
                 </button>
               )}
-              <button onClick={onClose}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
-                <X size={15} className="text-white" />
-              </button>
             </div>
           </div>
         </div>
