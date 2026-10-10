@@ -17,7 +17,9 @@ export default function ScreenSaver({ onDismiss }: Props) {
     <div className="fixed inset-0 z-[200] bg-navy flex flex-col items-center justify-center select-none cursor-pointer"
       onClick={onDismiss}>
       <div className="text-center animate-pulse">
-        <img src="/stitch-logo.png" alt="Stitch" className="h-24 object-contain mx-auto mb-4" />
+        <div className="bg-white rounded-2xl px-8 py-4 inline-block shadow-xl mb-4 animate-pulse">
+        <img src="/stitch-logo.png" alt="Stitch" className="h-16 object-contain" />
+      </div>
         <p className="text-white/40 text-sm mt-2">Tap anywhere to continue</p>
       </div>
       <div className="absolute bottom-8 left-0 right-0 text-center">
