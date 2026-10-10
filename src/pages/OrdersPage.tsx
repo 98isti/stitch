@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Search, RefreshCw } from 'lucide-react'
+import OrderDetailSheet from '../components/OrderDetailSheet'
 import { useNavigate } from 'react-router-dom'
 import { collection, query, orderBy, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase'
@@ -39,6 +40,7 @@ export default function OrdersPage() {
   const { activeLocation } = useLocations(accountId)
 
   const [orders, setOrders] = useState<Order[]>([])
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('All')
@@ -141,7 +143,7 @@ export default function OrdersPage() {
 
                 return (
                   <tr key={order.id}
-                    onClick={() => navigate(`/orders/${order.id}`)}
+                    onClick={() => setSelectedOrderId(order.id)}
                     className={`border-b border-gray-100 cursor-pointer transition-colors ${
                       isNewest ? 'bg-blue-50/60 hover:bg-blue-50' : 'hover:bg-gray-50'
                     }`}>
@@ -206,6 +208,11 @@ export default function OrdersPage() {
           </table>
         )}
       </div>
+      <OrderDetailSheet
+        orderId={selectedOrderId}
+        accountId={accountId}
+        onClose={() => setSelectedOrderId(null)}
+      />
     </div>
   )
 }
