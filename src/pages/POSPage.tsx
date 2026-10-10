@@ -91,7 +91,7 @@ async function saveOrder({
       customerPhone,
       pickupDate: isoDate(pickupDate),
       items: JSON.stringify(items.map(i => ({
-        id: i.id, category: i.category, name: i.name,
+        id: i.id, garmentId: i.garmentId, category: i.category, name: i.name,
         quantity: i.quantity, unitPrice: i.unitPrice, note: i.note
       }))),
       subTotalAmount: Math.round(subTotalAmount * 100) / 100,
@@ -104,6 +104,9 @@ async function saveOrder({
       status: 'In progress',
       location: locationName,
       paymentMethod,
+      barcode: crypto.randomUUID(),
+      completedBy: '',
+      jobCompletedDate: null,
       createdAt: serverTimestamp(),
     })
   })

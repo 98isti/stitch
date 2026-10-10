@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Phone, ChevronDown, X } from 'lucide-react'
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, getDocs, updateDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useStaff } from '../context/StaffContext'
 
@@ -53,6 +53,9 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
   const [saving, setSaving] = useState(false)
   const [showStatusMenu, setShowStatusMenu] = useState(false)
   const [showPaymentPrompt, setShowPaymentPrompt] = useState(false)
+  const [showCompletedByPopup, setShowCompletedByPopup] = useState(false)
+  const [staffList, setStaffList] = useState<string[]>([])
+  const [selectedEmployee, setSelectedEmployee] = useState('Select Your Name')
 
   useEffect(() => {
     setOrder(null)
@@ -69,12 +72,43 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
 
   async function updateStatus(status: string) {
     if (!accountId || !orderId || !order) return
-    setSaving(true)
     setShowStatusMenu(false)
+    // "Ready for Pick Up" triggers the "Job Completed By" popup
+    if (status === 'Ready for Pick Up') {
+      setSaving(true)
+      try {
+        const snap = await getDocs(collection(db, 'accounts', accountId, 'staff'))
+        const names = snap.docs
+          .map(d => { const s = d.data(); return `${s.firstName} ${s.lastName}`.trim() })
+          .filter(Boolean)
+          .sort()
+        setStaffList(names)
+        setSelectedEmployee('Select Your Name')
+        setShowCompletedByPopup(true)
+      } finally { setSaving(false) }
+      return
+    }
+    setSaving(true)
     try {
       await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), { status, updatedAt: serverTimestamp() })
       setOrder(o => o ? { ...o, status } : o)
     } finally { setSaving(false) }
+  }
+
+  async function confirmReadyForPickup() {
+    if (!accountId || !orderId || !order || selectedEmployee === 'Select Your Name') return
+    setSaving(true)
+    try {
+      await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), {
+        status: 'Ready for Pick Up',
+        completedBy: selectedEmployee,
+        jobCompletedDate: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+      setOrder(o => o ? { ...o, status: 'Ready for Pick Up', completedBy: selectedEmployee } : o)
+      setShowCompletedByPopup(false)
+      // TODO: send SMS notification via ClickSend (Phase: SMS config in Settings)
+    } finally { setSaving(false);  }
   }
 
   async function markPaid(method: string) {
@@ -232,6 +266,37 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
             </div>
           )}
         </div>
+
+        {/* Job Completed By popup — shown when changing to Ready for Pick Up */}
+        {showCompletedByPopup && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 rounded-3xl">
+            <div className="bg-white rounded-2xl shadow-xl p-6 mx-6 w-full">
+              <p className="text-center font-bold text-gray-900 text-lg mb-4">Job Completed By:</p>
+              <select
+                value={selectedEmployee}
+                onChange={e => setSelectedEmployee(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-800 focus:outline-none focus:border-navy mb-2 bg-gray-50">
+                <option value="Select Your Name">Select Your Name ↕</option>
+                {staffList.map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+              <button
+                onClick={confirmReadyForPickup}
+                disabled={saving || selectedEmployee === 'Select Your Name'}
+                className="w-full py-3.5 rounded-xl bg-gray-600 hover:bg-gray-700 disabled:opacity-40 text-white font-semibold text-base transition-colors mt-2">
+                {saving ? 'Saving…' : 'Done'}
+              </button>
+              <p className="text-center text-red-400 text-xs mt-3 italic">
+                (this will send a text message to customer)
+              </p>
+              <button onClick={() => setShowCompletedByPopup(false)}
+                className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors mt-1">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Payment method prompt */}
         {showPaymentPrompt && order && (
