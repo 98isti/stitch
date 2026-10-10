@@ -7,3 +7,14 @@
 html {
   font-size: 18px;
 }
+
+/* Eliminate 300ms tap delay on iOS/iPad Safari */
+* {
+  touch-action: manipulation;
+}
+
+/* Prevent text selection on buttons/interactive elements */
+button, [role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+}
