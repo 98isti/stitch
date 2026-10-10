@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react'
-import { X, Trash2, ChevronLeft } from 'lucide-react'
+import { X, Trash2, ChevronLeft, Plus } from 'lucide-react'
+import ItemPickerSheet from './ItemPickerSheet'
+import { useCategories } from '../hooks/useCategories'
+import { useItems } from '../hooks/useItems'
+import type { PriceItem } from '../hooks/useItems'
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 
@@ -32,6 +36,7 @@ export default function EditOrderSheet({ orderId, accountId, onClose, onBack }: 
   const [order, setOrder] = useState<OrderDoc | null>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [showPicker, setShowPicker] = useState(false)
 
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
@@ -55,6 +60,29 @@ export default function EditOrderSheet({ orderId, accountId, onClose, onBack }: 
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [orderId, accountId])
+
+  const { categories, loading: catsLoading } = useCategories(accountId)
+  const { getItemsForCategory, getSubCategories, loading: itemsLoading } = useItems(accountId)
+
+  // Category count for picker (how many of each garment type already added)
+  const categoryCount: Record<string, number> = {}
+  items.forEach(it => {
+    const base = it.category.replace(/\s*\d+$/, '')
+    categoryCount[base] = (categoryCount[base] ?? 0) + 1
+  })
+
+  function handlePickItem(categoryLabel: string, item: PriceItem) {
+    const newItem: OrderItem = {
+      id: crypto.randomUUID(),
+      garmentId: crypto.randomUUID(),
+      category: categoryLabel,
+      name: item.itemName,
+      quantity: 1,
+      unitPrice: item.itemPrice,
+      note: '',
+    }
+    setItems(prev => [...prev, newItem])
+  }
 
   function updateItem(idx: number, field: keyof OrderItem, value: string | number) {
     setItems(prev => prev.map((it, i) => i === idx ? { ...it, [field]: value } : it))
@@ -183,6 +211,12 @@ export default function EditOrderSheet({ orderId, accountId, onClose, onBack }: 
                 </div>
               </div>
 
+              {/* Add items button */}
+              <button onClick={() => setShowPicker(true)}
+                className="w-full py-3 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 hover:border-navy hover:text-navy transition-colors flex items-center justify-center gap-2 text-sm font-medium mt-1">
+                <Plus size={16} /> Add Items
+              </button>
+
               {/* Total */}
               <div className="bg-navy text-white rounded-2xl p-4 flex justify-between items-center">
                 <span className="font-semibold">New Total</span>
@@ -192,6 +226,16 @@ export default function EditOrderSheet({ orderId, accountId, onClose, onBack }: 
           )}
         </div>
       </div>
+      <ItemPickerSheet
+        isOpen={showPicker}
+        onClose={() => setShowPicker(false)}
+        onSelectItem={handlePickItem}
+        categoryCount={categoryCount}
+        categories={categories}
+        getItemsForCategory={getItemsForCategory}
+        getSubCategories={getSubCategories}
+        loading={catsLoading || itemsLoading}
+      />
     </div>
   )
 }
