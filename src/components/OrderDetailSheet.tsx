@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { X, Phone, Calendar, Package, MapPin, CreditCard, Check } from 'lucide-react'
+import { Phone, ChevronDown, X } from 'lucide-react'
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { useStaff } from '../context/StaffContext'
 
 interface OrderItem {
   id: string; garmentId?: string; category: string; name: string; quantity: number; unitPrice: number; note: string
@@ -23,17 +24,17 @@ interface OrderDoc {
   paymentMethod: string
   items: string
   subTotalAmount: number
-  discountApplied: boolean
 }
 
-const STATUS_FLOW = ['Active', 'Ready', 'Collected']
-const STATUS_COLOR: Record<string, string> = {
-  'Active':    'bg-blue-50 text-blue-600 border-blue-200',
-  'Ready':     'bg-green-50 text-green-700 border-green-200',
-  'Collected': 'bg-gray-100 text-gray-500 border-gray-200',
-}
+const STATUS_OPTIONS = ['Active', 'Ready', 'Collected']
 
 function formatDate(str: string) {
+  if (!str) return '—'
+  try { return new Date(str).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }
+  catch { return str }
+}
+
+function formatDateTime(str: string) {
   if (!str) return '—'
   try { return new Date(str).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }) }
   catch { return str }
@@ -46,9 +47,11 @@ interface Props {
 }
 
 export default function OrderDetailSheet({ orderId, accountId, onClose }: Props) {
+  const { staff } = useStaff()
   const [order, setOrder] = useState<OrderDoc | null>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [showStatusMenu, setShowStatusMenu] = useState(false)
 
   useEffect(() => {
     if (!orderId || !accountId) { setOrder(null); return }
@@ -63,6 +66,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
   async function updateStatus(status: string) {
     if (!accountId || !orderId || !order) return
     setSaving(true)
+    setShowStatusMenu(false)
     try {
       await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), { status, updatedAt: serverTimestamp() })
       setOrder(o => o ? { ...o, status } : o)
@@ -85,7 +89,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
   let items: OrderItem[] = []
   if (order) { try { items = JSON.parse(order.items) } catch { items = [] } }
 
-  // Group items by garmentId
+  // Group by garmentId
   const groups: { garmentId: string; category: string; items: OrderItem[] }[] = []
   items.forEach(item => {
     const gid = item.garmentId ?? item.id
@@ -94,157 +98,127 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
     else groups.push({ garmentId: gid, category: item.category, items: [item] })
   })
 
+  const STATUS_COLOR: Record<string, string> = {
+    'Active':    'bg-blue-500',
+    'Ready':     'bg-green-500',
+    'Collected': 'bg-gray-400',
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      {/* Sheet */}
-      <div className="relative z-10 bg-white rounded-t-3xl w-full max-w-3xl shadow-2xl flex flex-col"
-        style={{ maxHeight: '75vh' }}>
+      {/* Card */}
+      <div className="relative z-10 bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden"
+        style={{ maxHeight: '82vh' }}>
 
-        {/* Handle + header */}
-        <div className="shrink-0">
-          <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3 mb-2" />
-          <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+        {/* ── Dark header ── */}
+        <div className="bg-navy px-5 pt-5 pb-4 shrink-0">
+          <div className="flex items-start justify-between mb-3">
             <div>
-              {order && <p className="font-bold text-gray-900 text-lg">{order.orderNumberString}</p>}
-              {order && <p className="text-xs text-gray-400">{formatDate(order.orderDate)}</p>}
-              {loading && <div className="w-24 h-5 bg-gray-100 rounded animate-pulse" />}
+              <p className="text-navy-light text-xs font-medium mb-0.5">Order #</p>
+              <p className="text-white text-xl font-bold leading-tight">
+                {order?.orderNumberString ?? '—'}
+                {order?.location && <span className="font-normal text-white/60 text-base ml-2">{order.location}</span>}
+              </p>
+              <p className="text-white/50 text-xs mt-1">{order ? formatDateTime(order.orderDate) : '—'}</p>
+              {staff && <p className="text-white/50 text-xs mt-0.5">Served by: {staff.name}</p>}
             </div>
             <div className="flex items-center gap-2">
-              {order && (
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${STATUS_COLOR[order.status] ?? 'bg-gray-100 text-gray-500'}`}>
-                  {order.status}
-                </span>
-              )}
+              {/* Status dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowStatusMenu(m => !m)}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold transition-colors ${STATUS_COLOR[order?.status ?? 'Active'] ?? 'bg-blue-500'}`}>
+                  {order?.status ?? '—'}
+                  <ChevronDown size={14} />
+                </button>
+                {showStatusMenu && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowStatusMenu(false)} />
+                    <div className="absolute right-0 top-full mt-1 z-20 bg-white rounded-xl shadow-xl overflow-hidden w-44 border border-gray-100">
+                      {STATUS_OPTIONS.map(s => (
+                        <button key={s} onClick={() => updateStatus(s)}
+                          className={`w-full text-left px-4 py-3 text-sm transition-colors hover:bg-gray-50 ${
+                            order?.status === s ? 'font-semibold text-navy' : 'text-gray-700'
+                          }`}>
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
               <button onClick={onClose}
-                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
-                <X size={16} className="text-gray-500" />
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+                <X size={15} className="text-white" />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        {/* ── Scrollable body ── */}
+        <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-16">
               <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
             </div>
           ) : order ? (
-            <>
-              {/* Customer */}
-              <div className="bg-gray-50 rounded-2xl p-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Customer</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-navy/10 flex items-center justify-center text-navy font-bold text-base shrink-0">
-                    {(order.customerName || 'W')[0]}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">{order.customerName || 'Walk-in'}</p>
-                    {order.customerPhone && (
-                      <a href={`tel:${order.customerPhone}`} className="text-sm text-blue-500 flex items-center gap-1 mt-0.5">
-                        <Phone size={12} /> {order.customerPhone}
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
+            <div className="px-5 py-4 space-y-4">
 
-              {/* Dates + location */}
-              <div className="bg-gray-50 rounded-2xl p-4">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="flex items-start gap-2">
-                    <Calendar size={14} className="text-gray-400 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-xs text-gray-400 mb-0.5">Order date</p>
-                      <p className="text-sm font-semibold text-gray-900">{formatDate(order.orderDate)}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Package size={14} className="text-red-400 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-xs text-gray-400 mb-0.5">Pick-up date</p>
-                      <p className="text-sm font-semibold text-red-500">{formatDate(order.pickupDate)}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <MapPin size={14} className="text-gray-400 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-xs text-gray-400 mb-0.5">Location</p>
-                      <p className="text-sm font-semibold text-gray-900">{order.location}</p>
-                    </div>
-                  </div>
+              {/* Customer + Pickup row */}
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="font-bold text-gray-900 text-base">{order.customerName || 'Walk-in'}</p>
+                  {order.customerPhone && (
+                    <a href={`tel:${order.customerPhone}`} className="text-blue-500 text-sm flex items-center gap-1 mt-0.5">
+                      <Phone size={12} /> {order.customerPhone}
+                    </a>
+                  )}
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-400 mb-0.5">Pick up:</p>
+                  <p className="text-sm font-semibold text-red-500">{formatDate(order.pickupDate)}</p>
                 </div>
               </div>
 
               {/* Items */}
-              <div className="bg-gray-50 rounded-2xl p-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Items</p>
-                <div className="space-y-3">
-                  {groups.map(group => (
-                    <div key={group.garmentId}>
-                      <p className="text-xs font-bold text-navy uppercase tracking-wide mb-1">{group.category}</p>
-                      {group.items.map((item, i) => (
-                        <div key={i} className="flex justify-between items-start pl-2 py-1">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-800">{item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ''}</p>
-                            {item.note && <p className="text-xs text-gray-400 italic">{item.note}</p>}
-                          </div>
-                          <p className="font-semibold text-gray-900 text-sm shrink-0 ml-4">${(item.unitPrice * item.quantity).toFixed(2)}</p>
-                        </div>
-                      ))}
+              <div className="bg-gray-50 rounded-2xl overflow-hidden">
+                {groups.map(group => (
+                  <div key={group.garmentId}>
+                    <div className="px-4 py-2 bg-gray-100">
+                      <p className="text-xs font-bold text-navy uppercase tracking-wide">{group.category}</p>
                     </div>
-                  ))}
-                </div>
-                <div className="mt-3 pt-3 border-t border-gray-200 space-y-1">
-                  <div className="flex justify-between text-sm text-gray-500">
-                    <span>Subtotal (ex GST)</span>
-                    <span>${order.subTotalAmount?.toFixed(2) ?? (order.orderAmount / 1.1).toFixed(2)}</span>
+                    {group.items.map((item, i) => (
+                      <div key={i} className="flex items-start justify-between px-4 py-3 border-b border-gray-100 last:border-0">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-900">{item.name}</p>
+                          {item.note && <p className="text-xs text-gray-400 italic mt-0.5">Note: {item.note}</p>}
+                        </div>
+                        <div className="flex items-center gap-4 shrink-0 ml-4">
+                          <p className="text-sm text-gray-400">x{item.quantity}</p>
+                          <p className="text-sm font-semibold text-gray-900">${(item.unitPrice * item.quantity).toFixed(2)}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                ))}
+
+                {/* Totals */}
+                <div className="px-4 py-3 border-t border-gray-200 bg-white">
+                  <div className="flex justify-between text-sm text-gray-500 mb-1">
+                    <span>Subtotal</span>
+                    <span>${(order.subTotalAmount ?? order.orderAmount / 1.1).toFixed(2)}</span>
+                  </div>
+                  <div className="border-t border-dashed border-gray-200 my-1.5" />
                   <div className="flex justify-between font-bold text-gray-900 text-base">
-                    <span>Total (incl GST)</span>
+                    <span>Total</span>
                     <span>${order.orderAmount.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Payment */}
-              <div className="bg-gray-50 rounded-2xl p-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Payment</p>
-                <div className="flex items-center gap-2 mb-2">
-                  <CreditCard size={14} className="text-gray-400 shrink-0" />
-                  <span className="text-sm text-gray-600">{order.paymentMethod}</span>
-                  {order.isPaid
-                    ? <span className="ml-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1"><Check size={10} /> Paid</span>
-                    : <span className="ml-auto text-xs bg-red-50 text-red-500 px-2 py-0.5 rounded-full font-semibold">Due ${order.stillDueAmount.toFixed(2)}</span>
-                  }
-                </div>
-                {!order.isPaid && (
-                  <button onClick={markPaid} disabled={saving}
-                    className="w-full py-2.5 rounded-xl bg-navy text-white text-sm font-semibold hover:bg-navy-light disabled:opacity-50 transition-colors mt-2">
-                    {saving ? 'Saving…' : 'Mark as Paid'}
-                  </button>
-                )}
-              </div>
-
-              {/* Status */}
-              <div className="bg-gray-50 rounded-2xl p-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Update Status</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {STATUS_FLOW.map(s => (
-                    <button key={s} onClick={() => updateStatus(s)} disabled={saving || order.status === s}
-                      className={`py-2.5 rounded-xl text-sm font-semibold transition-colors border-2 ${
-                        order.status === s
-                          ? 'border-navy bg-navy text-white'
-                          : 'border-gray-200 text-gray-600 hover:border-navy/40'
-                      }`}>
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </>
+            </div>
           ) : (
             <div className="text-center py-16 text-gray-400">
               <p className="text-3xl mb-2">🔍</p>
@@ -252,6 +226,29 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
             </div>
           )}
         </div>
+
+        {/* ── Bottom action bar ── */}
+        {order && (
+          <div className="shrink-0 border-t border-gray-100 px-5 py-4">
+            <div className="grid grid-cols-3 gap-3 mb-3">
+              <button className="py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold transition-colors">
+                Print Labels
+              </button>
+              <button
+                onClick={!order.isPaid ? markPaid : undefined}
+                disabled={saving}
+                className={`py-3 rounded-2xl text-white text-sm font-bold transition-colors ${
+                  order.isPaid ? 'bg-green-500' : 'bg-red-400 hover:bg-red-500'
+                }`}>
+                {order.isPaid ? '✓ Paid' : `Due $${order.stillDueAmount.toFixed(2)}`}
+              </button>
+              <button className="py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold transition-colors">
+                Print Receipt
+              </button>
+            </div>
+            <p className="text-center text-xs text-gray-400">Payment method: {order.paymentMethod}</p>
+          </div>
+        )}
       </div>
     </div>
   )
