@@ -100,7 +100,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
 
       {/* Sheet */}
       <div className="relative z-10 bg-white rounded-t-3xl w-full max-w-3xl shadow-2xl flex flex-col"
-        style={{ maxHeight: '90vh' }}>
+        style={{ maxHeight: '75vh' }}>
 
         {/* Handle + header */}
         <div className="shrink-0">
