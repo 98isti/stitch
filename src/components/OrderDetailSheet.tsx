@@ -3,6 +3,7 @@ import { Phone, ChevronDown, X } from 'lucide-react'
 import { doc, getDoc, getDocs, updateDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useStaff } from '../context/StaffContext'
+import { useAccountProfile } from '../hooks/useAccountProfile'
 
 interface OrderItem {
   id: string; garmentId?: string; category: string; name: string; quantity: number; unitPrice: number; note: string
@@ -46,8 +47,11 @@ interface Props {
   onClose: () => void
 }
 
+const SMS_WORKER_URL = 'https://stitch-sms.supto98.workers.dev'
+
 export default function OrderDetailSheet({ orderId, accountId, onClose }: Props) {
   const { staff } = useStaff()
+  const accountProfile = useAccountProfile(accountId)
   const [order, setOrder] = useState<OrderDoc | null>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -107,7 +111,26 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
       })
       setOrder(o => o ? { ...o, status: 'Ready for Pick Up', completedBy: selectedEmployee } : o)
       setShowCompletedByPopup(false)
-      // TODO: send SMS notification via ClickSend (Phase: SMS config in Settings)
+      // Send SMS if customer has a phone number
+      if (order.customerPhone && accountProfile) {
+        const smsSettings = (accountProfile as any).sms
+        const senderName = smsSettings?.senderName || accountProfile.businessName?.slice(0, 11) || 'Stitch'
+        const template = smsSettings?.template ||
+          'Hi {firstName}, your order at {businessName} is ready for pick-up! Order: {orderNumber}. {balance}'
+        fetch(SMS_WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: order.customerPhone,
+            senderName,
+            template,
+            firstName: order.customerName || 'there',
+            orderNumber: order.orderNumberString,
+            businessName: accountProfile.businessName || 'Us',
+            stillDueAmount: order.stillDueAmount,
+          })
+        }).then(r => r.json()).then(d => console.log('[SMS]', d)).catch(e => console.error('[SMS]', e))
+      }
     } finally { setSaving(false);  }
   }
 
