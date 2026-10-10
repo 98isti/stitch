@@ -3,7 +3,6 @@ import { Phone, ChevronDown, X, Pencil } from 'lucide-react'
 import { doc, getDoc, getDocs, updateDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useStaff } from '../context/StaffContext'
-import { useNavigate } from 'react-router-dom'
 import { useAccountProfile } from '../hooks/useAccountProfile'
 
 interface OrderItem {
@@ -46,13 +45,13 @@ interface Props {
   orderId: string | null
   accountId: string | null
   onClose: () => void
+  onEdit?: (orderId: string) => void
 }
 
 const SMS_WORKER_URL = 'https://stitch-sms.supto98.workers.dev'
 
-export default function OrderDetailSheet({ orderId, accountId, onClose }: Props) {
+export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }: Props) {
   const { staff } = useStaff()
-  const navigate = useNavigate()
   const accountProfile = useAccountProfile(accountId)
   const [order, setOrder] = useState<OrderDoc | null>(null)
   const [loading, setLoading] = useState(false)
@@ -214,8 +213,8 @@ export default function OrderDetailSheet({ orderId, accountId, onClose }: Props)
                   </>
                 )}
               </div>
-              {order && (
-                <button onClick={() => { onClose(); navigate(`/orders/${orderId}/edit`) }}
+              {order && onEdit && (
+                <button onClick={() => onEdit(orderId!)}
                   className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
                   <Pencil size={14} className="text-white" />
                 </button>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Search, RefreshCw } from 'lucide-react'
 import OrderDetailSheet from '../components/OrderDetailSheet'
+import EditOrderSheet from '../components/EditOrderSheet'
 import { collection, query, orderBy, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
@@ -39,6 +40,7 @@ export default function OrdersPage() {
 
   const [orders, setOrders] = useState<Order[]>([])
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('All')
@@ -210,6 +212,13 @@ export default function OrdersPage() {
         orderId={selectedOrderId}
         accountId={accountId}
         onClose={() => setSelectedOrderId(null)}
+        onEdit={(id) => { setSelectedOrderId(null); setEditingOrderId(id) }}
+      />
+      <EditOrderSheet
+        orderId={editingOrderId}
+        accountId={accountId}
+        onClose={() => setEditingOrderId(null)}
+        onBack={() => { const id = editingOrderId; setEditingOrderId(null); setSelectedOrderId(id) }}
       />
     </div>
   )
