@@ -292,6 +292,11 @@ export default function POSPage() {
   const { accountId } = useAuth()
   const { staff, clearStaff } = useStaff()
   const navigate = useNavigate()
+
+  // Redirect to PIN screen if no staff logged in
+  useEffect(() => {
+    if (!staff) navigate('/pin', { replace: true })
+  }, [staff, navigate])
   const [showStaffMenu, setShowStaffMenu] = useState(false)
   const { categories, loading: catsLoading } = useCategories(accountId)
   const { loading: itemsLoading, getItemsForCategory, getSubCategories } = useItems(accountId)
@@ -496,7 +501,7 @@ export default function POSPage() {
                     <button
                       onClick={() => setShowStaffMenu(m => !m)}
                       className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 transition-colors">
-                      <span className="text-xs text-gray-600 font-medium">Staff: {staff.name}</span>
+                      <span className="text-xs text-gray-600 font-medium">Staff: {staff.name.split(' ')[0]}</span>
                     </button>
                     {showStaffMenu && (
                       <>
