@@ -69,10 +69,6 @@ export default function OrdersPage() {
     return matchLocation && matchFilter && matchSearch
   })
 
-  const today = new Date().toISOString().split('T')[0]
-  const todayRevenue = orders.filter(o => o.orderDate?.startsWith(today)).reduce((s, o) => s + o.orderAmount, 0)
-  const readyCount = filtered.filter(o => o.status === 'Ready').length
-  const unpaidCount = filtered.filter(o => !o.isPaid && o.status !== 'Collected').length
 
   return (
     <div className="flex flex-col h-full bg-gray-50 overflow-hidden">
