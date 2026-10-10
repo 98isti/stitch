@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Delete } from 'lucide-react'
 import { collection, getDocs, query } from 'firebase/firestore'
 import { db } from '../lib/firebase'
@@ -20,6 +20,15 @@ export default function StaffPinPage() {
   const [pin, setPin] = useState('')
   const [error, setError] = useState('')
   const [checking, setChecking] = useState(false)
+  const [staffCache, setStaffCache] = useState<{ pinHash: string; name: string; role: string; isActive: boolean }[]>([])
+
+  // Pre-load staff list on mount so PIN check is instant
+  useEffect(() => {
+    if (!accountId) return
+    getDocs(query(collection(db, 'accounts', accountId, 'staff')))
+      .then(snap => setStaffCache(snap.docs.map(d => d.data() as any)))
+      .catch(() => {})
+  }, [accountId])
 
   async function handleKey(digit: string) {
     if (pin.length >= 4 || checking) return
@@ -32,9 +41,7 @@ export default function StaffPinPage() {
       try {
         if (!accountId) { setError('Not signed in'); setPin(''); setChecking(false); return }
         const hash = await hashPin(next)
-        const snap = await getDocs(query(collection(db, 'accounts', accountId, 'staff')))
-        const all = snap.docs.map(d => ({ id: d.id, ...d.data() } as StaffMember))
-        const match = all.find(s => s.pinHash === hash && s.isActive)
+        const match = staffCache.find((s: any) => s.pinHash === hash && s.isActive)
         if (match) {
           setStaff({ id: match.id, name: `${match.firstName} ${match.lastName}`, role: match.role })
           navigate('/pos')
