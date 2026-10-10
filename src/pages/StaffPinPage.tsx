@@ -56,11 +56,10 @@ export default function StaffPinPage() {
     <div className="min-h-screen bg-navy flex flex-col items-center justify-center p-4">
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 bg-tan rounded-lg flex items-center justify-center">
-            <span className="text-navy font-bold">S</span>
-          </div>
-          <span className="text-white text-xl font-bold">Stitch</span>
         </div>
+        <div className="bg-white rounded-2xl px-6 py-3 inline-block shadow-lg mb-3">
+            <img src="/stitch-logo.png" alt="Stitch" className="h-10 object-contain" />
+          </div>
         <p className="text-white/50 text-sm">Enter your PIN</p>
       </div>
 

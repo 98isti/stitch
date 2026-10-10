@@ -26,7 +26,9 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <img src="/stitch-logo.png" alt="Stitch" className="h-16 object-contain mx-auto" />
+          <div className="bg-white rounded-2xl px-8 py-4 inline-block shadow-xl mb-1">
+            <img src="/stitch-logo.png" alt="Stitch" className="h-12 object-contain" />
+          </div>
           <p className="text-white/50 text-sm mt-3">Alterations & Dry Cleaning POS</p>
         </div>
 

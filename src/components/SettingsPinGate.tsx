@@ -60,8 +60,8 @@ export default function SettingsPinGate({ accountId, onUnlocked }: Props) {
 
       <div className="flex-1 flex flex-col items-center justify-center px-8">
         <div className="mb-8 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">⚙️</span>
+          <div className="bg-white rounded-2xl px-6 py-3 inline-block shadow-lg mb-3">
+            <img src="/stitch-logo.png" alt="Stitch" className="h-8 object-contain" />
           </div>
           <h2 className="text-white text-xl font-bold">Settings</h2>
           <p className="text-white/50 text-sm mt-1">Enter Manager or Owner PIN</p>
