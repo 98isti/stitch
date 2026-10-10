@@ -395,6 +395,15 @@ export default function POSPage() {
     setItems(prev => prev.map(i => i.id === updated.id ? updated : i))
   }
 
+  function updateItemQty(id: string, delta: number) {
+    setItems(prev => prev.flatMap(it => {
+      if (it.id !== id) return [it]
+      const next = it.quantity + delta
+      if (next <= 0) return [] // remove if qty hits 0
+      return [{ ...it, quantity: next }]
+    }))
+  }
+
   function removeItem(id: string) {
     setItems(prev => prev.filter(i => i.id !== id))
   }
@@ -705,16 +714,28 @@ export default function POSPage() {
                     {/* Service lines */}
                     {group.items.map(item => (
                       <div key={item.id}
-                        className="flex items-center gap-2 py-2 px-3 rounded-xl active:bg-gray-50 ml-1">
+                        className="flex items-center gap-1 py-2 px-3 rounded-xl ml-1">
+                        {/* Name + note — tap to edit */}
                         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setEditingItem(item)}>
-                          <p className="text-sm text-gray-800 truncate">{item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ''}</p>
+                          <p className="text-sm text-gray-800 truncate">{item.name}</p>
                           {item.note ? <p className="text-xs text-gray-400 truncate mt-0.5">{item.note}</p> : null}
                         </div>
-                        <span className="font-semibold text-gray-900 text-sm shrink-0 cursor-pointer" onClick={() => setEditingItem(item)}>${(item.unitPrice * item.quantity).toFixed(2)}</span>
-                        <button onClick={() => removeItem(item.id)}
-                          className="w-7 h-7 rounded-full bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-400 flex items-center justify-center shrink-0 transition-colors ml-1">
-                          <X size={13} />
-                        </button>
+                        {/* — qty + controls */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button onClick={() => updateItemQty(item.id, -1)}
+                            className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-600 flex items-center justify-center text-base font-bold transition-colors">
+                            −
+                          </button>
+                          <span className="text-sm font-semibold text-gray-800 w-5 text-center">{item.quantity}</span>
+                          <button onClick={() => updateItemQty(item.id, 1)}
+                            className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-600 flex items-center justify-center text-base font-bold transition-colors">
+                            +
+                          </button>
+                        </div>
+                        {/* Price — tap to edit */}
+                        <span className="font-semibold text-gray-900 text-sm shrink-0 cursor-pointer ml-2" onClick={() => setEditingItem(item)}>
+                          ${(item.unitPrice * item.quantity).toFixed(2)}
+                        </span>
                       </div>
                     ))}
                   </div>
