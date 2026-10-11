@@ -881,24 +881,24 @@ export default function POSPage() {
                       }`}>
                       <span className="text-sm font-bold">{d}</span>
                       {jobCount > 0 && !isPast && (
-                        <div className={`mt-1 rounded-md px-1 py-0.5 flex flex-col items-center ${
+                        <div className={`mt-1 rounded-md px-1.5 py-1 flex flex-col items-center ${
                           isSelected ? 'bg-white/20' :
-                          jobCount >= 10 ? 'bg-red-100' :
-                          jobCount >= 5 ? 'bg-orange-100' :
+                          (dayData?.total ?? 0) >= 1000 ? 'bg-red-100' :
+                          (dayData?.total ?? 0) >= 500 ? 'bg-orange-100' :
                           'bg-blue-100'
                         }`}>
-                          <span className={`text-[10px] font-bold leading-tight ${
+                          <span className={`text-xs font-bold leading-tight ${
                             isSelected ? 'text-white' :
-                            jobCount >= 10 ? 'text-red-600' :
-                            jobCount >= 5 ? 'text-orange-600' :
+                            (dayData?.total ?? 0) >= 1000 ? 'text-red-600' :
+                            (dayData?.total ?? 0) >= 500 ? 'text-orange-600' :
                             'text-blue-600'
                           }`}>{jobCount} jobs</span>
-                          <span className={`text-[9px] font-semibold leading-tight ${
+                          <span className={`text-xs font-bold leading-tight ${
                             isSelected ? 'text-white/80' :
-                            jobCount >= 10 ? 'text-red-500' :
-                            jobCount >= 5 ? 'text-orange-500' :
+                            (dayData?.total ?? 0) >= 1000 ? 'text-red-500' :
+                            (dayData?.total ?? 0) >= 500 ? 'text-orange-500' :
                             'text-blue-500'
-                          }`}>\${(dayData?.total ?? 0).toFixed(0)}</span>
+                          }`}>${(dayData?.total ?? 0).toFixed(0)}</span>
                         </div>
                       )}
                     </button>
