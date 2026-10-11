@@ -21,9 +21,10 @@ export default function SignInPage() {
   const navigate = useNavigate()
 
   const [type, setType] = useState<'in' | 'out'>('in')
-  const [locationName, setLocationName] = useState('')
+  const [locationName, setLocationName] = useState(() => activeLocation?.name ?? '')
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState(false)
+  const [error, setError] = useState('')
   const [currentTime, setCurrentTime] = useState(now())
 
   // Clock tick
@@ -32,13 +33,16 @@ export default function SignInPage() {
     return () => clearInterval(t)
   }, [])
 
-  // Default location from active location
+  // Set location once activeLocation loads
   useEffect(() => {
-    if (activeLocation?.name) setLocationName(activeLocation.name)
+    if (activeLocation?.name && !locationName) setLocationName(activeLocation.name)
   }, [activeLocation])
 
   async function handleSubmit() {
-    if (!accountId || !staff || !locationName) return
+    setError('')
+    if (!accountId) { setError('Not signed in to account'); return }
+    if (!staff) { setError('No staff session — please log in with your PIN first'); return }
+    if (!locationName) { setError('Please select a location'); return }
     setSaving(true)
     try {
       await addDoc(collection(db, 'accounts', accountId, 'signIns'), {
@@ -49,9 +53,15 @@ export default function SignInPage() {
         timestamp: serverTimestamp(),
       })
       setDone(true)
-      setTimeout(() => { setDone(false); navigate('/pos') }, 2000)
-    } catch (e) {
+      // Reset form after 2.5s so next person can sign in
+      setTimeout(() => {
+        setDone(false)
+        setSaving(false)
+        setType('in')
+      }, 2500)
+    } catch (e: any) {
       console.error(e)
+      setError(e?.message ?? 'Something went wrong')
       setSaving(false)
     }
   }
@@ -127,6 +137,13 @@ export default function SignInPage() {
               ))}
             </select>
           </div>
+
+          {/* Error */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm text-center">
+              {error}
+            </div>
+          )}
 
           {/* Submit */}
           <button
