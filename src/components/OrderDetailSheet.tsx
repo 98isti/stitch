@@ -200,49 +200,55 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
         {/* ── Dark header ── */}
         <div className="bg-navy px-5 pt-5 pb-4 shrink-0">
           <div className="flex items-start justify-between mb-3">
-            <div>
+            {/* LEFT — all info */}
+            <div className="flex-1 min-w-0 pr-4">
               <p className="text-navy-light text-xs font-medium mb-0.5">Order #</p>
               <p className="text-white text-xl font-bold leading-tight">
                 {order?.orderNumberString ?? '—'}
                 {order?.location && <span className="font-normal text-white/60 text-base ml-2">{order.location}</span>}
               </p>
-              <p className="text-white/50 text-xs mt-1 leading-relaxed">
+              <p className="text-white/50 text-xs mt-1">
                 {order ? formatDateTime(order.orderDate) : '—'}
                 {order?.createdAt && <span> at {formatTime(order.createdAt)}</span>}
-                {staff && <span> · Served by: {staff.name}</span>}
-                {order?.completedBy && <span> · Completed by: {order.completedBy}</span>}
               </p>
+              {staff && <p className="text-white/50 text-xs mt-0.5">Served by: {staff.name}</p>}
             </div>
-            <div className="flex items-center gap-2">
-              {/* Status dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowStatusMenu(m => !m)}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold whitespace-nowrap transition-colors ${STATUS_COLOR[order?.status ?? 'Active'] ?? 'bg-blue-500'}`}>
-                  {order?.status ?? '—'}
-                  <ChevronDown size={14} />
-                </button>
-                {showStatusMenu && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setShowStatusMenu(false)} />
-                    <div className="absolute right-0 top-full mt-1 z-20 bg-white rounded-xl shadow-xl overflow-hidden w-44 border border-gray-100">
-                      {STATUS_OPTIONS.map(s => (
-                        <button key={s} onClick={() => updateStatus(s)}
-                          className={`w-full text-left px-4 py-3 text-sm transition-colors hover:bg-gray-50 ${
-                            order?.status === s ? 'font-semibold text-navy' : 'text-gray-700'
-                          }`}>
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  </>
+            {/* RIGHT — status + edit + completed by */}
+            <div className="flex flex-col items-end gap-1.5 shrink-0">
+              <div className="flex items-center gap-2">
+                {/* Status dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowStatusMenu(m => !m)}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold whitespace-nowrap transition-colors ${STATUS_COLOR[order?.status ?? 'Active'] ?? 'bg-blue-500'}`}>
+                    {order?.status ?? '—'}
+                    <ChevronDown size={14} />
+                  </button>
+                  {showStatusMenu && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setShowStatusMenu(false)} />
+                      <div className="absolute right-0 top-full mt-1 z-20 bg-white rounded-xl shadow-xl overflow-hidden w-44 border border-gray-100">
+                        {STATUS_OPTIONS.map(s => (
+                          <button key={s} onClick={() => updateStatus(s)}
+                            className={`w-full text-left px-4 py-3 text-sm transition-colors hover:bg-gray-50 ${
+                              order?.status === s ? 'font-semibold text-navy' : 'text-gray-700'
+                            }`}>
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+                {order && onEdit && (
+                  <button onClick={() => onEdit(orderId!)}
+                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+                    <Pencil size={14} className="text-white" />
+                  </button>
                 )}
               </div>
-              {order && onEdit && (
-                <button onClick={() => onEdit(orderId!)}
-                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors ml-4">
-                  <Pencil size={14} className="text-white" />
-                </button>
+              {order?.completedBy && (
+                <p className="text-white/50 text-xs text-right">Completed by: {order.completedBy}</p>
               )}
             </div>
           </div>
