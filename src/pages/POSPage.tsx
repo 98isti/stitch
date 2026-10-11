@@ -76,6 +76,9 @@ async function saveOrder({
   total,
   discountAmount,
   paymentMethod,
+  overridePaidAmount,
+  overrideStillDue,
+  overrideIsPaid,
 }: {
   accountId: string
   locationId: string
