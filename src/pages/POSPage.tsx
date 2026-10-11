@@ -336,10 +336,15 @@ export default function POSPage() {
         where('location', '==', activeLocation.name),
         where('status', '==', 'In progress'),
       )).then(snap => {
-        const map: Record<string, number> = {}
+        const map: Record<string, { count: number; total: number }> = {}
         snap.docs.forEach(d => {
-          const date = d.data().pickupDate as string
-          if (date) map[date] = (map[date] ?? 0) + 1
+          const o = d.data()
+          const date = o.pickupDate as string
+          if (date) {
+            if (!map[date]) map[date] = { count: 0, total: 0 }
+            map[date].count++
+            map[date].total += o.orderAmount ?? 0
+          }
         })
         setWorkload(map)
       }).catch(() => {})
@@ -835,7 +840,7 @@ export default function POSPage() {
       {showDatePicker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowDatePicker(false)}>
           <div className="absolute inset-0 bg-black/30" />
-          <div className="relative z-10 bg-white rounded-t-3xl w-full max-w-sm pb-8 pt-4 shadow-2xl"
+          <div className="relative z-10 bg-white rounded-3xl w-full max-w-lg pb-6 pt-4 shadow-2xl"
             onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
             <h3 className="text-center font-bold text-gray-900 text-base mb-3 px-4">Pick-up Date</h3>
@@ -863,24 +868,38 @@ export default function POSPage() {
                   const isSelected = date.toDateString() === pickupDate.toDateString()
                   const isToday = date.toDateString() === today.toDateString()
                   const iso = `${calMonth.year}-${String(calMonth.month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
-                  const jobCount = workload[iso] ?? 0
+                  const dayData = workload[iso]
+                  const jobCount = dayData?.count ?? 0
                   cells.push(
                     <button key={d} disabled={isPast}
                       onClick={() => { setPickupDate(date); setShowDatePicker(false) }}
-                      className={`flex flex-col items-center justify-center h-12 w-full rounded-xl text-sm font-medium transition-colors ${
+                      className={`flex flex-col items-center justify-center min-h-[72px] w-full rounded-xl text-sm font-medium transition-colors px-0.5 py-1 ${
                         isSelected ? 'bg-navy text-white' :
                         isToday ? 'bg-tan/30 text-navy font-bold' :
-                        isPast ? 'text-gray-300 cursor-not-allowed' :
+                        isPast ? 'text-gray-200 cursor-not-allowed' :
                         'text-gray-800 hover:bg-gray-100'
                       }`}>
-                      <span>{d}</span>
+                      <span className="text-sm font-bold">{d}</span>
                       {jobCount > 0 && !isPast && (
-                        <span className={`text-[10px] font-bold leading-none mt-0.5 ${
-                          isSelected ? 'text-white/80' :
-                          jobCount >= 10 ? 'text-red-500' :
-                          jobCount >= 5 ? 'text-orange-500' :
-                          'text-blue-500'
-                        }`}>{jobCount}</span>
+                        <div className={`mt-1 rounded-md px-1 py-0.5 flex flex-col items-center ${
+                          isSelected ? 'bg-white/20' :
+                          jobCount >= 10 ? 'bg-red-100' :
+                          jobCount >= 5 ? 'bg-orange-100' :
+                          'bg-blue-100'
+                        }`}>
+                          <span className={`text-[10px] font-bold leading-tight ${
+                            isSelected ? 'text-white' :
+                            jobCount >= 10 ? 'text-red-600' :
+                            jobCount >= 5 ? 'text-orange-600' :
+                            'text-blue-600'
+                          }`}>{jobCount} jobs</span>
+                          <span className={`text-[9px] font-semibold leading-tight ${
+                            isSelected ? 'text-white/80' :
+                            jobCount >= 10 ? 'text-red-500' :
+                            jobCount >= 5 ? 'text-orange-500' :
+                            'text-blue-500'
+                          }`}>\${(dayData?.total ?? 0).toFixed(0)}</span>
+                        </div>
                       )}
                     </button>
                   )
