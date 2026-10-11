@@ -77,6 +77,7 @@ async function saveOrder({
   total,
   discountAmount,
   paymentMethod,
+  orderNote,
   overridePaidAmount,
   overrideStillDue,
   overrideIsPaid,
@@ -92,6 +93,7 @@ async function saveOrder({
   total: number
   discountAmount: number
   paymentMethod: 'Cash' | 'Card' | 'Pay Later' | 'Split'
+  orderNote?: string
   overridePaidAmount?: number
   overrideStillDue?: number
   overrideIsPaid?: boolean
@@ -133,6 +135,7 @@ async function saveOrder({
       location: locationName,
       paymentMethod,
       barcode: crypto.randomUUID(),
+      orderNote: orderNote || null,
       completedBy: '',
       jobCompletedDate: null,
       createdAt: serverTimestamp(),
@@ -351,6 +354,8 @@ export default function POSPage() {
   const [pickerCategory, setPickerCategory] = useState<string | null>(null)
   const [longPressGarmentId, setLongPressGarmentId] = useState<string | null>(null)
   const [showSaleMenu, setShowSaleMenu] = useState(false)
+  const [showNoteSheet, setShowNoteSheet] = useState(false)
+  const [orderNote, setOrderNote] = useState('')
   const [showClearConfirm, setShowClearConfirm] = useState(false)
 
 
@@ -466,6 +471,7 @@ export default function POSPage() {
   }
 
   function clearSale() {
+    setOrderNote('')
     clearPersistedSale()
     setCalMonth(() => { const d = defaultPickup(); return { year: d.getFullYear(), month: d.getMonth() } })
   }
@@ -489,6 +495,7 @@ export default function POSPage() {
         total,
         discountAmount,
         paymentMethod: method,
+        orderNote,
       })
       if (method !== 'Pay Later') {
         await writePayment(db, accountId, {
@@ -533,6 +540,7 @@ export default function POSPage() {
         total,
         discountAmount,
         paymentMethod: method as any,
+        orderNote,
         overridePaidAmount: paidAmount,
         overrideStillDue: stillDue,
         overrideIsPaid: isPaid,
@@ -761,18 +769,48 @@ export default function POSPage() {
                   className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-red-50 text-red-500 text-sm font-medium transition-colors border-b border-gray-50">
                   🗑️ Clear Sale
                 </button>
-                <button onClick={() => setShowSaleMenu(false)}
-                  className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-gray-50 text-gray-600 text-sm font-medium transition-colors border-b border-gray-50">
-                  ⏸️ Save for Later
-                </button>
-                <button onClick={() => setShowSaleMenu(false)}
+                <button onClick={() => { setShowSaleMenu(false); setShowNoteSheet(true) }}
                   className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-gray-50 text-gray-600 text-sm font-medium transition-colors">
-                  📝 Order Note
+                  📝 Order Note{orderNote ? ' ✓' : ''}
                 </button>
               </div>
             </>
           )}
-          {/* Clear Sale confirmation */}
+          {/* Order Note sheet */}
+          {showNoteSheet && (
+            <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowNoteSheet(false)}>
+              <div className="absolute inset-0 bg-black/30" />
+              <div className="relative z-10 bg-white rounded-t-3xl w-full max-w-sm pb-10 pt-4 shadow-2xl"
+                onClick={e => e.stopPropagation()}>
+                <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+                <h3 className="text-center font-bold text-gray-900 text-base mb-4 px-4">Order Note</h3>
+                <div className="px-6 mb-4">
+                  <textarea
+                    value={orderNote}
+                    onChange={e => setOrderNote(e.target.value)}
+                    placeholder="e.g. Call before pickup · Rush order · Handle with care"
+                    rows={4}
+                    autoFocus
+                    className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-800 resize-none focus:outline-none focus:border-navy"
+                  />
+                </div>
+                <div className="px-6 flex gap-3">
+                  {orderNote && (
+                    <button onClick={() => { setOrderNote(''); setShowNoteSheet(false) }}
+                      className="flex-1 py-3 rounded-2xl border border-red-200 text-red-500 font-semibold text-sm">
+                      Remove Note
+                    </button>
+                  )}
+                  <button onClick={() => setShowNoteSheet(false)}
+                    className="flex-1 py-3 rounded-2xl bg-navy text-white font-semibold text-sm">
+                    Done
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Clear Sale confirmation */}}
           {showClearConfirm && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-black/30" onClick={() => setShowClearConfirm(false)} />
