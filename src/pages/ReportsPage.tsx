@@ -157,8 +157,8 @@ export default function ReportsPage() {
                       className={`grid grid-cols-6 px-6 py-5 items-center ${i < rows.length - 1 ? 'border-b border-gray-100' : ''}`}>
                       <p className="text-base font-semibold text-gray-900">{dayName}</p>
                       <p className="text-base text-gray-600 col-span-2">{dateStr}</p>
-                      <p className="text-base font-semibold text-gray-800 text-right">{fmt(row.cash)}</p>
-                      <p className="text-base font-semibold text-gray-800 text-right">{fmt(row.card)}</p>
+                      <p className="text-base text-gray-700 text-right">{fmt(row.cash)}</p>
+                      <p className="text-base text-gray-700 text-right">{fmt(row.card)}</p>
                       <p className="text-base font-bold text-gray-900 text-right">{fmt(row.total)}</p>
                     </div>
                   )
