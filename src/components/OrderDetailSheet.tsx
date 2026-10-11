@@ -194,7 +194,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Card */}
-      <div className="relative z-10 bg-white rounded-3xl shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden relative"
+      <div className="relative z-10 bg-white rounded-3xl shadow-2xl w-full max-w-xl flex flex-col overflow-hidden relative"
         style={{ maxHeight: '82vh' }}>
 
         {/* ── Dark header ── */}
@@ -213,10 +213,10 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
               </p>
               {staff && <p className="text-white/50 text-xs mt-0.5">Served by: {staff.name}</p>}
             </div>
-            {/* RIGHT — status + edit + completed by */}
-            <div className="flex flex-col items-end gap-1.5 shrink-0">
-              <div className="flex items-center gap-2">
-                {/* Status dropdown */}
+            {/* RIGHT — status (with completedBy below) + edit button */}
+            <div className="flex items-start gap-2 shrink-0">
+              {/* Status pill + Completed by stacked */}
+              <div className="flex flex-col items-end">
                 <div className="relative">
                   <button
                     onClick={() => setShowStatusMenu(m => !m)}
@@ -240,15 +240,16 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                     </>
                   )}
                 </div>
-                {order && onEdit && (
-                  <button onClick={() => onEdit(orderId!)}
-                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
-                    <Pencil size={14} className="text-white" />
-                  </button>
+                {order?.completedBy && (
+                  <p className="text-white/50 text-xs text-right mt-1">Completed by: {order.completedBy}</p>
                 )}
               </div>
-              {order?.completedBy && (
-                <p className="text-white/50 text-xs text-right">Completed by: {order.completedBy}</p>
+              {/* Edit button alongside status */}
+              {order && onEdit && (
+                <button onClick={() => onEdit(orderId!)}
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors mt-0.5">
+                  <Pencil size={14} className="text-white" />
+                </button>
               )}
             </div>
           </div>
