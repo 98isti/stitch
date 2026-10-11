@@ -127,7 +127,7 @@ export default function StaffPage() {
 
       {/* Add/Edit Sheet */}
       {showSheet && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowSheet(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6" onClick={() => setShowSheet(false)}>
           <div className="absolute inset-0 bg-black/30" />
           <div className="relative z-10 bg-white rounded-t-3xl w-full max-w-sm pb-10 pt-4 shadow-2xl"
             onClick={e => e.stopPropagation()}>
