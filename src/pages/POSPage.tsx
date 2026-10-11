@@ -93,6 +93,7 @@ async function saveOrder({
   const ordersRef = collection(db, 'accounts', accountId, 'orders')
 
   let orderNumberString = ''
+  const newOrderRef = doc(ordersRef) // pre-generate ID before transaction
 
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(counterRef)
@@ -103,7 +104,7 @@ async function saveOrder({
     const isPaid = paymentMethod !== 'Pay Later'
     const subTotalAmount = (total - discountAmount) / 1.1
 
-    tx.set(doc(ordersRef), {
+    tx.set(newOrderRef, {
       orderNumber: next,
       orderNumberString,
       orderDate: isoDate(new Date()),
@@ -131,7 +132,7 @@ async function saveOrder({
     })
   })
 
-  return orderNumberString
+  return { orderNumber: orderNumberString, orderId: newOrderRef.id }
 }
 
 // ── Success Screen ────────────────────────────────────────────────────────────
