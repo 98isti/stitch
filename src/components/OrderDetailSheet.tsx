@@ -395,14 +395,18 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
             <div className="bg-white rounded-2xl shadow-xl p-6 mx-6 w-full">
               <p className="text-center font-bold text-gray-900 text-base mb-1">Collect Payment</p>
               <p className="text-center text-gray-500 text-sm mb-5">${order.stillDueAmount.toFixed(2)} due</p>
-              <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="grid grid-cols-3 gap-3 mb-3">
                 <button onClick={() => markPaid('Cash')}
-                  className="py-4 rounded-2xl bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-800 font-bold text-base transition-all">
+                  className="py-4 rounded-2xl bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-800 font-bold text-sm transition-all">
                   💵 Cash
                 </button>
                 <button onClick={() => markPaid('Card')}
-                  className="py-4 rounded-2xl bg-navy hover:bg-navy-light active:scale-95 text-white font-bold text-base transition-all">
+                  className="py-4 rounded-2xl bg-navy hover:bg-navy-light active:scale-95 text-white font-bold text-sm transition-all">
                   💳 Card
+                </button>
+                <button onClick={() => { setShowPaymentPrompt(false); setShowSplit(true) }}
+                  className="py-4 rounded-2xl bg-purple-50 border-2 border-purple-200 text-purple-700 font-bold text-sm transition-all hover:bg-purple-100">
+                  ✂️ Split
                 </button>
               </div>
               <button onClick={() => setShowPaymentPrompt(false)}
