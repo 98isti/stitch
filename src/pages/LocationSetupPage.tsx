@@ -32,7 +32,7 @@ export default function LocationSetupPage() {
 
   // New location form
   const [locForm, setLocForm] = useState({
-    name: '', streetAddress: '', suburb: '', state: 'NSW', country: 'Australia', phone: '', dailyTarget: '500'
+    name: '', streetAddress: '', suburb: '', state: 'NSW', country: 'Australia', phone: '', dailyTarget: '1000'
   })
   const [savingLoc, setSavingLoc] = useState(false)
 
@@ -104,7 +104,7 @@ export default function LocationSetupPage() {
         state: locForm.state,
         country: locForm.country,
         phone: locForm.phone.trim(),
-        dailyTarget: parseFloat(locForm.dailyTarget) || 500,
+        dailyTarget: parseFloat(locForm.dailyTarget) || 1000,
         shopType: 'alterations',
         createdAt: serverTimestamp(),
       })

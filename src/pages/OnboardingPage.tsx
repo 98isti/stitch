@@ -36,7 +36,7 @@ const INITIAL: FormData = {
   country: 'Australia',
   phone: '',
   shopType: 'alterations',
-  dailyTarget: '500',
+  dailyTarget: '1000',
 }
 
 const STEPS = ['Business', 'Location', 'Done']
@@ -102,7 +102,7 @@ export default function OnboardingPage() {
         country: form.country,
         phone: form.phone.trim(),
         shopType: form.shopType,
-        dailyTarget: parseFloat(form.dailyTarget) || 500,
+        dailyTarget: parseFloat(form.dailyTarget) || 1000,
         createdAt: serverTimestamp(),
       })
 
