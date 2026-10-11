@@ -194,7 +194,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Card */}
-      <div className="relative z-10 bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden relative"
+      <div className="relative z-10 bg-white rounded-3xl shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden relative"
         style={{ maxHeight: '82vh' }}>
 
         {/* ── Dark header ── */}
@@ -218,7 +218,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
               <div className="relative">
                 <button
                   onClick={() => setShowStatusMenu(m => !m)}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold transition-colors ${STATUS_COLOR[order?.status ?? 'Active'] ?? 'bg-blue-500'}`}>
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold whitespace-nowrap transition-colors ${STATUS_COLOR[order?.status ?? 'Active'] ?? 'bg-blue-500'}`}>
                   {order?.status ?? '—'}
                   <ChevronDown size={14} />
                 </button>
