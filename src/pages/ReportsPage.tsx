@@ -105,24 +105,11 @@ export default function ReportsPage() {
         ) : (
           <div className="max-w-2xl mx-auto px-4 py-4">
 
-            {/* Summary cards */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              {[
-                { label: 'Cash', value: totalCash, colour: 'bg-green-50 text-green-700' },
-                { label: 'Card', value: totalCard, colour: 'bg-blue-50 text-blue-700' },
-                { label: 'Total', value: totalCash + totalCard, colour: 'bg-navy text-white' },
-              ].map(({ label, value, colour }) => (
-                <div key={label} className={`rounded-2xl p-4 text-center ${colour}`}>
-                  <p className="text-xs font-semibold uppercase tracking-wide opacity-70 mb-1">{label}</p>
-                  <p className="text-lg font-bold">{fmt(value)}</p>
-                </div>
-              ))}
-            </div>
-
             {/* Table */}
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               {/* Table header */}
-              <div className="grid grid-cols-4 px-4 py-3 bg-gray-50 border-b border-gray-100">
+              <div className="grid grid-cols-5 px-4 py-3 bg-gray-50 border-b border-gray-100">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Day</p>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wide col-span-2">Date</p>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-right">Cash</p>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-right">Card</p>
@@ -133,17 +120,30 @@ export default function ReportsPage() {
                   <p className="text-4xl mb-3">📊</p>
                   <p className="text-sm">No paid orders in the last 30 days</p>
                 </div>
-              ) : rows.map((row, i) => (
-                <div key={row.date}
-                  className={`grid grid-cols-4 px-4 py-4 items-center ${i < rows.length - 1 ? 'border-b border-gray-100' : ''}`}>
-                  <div className="col-span-2">
-                    <p className="text-sm font-semibold text-gray-900">{formatDate(row.date)}</p>
-                    <p className="text-xs font-bold text-navy mt-0.5">{fmt(row.total)}</p>
+              ) : rows.map((row, i) => {
+                const [y, m, d] = row.date.split('-').map(Number)
+                const dt = new Date(y, m - 1, d)
+                const dayName = dt.toLocaleDateString('en-AU', { weekday: 'long' })
+                const dateStr = dt.toLocaleDateString('en-AU', { day: '2-digit', month: 'long', year: 'numeric' })
+                return (
+                  <div key={row.date}
+                    className={`grid grid-cols-5 px-4 py-4 items-center ${i < rows.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                    <p className="text-sm font-semibold text-gray-900">{dayName}</p>
+                    <p className="text-sm text-gray-600 col-span-2">{dateStr}</p>
+                    <p className="text-sm font-semibold text-gray-800 text-right">{fmt(row.cash)}</p>
+                    <p className="text-sm font-semibold text-gray-800 text-right">{fmt(row.card)}</p>
                   </div>
-                  <p className="text-sm font-semibold text-gray-700 text-right">{fmt(row.cash)}</p>
-                  <p className="text-sm font-semibold text-gray-700 text-right">{fmt(row.card)}</p>
+                )
+              })}
+
+              {/* Totals row */}
+              {rows.length > 0 && (
+                <div className="grid grid-cols-5 px-4 py-4 bg-navy items-center">
+                  <p className="text-sm font-bold text-white col-span-3">Total</p>
+                  <p className="text-sm font-bold text-white text-right">{fmt(totalCash)}</p>
+                  <p className="text-sm font-bold text-white text-right">{fmt(totalCard)}</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}
