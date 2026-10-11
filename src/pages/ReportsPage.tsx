@@ -101,11 +101,12 @@ export default function ReportsPage() {
             {/* Table */}
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               {/* Table header */}
-              <div className="grid grid-cols-5 px-4 py-3 bg-gray-50 border-b border-gray-100">
+              <div className="grid grid-cols-6 px-4 py-3 bg-gray-50 border-b border-gray-100">
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Day</p>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wide col-span-2">Date</p>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-right">Cash</p>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-right">Card</p>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-right">Total</p>
               </div>
 
               {rows.length === 0 ? (
@@ -113,28 +114,77 @@ export default function ReportsPage() {
                   <p className="text-4xl mb-3">📊</p>
                   <p className="text-sm">No paid orders in the last 30 days</p>
                 </div>
-              ) : rows.map((row, i) => {
-                const [y, m, d] = row.date.split('-').map(Number)
-                const dt = new Date(y, m - 1, d)
-                const dayName = dt.toLocaleDateString('en-AU', { weekday: 'long' })
-                const dateStr = dt.toLocaleDateString('en-AU', { day: '2-digit', month: 'long', year: 'numeric' })
-                return (
-                  <div key={row.date}
-                    className={`grid grid-cols-5 px-4 py-4 items-center ${i < rows.length - 1 ? 'border-b border-gray-100' : ''}`}>
-                    <p className="text-sm font-semibold text-gray-900">{dayName}</p>
-                    <p className="text-sm text-gray-600 col-span-2">{dateStr}</p>
-                    <p className="text-sm font-semibold text-gray-800 text-right">{fmt(row.cash)}</p>
-                    <p className="text-sm font-semibold text-gray-800 text-right">{fmt(row.card)}</p>
+              ) : (() => {
+                // Get Monday of a given date's week
+                function getMondayIso(iso: string) {
+                  const [y, m, d] = iso.split('-').map(Number)
+                  const dt = new Date(y, m - 1, d)
+                  const day = dt.getDay() // 0=Sun,1=Mon...6=Sat
+                  const diff = day === 0 ? -6 : 1 - day // back to Monday
+                  dt.setDate(dt.getDate() + diff)
+                  return dt.toISOString().split('T')[0]
+                }
+
+                const elements: React.ReactNode[] = []
+                let weekCash = 0, weekCard = 0
+                let currentWeek = rows.length > 0 ? getMondayIso(rows[0].date) : ''
+
+                rows.forEach((row, i) => {
+                  const rowWeek = getMondayIso(row.date)
+                  // New week started — insert subtotal for previous week
+                  if (rowWeek !== currentWeek) {
+                    elements.push(
+                      <div key={`week-${currentWeek}`}
+                        className="grid grid-cols-6 px-4 py-3 bg-tan/20 border-b border-gray-200 items-center">
+                        <p className="text-xs font-bold text-navy col-span-3 uppercase tracking-wide">Week Total</p>
+                        <p className="text-xs font-bold text-navy text-right">{fmt(weekCash)}</p>
+                        <p className="text-xs font-bold text-navy text-right">{fmt(weekCard)}</p>
+                        <p className="text-xs font-bold text-navy text-right">{fmt(weekCash + weekCard)}</p>
+                      </div>
+                    )
+                    weekCash = 0; weekCard = 0
+                    currentWeek = rowWeek
+                  }
+
+                  weekCash += row.cash; weekCard += row.card
+                  const [y, m, d] = row.date.split('-').map(Number)
+                  const dt = new Date(y, m - 1, d)
+                  const dayName = dt.toLocaleDateString('en-AU', { weekday: 'long' })
+                  const dateStr = dt.toLocaleDateString('en-AU', { day: '2-digit', month: 'long', year: 'numeric' })
+
+                  elements.push(
+                    <div key={row.date}
+                      className={`grid grid-cols-6 px-4 py-4 items-center ${i < rows.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                      <p className="text-sm font-semibold text-gray-900">{dayName}</p>
+                      <p className="text-sm text-gray-600 col-span-2">{dateStr}</p>
+                      <p className="text-sm font-semibold text-gray-800 text-right">{fmt(row.cash)}</p>
+                      <p className="text-sm font-semibold text-gray-800 text-right">{fmt(row.card)}</p>
+                      <p className="text-sm font-bold text-gray-900 text-right">{fmt(row.total)}</p>
+                    </div>
+                  )
+                })
+
+                // Last week subtotal
+                elements.push(
+                  <div key={`week-${currentWeek}-last`}
+                    className="grid grid-cols-6 px-4 py-3 bg-tan/20 border-b border-gray-200 items-center">
+                    <p className="text-xs font-bold text-navy col-span-3 uppercase tracking-wide">Week Total</p>
+                    <p className="text-xs font-bold text-navy text-right">{fmt(weekCash)}</p>
+                    <p className="text-xs font-bold text-navy text-right">{fmt(weekCard)}</p>
+                    <p className="text-xs font-bold text-navy text-right">{fmt(weekCash + weekCard)}</p>
                   </div>
                 )
-              })}
 
-              {/* Totals row */}
+                return elements
+              })()}
+
+              {/* Grand total row */}
               {rows.length > 0 && (
-                <div className="grid grid-cols-5 px-4 py-4 bg-navy items-center">
-                  <p className="text-sm font-bold text-white col-span-3">Total</p>
+                <div className="grid grid-cols-6 px-4 py-4 bg-navy items-center">
+                  <p className="text-sm font-bold text-white col-span-3">30-Day Total</p>
                   <p className="text-sm font-bold text-white text-right">{fmt(totalCash)}</p>
                   <p className="text-sm font-bold text-white text-right">{fmt(totalCard)}</p>
+                  <p className="text-sm font-bold text-white text-right">{fmt(totalCash + totalCard)}</p>
                 </div>
               )}
             </div>
