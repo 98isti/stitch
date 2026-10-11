@@ -18,7 +18,7 @@ const MORE_ITEMS = [
   { label: 'Vouchers',     icon: '🎟️', path: '/vouchers' },
   { label: 'Locations',    icon: '📍', path: '/locations' },
   { label: 'Settings',     icon: '⚙️', path: '/settings' },
-  { label: 'Daily Reports', icon: '📊', path: '/reports' },
+  { label: 'Daily Sales',   icon: '📊', path: '/reports' },
 ]
 
 export default function POSLayout() {
@@ -133,7 +133,7 @@ export default function POSLayout() {
             <button onClick={() => navigate('/reports')}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors text-sm font-medium">
               <BarChart2 size={17} />
-              <span>Reports</span>
+              <span>Daily Sales</span>
             </button>
             <button onClick={() => setShowMore(m => !m)}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl transition-colors text-sm font-medium ${showMore ? 'bg-navy text-white' : 'text-gray-600 hover:bg-gray-100'}`}>

@@ -22,6 +22,7 @@ import VouchersPage from './pages/VouchersPage'
 import BillingPage from './pages/BillingPage'
 import AdminPage from './pages/AdminPage'
 import PlaceholderPage from './pages/PlaceholderPage'
+import ReportsPage from './pages/ReportsPage'
 import PickUpPage from './pages/PickUpPage'
 
 function AppRoutes() {
@@ -71,7 +72,7 @@ function AppRoutes() {
         <Route path="/vouchers"          element={<VouchersPage />} />
         <Route path="/pickup"            element={<PickUpPage />} />
         <Route path="/roster"            element={<PlaceholderPage title="Roster" />} />
-        <Route path="/reports"           element={<PlaceholderPage title="Reports" />} />
+        <Route path="/reports"           element={<ReportsPage />} />
         <Route path="/timesheet"         element={<PlaceholderPage title="My Timesheet" />} />
         <Route path="/leave"             element={<PlaceholderPage title="Leave" />} />
         <Route path="/billing"           element={<BillingPage />} />
