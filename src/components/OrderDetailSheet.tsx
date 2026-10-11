@@ -206,13 +206,14 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                 {order?.orderNumberString ?? '—'}
                 {order?.location && <span className="font-normal text-white/60 text-base ml-2">{order.location}</span>}
               </p>
-              <p className="text-white/50 text-xs mt-1">
+              <p className="text-white/50 text-xs mt-1 leading-relaxed">
                 {order ? formatDateTime(order.orderDate) : '—'}
                 {order?.createdAt && <span> at {formatTime(order.createdAt)}</span>}
+                {staff && <span> · Served by: {staff.name}</span>}
+                {order?.completedBy && <span> · Completed by: {order.completedBy}</span>}
               </p>
-              {staff && <p className="text-white/50 text-xs mt-0.5">Served by: {staff.name}</p>}
             </div>
-            <div className="flex flex-col items-end gap-1.5">
+            <div className="flex items-center gap-2">
               {/* Status dropdown */}
               <div className="relative">
                 <button
@@ -242,9 +243,6 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                   className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors ml-4">
                   <Pencil size={14} className="text-white" />
                 </button>
-              )}
-              {order?.completedBy && (
-                <p className="text-white/50 text-xs text-right mt-1 w-full">Completed by: {order.completedBy}</p>
               )}
             </div>
           </div>
