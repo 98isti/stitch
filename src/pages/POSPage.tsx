@@ -324,7 +324,7 @@ export default function POSPage() {
 
 
   const [showDatePicker, setShowDatePicker] = useState(false)
-  const [workload, setWorkload] = useState<Record<string, number>>({})
+  const [workload, setWorkload] = useState<Record<string, { count: number; total: number }>>({})
 
   function openDatePicker() {
     setShowDatePicker(true)
