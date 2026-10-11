@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, MapPin, CheckCircle } from 'lucide-react'
+import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, MapPin, CheckCircle , X} from 'lucide-react'
 import EditSaleItemSheet from '../components/EditSaleItemSheet'
 import {
   collection, query, getDocs, addDoc, serverTimestamp, orderBy,
@@ -790,13 +790,16 @@ export default function POSPage() {
                     {/* Service lines */}
                     {group.items.map(item => (
                       <div key={item.id}
-                        className="flex items-center gap-2 py-1.5 px-3 ml-1 cursor-pointer"
-                        onClick={() => setEditingItem(item)}>
-                        <div className="flex-1 min-w-0">
+                        className="flex items-center gap-2 py-1.5 px-3 ml-1">
+                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setEditingItem(item)}>
                           <p className="text-sm text-gray-700 truncate">{item.name}</p>
                           {item.note ? <p className="text-xs text-gray-400 truncate mt-0.5">{item.note}</p> : null}
                         </div>
-                        <span className="text-sm text-gray-500 shrink-0">${item.unitPrice.toFixed(2)}</span>
+                        <span className="text-sm text-gray-500 shrink-0 cursor-pointer" onClick={() => setEditingItem(item)}>${item.unitPrice.toFixed(2)}</span>
+                        <button onClick={() => setItems(prev => prev.filter(it => it.id !== item.id))}
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors shrink-0 ml-1">
+                          <X size={13} />
+                        </button>
                       </div>
                     ))}
                   </div>
