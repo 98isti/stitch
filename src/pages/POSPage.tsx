@@ -444,13 +444,14 @@ export default function POSPage() {
     setItems(prev => prev.map(i => i.id === updated.id ? updated : i))
   }
 
-  function updateItemQty(id: string, delta: number) {
-    setItems(prev => prev.flatMap(it => {
-      if (it.id !== id) return [it]
-      const next = it.quantity + delta
-      if (next <= 0) return [] // remove if qty hits 0
-      return [{ ...it, quantity: next }]
-    }))
+  function updateGroupQty(garmentId: string, delta: number) {
+    setItems(prev => {
+      const groupItems = prev.filter(it => it.garmentId === garmentId)
+      const currentQty = groupItems[0]?.quantity ?? 1
+      const next = currentQty + delta
+      if (next <= 0) return prev.filter(it => it.garmentId !== garmentId) // remove whole group
+      return prev.map(it => it.garmentId === garmentId ? { ...it, quantity: next } : it)
+    })
   }
 
   function clearSale() {
@@ -763,49 +764,39 @@ export default function POSPage() {
               <div className="space-y-3 mt-1">
                 {groups.map(group => (
                   <div key={group.garmentId}>
-                    {/* Garment header — long press to add more services */}
-                    <div className="flex items-center justify-between px-2 mb-1">
-                      <p className="text-xs font-bold text-navy uppercase tracking-wide">
-                        {group.category}
-                        {group.items[0]?.quantity > 1 && (
-                          <span className="text-navy/50 font-normal ml-1">×{group.items[0].quantity}</span>
-                        )}
-                      </p>
+                    {/* Garment header — category + qty controls + add service */}
+                    <div className="flex items-center gap-2 px-2 mb-1">
+                      <p className="text-xs font-bold text-navy uppercase tracking-wide flex-1">{group.category}</p>
+                      {/* — qty + on the GROUP */}
+                      <button onClick={() => updateGroupQty(group.garmentId, -1)}
+                        className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center text-sm font-bold transition-colors">
+                        −
+                      </button>
+                      <span className="text-xs font-bold text-navy w-4 text-center">{group.items[0]?.quantity ?? 1}</span>
+                      <button onClick={() => updateGroupQty(group.garmentId, 1)}
+                        className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center text-sm font-bold transition-colors">
+                        +
+                      </button>
                       <button
                         onClick={() => {
                           setLongPressGarmentId(group.garmentId)
                           setPickerCategory(null)
                           setShowPicker(true)
                         }}
-                        className="text-xs text-navy/50 hover:text-navy transition-colors px-1">
+                        className="text-xs text-navy/50 hover:text-navy transition-colors px-1 ml-1">
                         + Add service
                       </button>
                     </div>
                     {/* Service lines */}
                     {group.items.map(item => (
                       <div key={item.id}
-                        className="flex items-center gap-1 py-2 px-3 rounded-xl ml-1">
-                        {/* Name + note — tap to edit */}
-                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setEditingItem(item)}>
-                          <p className="text-sm text-gray-800 truncate">{item.name}</p>
+                        className="flex items-center gap-2 py-1.5 px-3 ml-1 cursor-pointer"
+                        onClick={() => setEditingItem(item)}>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-700 truncate">{item.name}</p>
                           {item.note ? <p className="text-xs text-gray-400 truncate mt-0.5">{item.note}</p> : null}
                         </div>
-                        {/* — qty + controls */}
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button onClick={() => updateItemQty(item.id, -1)}
-                            className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-600 flex items-center justify-center text-base font-bold transition-colors">
-                            −
-                          </button>
-                          <span className="text-sm font-semibold text-gray-800 w-5 text-center">{item.quantity}</span>
-                          <button onClick={() => updateItemQty(item.id, 1)}
-                            className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-600 flex items-center justify-center text-base font-bold transition-colors">
-                            +
-                          </button>
-                        </div>
-                        {/* Price — tap to edit */}
-                        <span className="font-semibold text-gray-900 text-sm shrink-0 cursor-pointer ml-2" onClick={() => setEditingItem(item)}>
-                          ${(item.unitPrice * item.quantity).toFixed(2)}
-                        </span>
+                        <span className="text-sm text-gray-500 shrink-0">${item.unitPrice.toFixed(2)}</span>
                       </div>
                     ))}
                   </div>
