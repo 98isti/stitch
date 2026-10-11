@@ -15,6 +15,8 @@ interface OrderDoc {
   customerName: string
   customerPhone: string
   orderDate: string
+  createdAt?: { seconds: number } | null
+  completedBy?: string
   pickupDate: string
   orderAmount: number
   paidAmount: number
@@ -39,6 +41,11 @@ function formatDateTime(str: string) {
   if (!str) return '—'
   try { return new Date(str).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }) }
   catch { return str }
+}
+
+function formatTime(ts?: { seconds: number } | null) {
+  if (!ts?.seconds) return ''
+  return new Date(ts.seconds * 1000).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase()
 }
 
 interface Props {
@@ -199,8 +206,14 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                 {order?.orderNumberString ?? '—'}
                 {order?.location && <span className="font-normal text-white/60 text-base ml-2">{order.location}</span>}
               </p>
-              <p className="text-white/50 text-xs mt-1">{order ? formatDateTime(order.orderDate) : '—'}</p>
+              <p className="text-white/50 text-xs mt-1">
+                {order ? formatDateTime(order.orderDate) : '—'}
+                {order?.createdAt && <span> at {formatTime(order.createdAt)}</span>}
+              </p>
               {staff && <p className="text-white/50 text-xs mt-0.5">Served by: {staff.name}</p>}
+              {order?.completedBy && (
+                <p className="text-white/50 text-xs mt-0.5">Completed by: {order.completedBy}</p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               {/* Status dropdown */}
