@@ -106,22 +106,20 @@ export default function OnboardingPage() {
         createdAt: serverTimestamp(),
       })
 
-      // 4. Seed categories + items from hardcoded template
-      const { ALTERATIONS_ITEMS, ALTERATIONS_CATEGORIES, DC_ITEMS, DC_CATEGORIES } = await import('../data/templates')
+      // 4. Seed categories + items from JSON template files
+      const templateFile = form.shopType === 'alterations' ? '/templates/alterations.json' : '/templates/dry-cleaning.json'
+      const template = await fetch(templateFile).then(r => r.json())
       const { doc: docRef, setDoc: set } = await import('firebase/firestore')
-      const isAlt = form.shopType === 'alterations'
-      const templateItems = isAlt ? ALTERATIONS_ITEMS : DC_ITEMS
-      const templateCats = isAlt ? ALTERATIONS_CATEGORIES : DC_CATEGORIES
 
       // Seed categories
-      for (const catName of templateCats) {
+      for (const catName of template.categories) {
         const catRef = docRef(db, 'accounts', accountId, 'categories', catName.replace(/[^a-zA-Z0-9]/g, '_'))
         await set(catRef, { categoryName: catName, source: 'default', createdAt: serverTimestamp() })
       }
 
       // Seed items
-      for (const item of templateItems) {
-        const itemRef = docRef(db, 'accounts', accountId, 'items', 
+      for (const item of template.items) {
+        const itemRef = docRef(db, 'accounts', accountId, 'items',
           [item.category, item.subCategory, item.name].join('_').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 80))
         await set(itemRef, {
           itemCategoryName: item.category,
