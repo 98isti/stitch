@@ -7,9 +7,10 @@ interface Props {
   item: SaleItem | null
   onClose: () => void
   onSave: (updated: SaleItem) => void
+  onRemove: (id: string) => void
 }
 
-export default function EditSaleItemSheet({ item, onClose, onSave }: Props) {
+export default function EditSaleItemSheet({ item, onClose, onSave, onRemove }: Props) {
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [note, setNote] = useState('')
@@ -47,6 +48,11 @@ export default function EditSaleItemSheet({ item, onClose, onSave }: Props) {
             Cancel
           </button>
           <h2 className="font-semibold text-gray-900 text-base">{item.category}</h2>
+          <button onClick={() => { onRemove(item.id); onClose() }}
+            className="w-full py-3 rounded-2xl border-2 border-red-200 text-red-500 font-semibold text-sm hover:bg-red-50 transition-colors mt-1">
+            Remove Service
+          </button>
+
           <button onClick={handleSave}
             className="bg-navy text-white text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-navy-light transition-colors">
             Save

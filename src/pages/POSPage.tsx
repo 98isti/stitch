@@ -858,6 +858,7 @@ export default function POSPage() {
         item={editingItem}
         onClose={() => setEditingItem(null)}
         onSave={updateItem}
+        onRemove={id => setItems(prev => prev.filter(it => it.id !== id))}
       />
 
       {/* Date Picker */}
