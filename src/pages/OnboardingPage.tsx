@@ -108,7 +108,7 @@ export default function OnboardingPage() {
 
       // 4. Seed categories + items from hardcoded template
       const { ALTERATIONS_ITEMS, ALTERATIONS_CATEGORIES, DC_ITEMS, DC_CATEGORIES } = await import('../data/templates')
-      const { collection: col, doc: docRef, setDoc: set } = await import('firebase/firestore')
+      const { doc: docRef, setDoc: set } = await import('firebase/firestore')
       const isAlt = form.shopType === 'alterations'
       const templateItems = isAlt ? ALTERATIONS_ITEMS : DC_ITEMS
       const templateCats = isAlt ? ALTERATIONS_CATEGORIES : DC_CATEGORIES
