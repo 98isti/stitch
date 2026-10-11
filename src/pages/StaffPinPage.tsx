@@ -25,7 +25,7 @@ export default function StaffPinPage() {
   useEffect(() => {
     if (!accountId) return
     getDocs(query(collection(db, 'accounts', accountId, 'staff')))
-      .then(snap => setStaffCache(snap.docs.map(d => d.data() as any)))
+      .then(snap => setStaffCache(snap.docs.map(d => ({ id: d.id, ...d.data() } as any))))
       .catch(() => {})
   }, [accountId])
 
