@@ -16,11 +16,6 @@ interface DaySummary {
 function fmt(n: number) {
   return n.toLocaleString('en-AU', { style: 'currency', currency: 'AUD' })
 }
-
-  const [y, m, d] = iso.split('-').map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString('en-AU', {
-    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
-  })
 }
 
 export default function ReportsPage() {
