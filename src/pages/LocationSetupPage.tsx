@@ -21,6 +21,7 @@ export default function LocationSetupPage() {
   const { locations, setActiveLocation } = useLocations(accountId)
 
   const [step, setStep] = useState<Step>('pick')
+  const [businessName, setBusinessName] = useState('')
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null)
   const [creatingNew, setCreatingNew] = useState(false)
 
@@ -35,6 +36,16 @@ export default function LocationSetupPage() {
     name: '', streetAddress: '', suburb: '', state: 'NSW', country: 'Australia', phone: '', dailyTarget: '1000'
   })
   const [savingLoc, setSavingLoc] = useState(false)
+
+  // Fetch business name
+  useEffect(() => {
+    if (!accountId) return
+    import('firebase/firestore').then(({ doc, getDoc }) => {
+      getDoc(doc(db, 'accounts', accountId)).then(snap => {
+        if (snap.exists()) setBusinessName(snap.data()?.businessName ?? '')
+      }).catch(() => {})
+    })
+  }, [accountId])
 
   // Pre-load staff for PIN check
   useEffect(() => {
@@ -125,9 +136,12 @@ export default function LocationSetupPage() {
       <div className="min-h-screen bg-navy flex flex-col items-center justify-center p-6">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <div className="bg-white rounded-2xl px-6 py-3 inline-block shadow-lg mb-4">
+            <div className="bg-white rounded-2xl px-6 py-3 inline-block shadow-lg mb-3">
               <img src="/stitch-logo.png" alt="Stitch" className="h-10 object-contain" />
             </div>
+            {businessName && (
+              <p className="text-white/60 text-sm font-medium mb-1">{businessName}</p>
+            )}
             <h2 className="text-white text-xl font-bold">Which location is this device for?</h2>
             <p className="text-white/50 text-sm mt-1">Select an existing location or set up a new one</p>
           </div>
@@ -161,16 +175,21 @@ export default function LocationSetupPage() {
     return (
       <div className="min-h-screen bg-navy flex flex-col items-center justify-center p-4">
         <div className="text-center mb-8">
-          <div className="bg-white rounded-2xl px-6 py-3 inline-block shadow-lg mb-4">
+          <div className="bg-white rounded-2xl px-6 py-3 inline-block shadow-lg mb-3">
             <img src="/stitch-logo.png" alt="Stitch" className="h-10 object-contain" />
           </div>
+          {businessName && <p className="text-white/60 text-sm font-medium mb-1">{businessName}</p>}
+          {/* Amber badge — signals elevated access */}
+          <div className="inline-flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/40 rounded-full px-3 py-1 mb-3">
+            <span className="text-amber-300 text-xs font-bold uppercase tracking-wide">🔐 Manager / Owner Access</span>
+          </div>
           <h2 className="text-white text-xl font-bold">{locationName}</h2>
-          <p className="text-white/50 text-sm mt-1">Enter Manager or Owner PIN to confirm</p>
+          <p className="text-white/50 text-sm mt-1">Enter your PIN to confirm</p>
         </div>
 
         <div className="flex gap-4 mb-6">
           {[0,1,2,3].map(i => (
-            <div key={i} className={`w-4 h-4 rounded-full transition-all duration-150 ${i < pin.length ? 'bg-white scale-110' : 'bg-white/25'}`} />
+            <div key={i} className={`w-4 h-4 rounded-full transition-all duration-150 ${i < pin.length ? 'bg-amber-400 scale-110' : 'bg-white/25'}`} />
           ))}
         </div>
 
@@ -181,13 +200,13 @@ export default function LocationSetupPage() {
             if (k === '') return <div key={i} />
             if (k === '⌫') return (
               <button key={i} onClick={() => { setPin(p => p.slice(0,-1)); setPinError('') }}
-                className="h-16 rounded-2xl bg-white/10 hover:bg-white/20 active:bg-white/30 flex items-center justify-center transition-colors">
-                <Delete size={20} className="text-white" />
+                className="h-16 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 active:bg-amber-500/30 flex items-center justify-center transition-colors border border-amber-500/20">
+                <Delete size={20} className="text-amber-300" />
               </button>
             )
             return (
               <button key={i} onClick={() => handlePinKey(k)}
-                className="h-16 rounded-2xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-2xl font-semibold transition-colors">
+                className="h-16 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 active:bg-amber-500/30 text-white text-2xl font-semibold transition-colors border border-amber-500/20">
                 {k}
               </button>
             )
