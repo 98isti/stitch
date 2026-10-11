@@ -96,17 +96,17 @@ export default function ReportsPage() {
             <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-          <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="max-w-5xl mx-auto px-4 py-4">
 
             {/* Table */}
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               {/* Table header */}
-              <div className="grid grid-cols-6 px-4 py-3 bg-gray-50 border-b border-gray-100">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Day</p>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide col-span-2">Date</p>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-right">Cash</p>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-right">Card</p>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-right">Total</p>
+              <div className="grid grid-cols-6 px-6 py-4 bg-gray-50 border-b border-gray-100">
+                <p className="text-sm font-bold text-gray-500 uppercase tracking-wide">Day</p>
+                <p className="text-sm font-bold text-gray-500 uppercase tracking-wide col-span-2">Date</p>
+                <p className="text-sm font-bold text-gray-500 uppercase tracking-wide text-right">Cash</p>
+                <p className="text-sm font-bold text-gray-500 uppercase tracking-wide text-right">Card</p>
+                <p className="text-sm font-bold text-gray-500 uppercase tracking-wide text-right">Total</p>
               </div>
 
               {rows.length === 0 ? (
@@ -135,11 +135,11 @@ export default function ReportsPage() {
                   if (rowWeek !== currentWeek) {
                     elements.push(
                       <div key={`week-${currentWeek}`}
-                        className="grid grid-cols-6 px-4 py-3 bg-tan/20 border-b border-gray-200 items-center">
-                        <p className="text-xs font-bold text-navy col-span-3 uppercase tracking-wide">Week Total</p>
-                        <p className="text-xs font-bold text-navy text-right">{fmt(weekCash)}</p>
-                        <p className="text-xs font-bold text-navy text-right">{fmt(weekCard)}</p>
-                        <p className="text-xs font-bold text-navy text-right">{fmt(weekCash + weekCard)}</p>
+                        className="grid grid-cols-6 px-6 py-4 bg-tan/20 border-b border-gray-200 items-center">
+                        <p className="text-sm font-bold text-navy col-span-3 uppercase tracking-wide">Week Total</p>
+                        <p className="text-sm font-bold text-navy text-right">{fmt(weekCash)}</p>
+                        <p className="text-sm font-bold text-navy text-right">{fmt(weekCard)}</p>
+                        <p className="text-sm font-bold text-navy text-right">{fmt(weekCash + weekCard)}</p>
                       </div>
                     )
                     weekCash = 0; weekCard = 0
@@ -154,12 +154,12 @@ export default function ReportsPage() {
 
                   elements.push(
                     <div key={row.date}
-                      className={`grid grid-cols-6 px-4 py-4 items-center ${i < rows.length - 1 ? 'border-b border-gray-100' : ''}`}>
-                      <p className="text-sm font-semibold text-gray-900">{dayName}</p>
-                      <p className="text-sm text-gray-600 col-span-2">{dateStr}</p>
-                      <p className="text-sm font-semibold text-gray-800 text-right">{fmt(row.cash)}</p>
-                      <p className="text-sm font-semibold text-gray-800 text-right">{fmt(row.card)}</p>
-                      <p className="text-sm font-bold text-gray-900 text-right">{fmt(row.total)}</p>
+                      className={`grid grid-cols-6 px-6 py-5 items-center ${i < rows.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                      <p className="text-base font-semibold text-gray-900">{dayName}</p>
+                      <p className="text-base text-gray-600 col-span-2">{dateStr}</p>
+                      <p className="text-base font-semibold text-gray-800 text-right">{fmt(row.cash)}</p>
+                      <p className="text-base font-semibold text-gray-800 text-right">{fmt(row.card)}</p>
+                      <p className="text-base font-bold text-gray-900 text-right">{fmt(row.total)}</p>
                     </div>
                   )
                 })
@@ -167,11 +167,11 @@ export default function ReportsPage() {
                 // Last week subtotal
                 elements.push(
                   <div key={`week-${currentWeek}-last`}
-                    className="grid grid-cols-6 px-4 py-3 bg-tan/20 border-b border-gray-200 items-center">
-                    <p className="text-xs font-bold text-navy col-span-3 uppercase tracking-wide">Week Total</p>
-                    <p className="text-xs font-bold text-navy text-right">{fmt(weekCash)}</p>
-                    <p className="text-xs font-bold text-navy text-right">{fmt(weekCard)}</p>
-                    <p className="text-xs font-bold text-navy text-right">{fmt(weekCash + weekCard)}</p>
+                    className="grid grid-cols-6 px-6 py-4 bg-tan/20 border-b border-gray-200 items-center">
+                    <p className="text-sm font-bold text-navy col-span-3 uppercase tracking-wide">Week Total</p>
+                    <p className="text-sm font-bold text-navy text-right">{fmt(weekCash)}</p>
+                    <p className="text-sm font-bold text-navy text-right">{fmt(weekCard)}</p>
+                    <p className="text-sm font-bold text-navy text-right">{fmt(weekCash + weekCard)}</p>
                   </div>
                 )
 
@@ -180,11 +180,11 @@ export default function ReportsPage() {
 
               {/* Grand total row */}
               {rows.length > 0 && (
-                <div className="grid grid-cols-6 px-4 py-4 bg-navy items-center">
-                  <p className="text-sm font-bold text-white col-span-3">30-Day Total</p>
-                  <p className="text-sm font-bold text-white text-right">{fmt(totalCash)}</p>
-                  <p className="text-sm font-bold text-white text-right">{fmt(totalCard)}</p>
-                  <p className="text-sm font-bold text-white text-right">{fmt(totalCash + totalCard)}</p>
+                <div className="grid grid-cols-6 px-6 py-5 bg-navy items-center">
+                  <p className="text-base font-bold text-white col-span-3">30-Day Total</p>
+                  <p className="text-base font-bold text-white text-right">{fmt(totalCash)}</p>
+                  <p className="text-base font-bold text-white text-right">{fmt(totalCard)}</p>
+                  <p className="text-base font-bold text-white text-right">{fmt(totalCash + totalCard)}</p>
                 </div>
               )}
             </div>
