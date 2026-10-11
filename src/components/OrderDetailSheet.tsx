@@ -437,13 +437,12 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
       </div>
     </div>
 
-      {showSplit && order && (
-        <SplitPaymentSheet
-          total={order.stillDueAmount > 0 ? order.stillDueAmount : order.orderAmount}
-          onConfirm={markSplitPay}
-          onClose={() => setShowSplit(false)}
-        />
-      )}
-    </div>
+    {showSplit && order && (
+      <SplitPaymentSheet
+        total={order.stillDueAmount > 0 ? order.stillDueAmount : order.orderAmount}
+        onConfirm={markSplitPay}
+        onClose={() => setShowSplit(false)}
+      />
+    )}
   )
 }
