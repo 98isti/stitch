@@ -23,8 +23,6 @@ export default function ReportsPage() {
   const navigate = useNavigate()
   const [rows, setRows] = useState<DaySummary[]>([])
   const [loading, setLoading] = useState(true)
-  const [totalCash, setTotalCash] = useState(0)
-  const [totalCard, setTotalCard] = useState(0)
 
   useEffect(() => {
     if (!accountId || !activeLocation) return
@@ -69,8 +67,6 @@ export default function ReportsPage() {
         .sort((a, b) => b.date.localeCompare(a.date))
 
       setRows(sorted)
-      setTotalCash(sorted.reduce((s, r) => s + r.cash, 0))
-      setTotalCard(sorted.reduce((s, r) => s + r.card, 0))
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [accountId, activeLocation])
