@@ -324,6 +324,27 @@ export default function POSPage() {
 
 
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [workload, setWorkload] = useState<Record<string, number>>({})
+
+  function openDatePicker() {
+    setShowDatePicker(true)
+    // Load workload for the active location
+    if (!accountId || !activeLocation) return
+    import('firebase/firestore').then(({ getDocs, query, collection, where }) => {
+      getDocs(query(
+        collection(db, 'accounts', accountId, 'orders'),
+        where('location', '==', activeLocation.name),
+        where('status', '==', 'In progress'),
+      )).then(snap => {
+        const map: Record<string, number> = {}
+        snap.docs.forEach(d => {
+          const date = d.data().pickupDate as string
+          if (date) map[date] = (map[date] ?? 0) + 1
+        })
+        setWorkload(map)
+      }).catch(() => {})
+    })
+  } // ISO date → count
   const [calMonth, setCalMonth] = useState(() => {
     const d = defaultPickup(); return { year: d.getFullYear(), month: d.getMonth() }
   })
@@ -683,7 +704,7 @@ export default function POSPage() {
             }
           </button>
 
-          <button onClick={() => setShowDatePicker(true)}
+          <button onClick={openDatePicker}
             className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-500 rounded-xl py-2 text-xs font-medium hover:bg-red-100 transition-colors">
             Pick up: {formatPickupDate(pickupDate)} <ChevronDown size={13} />
           </button>
@@ -830,7 +851,7 @@ export default function POSPage() {
                 <div key={d} className="text-center text-xs font-medium text-gray-400 py-1">{d}</div>
               ))}
             </div>
-            <div className="grid grid-cols-7 px-4 gap-y-1">
+            <div className="grid grid-cols-7 px-4 gap-1">
               {(() => {
                 const { first, total: daysTotal } = calDays(calMonth.year, calMonth.month)
                 const today = new Date(); today.setHours(0,0,0,0)
@@ -841,16 +862,26 @@ export default function POSPage() {
                   const isPast = date < today
                   const isSelected = date.toDateString() === pickupDate.toDateString()
                   const isToday = date.toDateString() === today.toDateString()
+                  const iso = `${calMonth.year}-${String(calMonth.month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+                  const jobCount = workload[iso] ?? 0
                   cells.push(
                     <button key={d} disabled={isPast}
                       onClick={() => { setPickupDate(date); setShowDatePicker(false) }}
-                      className={`h-9 w-9 mx-auto rounded-full text-sm font-medium transition-colors ${
+                      className={`flex flex-col items-center justify-center h-12 w-full rounded-xl text-sm font-medium transition-colors ${
                         isSelected ? 'bg-navy text-white' :
                         isToday ? 'bg-tan/30 text-navy font-bold' :
                         isPast ? 'text-gray-300 cursor-not-allowed' :
                         'text-gray-800 hover:bg-gray-100'
                       }`}>
-                      {d}
+                      <span>{d}</span>
+                      {jobCount > 0 && !isPast && (
+                        <span className={`text-[10px] font-bold leading-none mt-0.5 ${
+                          isSelected ? 'text-white/80' :
+                          jobCount >= 10 ? 'text-red-500' :
+                          jobCount >= 5 ? 'text-orange-500' :
+                          'text-blue-500'
+                        }`}>{jobCount}</span>
+                      )}
                     </button>
                   )
                 }
