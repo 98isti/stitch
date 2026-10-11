@@ -34,30 +34,22 @@ export default function ReportsPage() {
     const sinceIso = since.toISOString().split('T')[0]
 
     const q = query(
-      collection(db, 'accounts', accountId, 'orders'),
+      collection(db, 'accounts', accountId, 'payments'),
       where('location', '==', activeLocation.name),
-      where('isPaid', '==', true),
     )
 
     getDocs(q).then(snap => {
       const map: Record<string, { cash: number; card: number }> = {}
 
       snap.docs.forEach(d => {
-        const o = d.data()
-        // Use orderDate (ISO string "YYYY-MM-DD") or fall back to createdAt
-        let date: string = ''
-        if (typeof o.orderDate === 'string') {
-          date = o.orderDate.slice(0, 10)
-        } else if (o.orderDate?._seconds) {
-          date = new Date(o.orderDate._seconds * 1000).toISOString().split('T')[0]
-        } else if (o.createdAt?._seconds) {
-          date = new Date(o.createdAt._seconds * 1000).toISOString().split('T')[0]
-        }
+        const p = d.data()
+        // Use paidDate (YYYY-MM-DD string) for accurate daily grouping
+        const date: string = p.paidDate ?? ''
         if (!date || date < sinceIso) return
 
         if (!map[date]) map[date] = { cash: 0, card: 0 }
-        const amount = o.paidAmount ?? o.orderAmount ?? 0
-        const method = (o.paymentMethod ?? '').toLowerCase()
+        const amount = p.amount ?? 0
+        const method = (p.method ?? '').toLowerCase()
         if (method === 'cash') map[date].cash += amount
         else map[date].card += amount
       })

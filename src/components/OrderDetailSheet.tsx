@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Phone, ChevronDown, Pencil } from 'lucide-react'
-import { doc, getDoc, getDocs, updateDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, getDocs, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useStaff } from '../context/StaffContext'
 import { useAccountProfile } from '../hooks/useAccountProfile'
@@ -140,9 +140,23 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
     setSaving(true)
     setShowPaymentPrompt(false)
     try {
+      const paidDate = new Date().toISOString().split('T')[0]
       await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), {
         isPaid: true, paidAmount: order.orderAmount, stillDueAmount: 0,
-        paymentMethod: method, updatedAt: serverTimestamp()
+        paymentMethod: method, paidAt: serverTimestamp(), paidDate,
+        updatedAt: serverTimestamp()
+      })
+      // Write payment record
+      await addDoc(collection(db, 'accounts', accountId, 'payments'), {
+        orderId,
+        orderNumberString: order.orderNumberString,
+        customerName: order.customerName,
+        amount: Math.round(order.orderAmount * 100) / 100,
+        method,
+        location: order.location,
+        paidBy: staff?.name ?? 'Unknown',
+        paidAt: serverTimestamp(),
+        paidDate,
       })
       setOrder(o => o ? { ...o, isPaid: true, paidAmount: o.orderAmount, stillDueAmount: 0, paymentMethod: method } : o)
     } finally { setSaving(false) }

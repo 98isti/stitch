@@ -44,6 +44,26 @@ function isoDate(d: Date) {
 }
 
 // ── Save Order ────────────────────────────────────────────────────────────────
+async function writePayment(db: any, accountId: string, {
+  orderId, orderNumberString, customerName, amount, method, location, staffName
+}: {
+  orderId: string; orderNumberString: string; customerName: string
+  amount: number; method: string; location: string; staffName: string
+}) {
+  const { addDoc, collection, serverTimestamp: sts } = await import('firebase/firestore')
+  await addDoc(collection(db, 'accounts', accountId, 'payments'), {
+    orderId,
+    orderNumberString,
+    customerName,
+    amount: Math.round(amount * 100) / 100,
+    method,
+    location,
+    paidBy: staffName,
+    paidAt: sts(),
+    paidDate: new Date().toISOString().split('T')[0],
+  })
+}
+
 async function saveOrder({
   accountId,
   locationId,
@@ -68,7 +88,7 @@ async function saveOrder({
   total: number
   discountAmount: number
   paymentMethod: 'Cash' | 'Card' | 'Pay Later'
-}): Promise<string> {
+}): Promise<{ orderNumber: string; orderId: string }> {
   const counterRef = doc(db, 'accounts', accountId, 'orderCounters', locationId)
   const ordersRef = collection(db, 'accounts', accountId, 'orders')
 
@@ -444,7 +464,7 @@ export default function POSPage() {
     try {
       const prefix = activeLocation.orderPrefix
         || activeLocation.name.slice(0, 3).toUpperCase()
-      const orderNumber = await saveOrder({
+      const { orderNumber, orderId } = await saveOrder({
         accountId,
         locationId: activeLocation.id,
         locationName: activeLocation.name,
@@ -457,6 +477,18 @@ export default function POSPage() {
         discountAmount,
         paymentMethod: method,
       })
+      // Write payment record for Cash/Card (not Pay Later)
+      if (method !== 'Pay Later') {
+        await writePayment(db, accountId, {
+          orderId,
+          orderNumberString: orderNumber,
+          customerName,
+          amount: total,
+          method,
+          location: activeLocation.name,
+          staffName: staff?.name ?? 'Unknown',
+        })
+      }
       setSuccess({ orderNumber, total, method })
       clearSale()
     } catch (e) {
