@@ -129,9 +129,14 @@ export default function ReportsPage() {
                 let weekCash = 0, weekCard = 0
                 let currentWeek = rows.length > 0 ? getMondayIso(rows[0].date) : ''
 
+                let monthCash = 0, monthCard = 0
+                let currentMonth = rows.length > 0 ? rows[0].date.slice(0, 7) : ''
+
                 rows.forEach((row, i) => {
                   const rowWeek = getMondayIso(row.date)
-                  // New week started — insert subtotal for previous week
+                  const rowMonth = row.date.slice(0, 7)
+
+                  // New week — insert week subtotal
                   if (rowWeek !== currentWeek) {
                     elements.push(
                       <div key={`week-${currentWeek}`}
@@ -146,7 +151,26 @@ export default function ReportsPage() {
                     currentWeek = rowWeek
                   }
 
+                  // New month — insert month total for previous month
+                  if (rowMonth !== currentMonth) {
+                    const [my, mm] = currentMonth.split('-').map(Number)
+                    const monthName = new Date(my, mm - 1, 1).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })
+                    elements.push(
+                      <div key={`month-${currentMonth}`}
+                        className="grid grid-cols-6 px-6 py-4 bg-navy items-center">
+                        <p className="text-sm font-bold text-white col-span-3">{monthName} Total</p>
+                        <p className="text-sm font-bold text-white text-right">{fmt(monthCash)}</p>
+                        <p className="text-sm font-bold text-white text-right">{fmt(monthCard)}</p>
+                        <p className="text-sm font-bold text-white text-right">{fmt(monthCash + monthCard)}</p>
+                      </div>
+                    )
+                    monthCash = 0; monthCard = 0
+                    currentMonth = rowMonth
+                  }
+
                   weekCash += row.cash; weekCard += row.card
+                  monthCash += row.cash; monthCard += row.card
+
                   const [y, m, d] = row.date.split('-').map(Number)
                   const dt = new Date(y, m - 1, d)
                   const dayName = dt.toLocaleDateString('en-AU', { weekday: 'long' })
@@ -175,18 +199,21 @@ export default function ReportsPage() {
                   </div>
                 )
 
+                // Last month total
+                const [lmy, lmm] = currentMonth.split('-').map(Number)
+                const lastMonthName = new Date(lmy, lmm - 1, 1).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })
+                elements.push(
+                  <div key={`month-${currentMonth}-last`}
+                    className="grid grid-cols-6 px-6 py-4 bg-navy items-center">
+                    <p className="text-sm font-bold text-white col-span-3">{lastMonthName} Total</p>
+                    <p className="text-sm font-bold text-white text-right">{fmt(monthCash)}</p>
+                    <p className="text-sm font-bold text-white text-right">{fmt(monthCard)}</p>
+                    <p className="text-sm font-bold text-white text-right">{fmt(monthCash + monthCard)}</p>
+                  </div>
+                )
+
                 return elements
               })()}
-
-              {/* Grand total row */}
-              {rows.length > 0 && (
-                <div className="grid grid-cols-6 px-6 py-5 bg-navy items-center">
-                  <p className="text-base font-bold text-white col-span-3">30-Day Total</p>
-                  <p className="text-base font-bold text-white text-right">{fmt(totalCash)}</p>
-                  <p className="text-base font-bold text-white text-right">{fmt(totalCard)}</p>
-                  <p className="text-base font-bold text-white text-right">{fmt(totalCash + totalCard)}</p>
-                </div>
-              )}
             </div>
           </div>
         )}
