@@ -223,27 +223,19 @@ export default function SettingsPage() {
               {/* ── Active Location ── */}
               {locations.length > 0 && (
                 <Section title="Active Location">
-                  <div className="space-y-2">
-                    {locations.map(loc => (
-                      <button key={loc.id} onClick={() => setActiveLocation(loc)}
-                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-colors text-left ${
-                          activeLocation?.id === loc.id
-                            ? 'border-navy bg-navy/5'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}>
-                        <div>
-                          <p className={`font-semibold text-sm ${activeLocation?.id === loc.id ? 'text-navy' : 'text-gray-800'}`}>
-                            {loc.name}
-                          </p>
-                          {loc.suburb && <p className="text-xs text-gray-400 mt-0.5">{loc.suburb}, {loc.state}</p>}
-                        </div>
-                        {activeLocation?.id === loc.id && (
-                          <span className="text-xs bg-navy text-white px-2.5 py-1 rounded-full font-semibold">Active</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-400">This controls which location's orders and revenue are shown in the POS.</p>
+                  <Field label="Location" note="Controls which location's orders and revenue are shown in the POS.">
+                    <select
+                      value={activeLocation?.id ?? ''}
+                      onChange={e => {
+                        const loc = locations.find(l => l.id === e.target.value)
+                        if (loc) setActiveLocation(loc)
+                      }}
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-navy bg-white font-medium text-gray-900">
+                      {locations.map(loc => (
+                        <option key={loc.id} value={loc.id}>{loc.name}</option>
+                      ))}
+                    </select>
+                  </Field>
                 </Section>
               )}
 
