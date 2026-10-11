@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Phone, ChevronDown, Pencil } from 'lucide-react'
 import { doc, getDoc, getDocs, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import SplitPaymentSheet from './SplitPaymentSheet'
 import { db } from '../lib/firebase'
 import { useStaff } from '../context/StaffContext'
 import { useAccountProfile } from '../hooks/useAccountProfile'
@@ -64,6 +65,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showStatusMenu, setShowStatusMenu] = useState(false)
+  const [showSplit, setShowSplit] = useState(false)
   const [showPaymentPrompt, setShowPaymentPrompt] = useState(false)
   const [showCompletedByPopup, setShowCompletedByPopup] = useState(false)
   const [staffList, setStaffList] = useState<string[]>([])
@@ -142,6 +144,35 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
     } finally { setSaving(false);  }
   }
 
+  async function markSplitPay(cash: number, card: number, stillDue: number) {
+    if (!order || !accountId) return
+    setShowSplit(false)
+    const paidAmount = Math.round((cash + card) * 100) / 100
+    const isPaid = stillDue === 0
+    const method = cash > 0 && card > 0 ? 'Split' : cash > 0 ? 'Cash' : 'Card'
+    const paidDate = new Date().toISOString().split('T')[0]
+    await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId!), {
+      isPaid, paidAmount, stillDueAmount: stillDue,
+      paymentMethod: method, paidAt: serverTimestamp(), paidDate,
+      updatedAt: serverTimestamp()
+    })
+    if (cash > 0) {
+      await addDoc(collection(db, 'accounts', accountId, 'payments'), {
+        orderId, orderNumberString: order.orderNumberString, customerName: order.customerName,
+        amount: cash, method: 'Cash', location: order.location,
+        paidBy: 'Staff', paidAt: serverTimestamp(), paidDate,
+      })
+    }
+    if (card > 0) {
+      await addDoc(collection(db, 'accounts', accountId, 'payments'), {
+        orderId, orderNumberString: order.orderNumberString, customerName: order.customerName,
+        amount: card, method: 'Card', location: order.location,
+        paidBy: 'Staff', paidAt: serverTimestamp(), paidDate,
+      })
+    }
+    setOrder(o => o ? { ...o, isPaid, paidAmount, stillDueAmount: stillDue, paymentMethod: method } : o)
+  }
+
   async function markPaid(method: string) {
     if (!accountId || !orderId || !order) return
     setSaving(true)
@@ -170,6 +201,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
   }
 
   if (!orderId) return null
+
 
   let items: OrderItem[] = []
   if (order) { try { items = JSON.parse(order.items) } catch { items = [] } }
@@ -403,6 +435,15 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
           </div>
         )}
       </div>
+    </div>
+
+      {showSplit && order && (
+        <SplitPaymentSheet
+          total={order.stillDueAmount > 0 ? order.stillDueAmount : order.orderAmount}
+          onConfirm={markSplitPay}
+          onClose={() => setShowSplit(false)}
+        />
+      )}
     </div>
   )
 }
