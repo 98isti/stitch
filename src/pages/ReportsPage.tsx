@@ -16,7 +16,6 @@ interface DaySummary {
 function fmt(n: number) {
   return n.toLocaleString('en-AU', { style: 'currency', currency: 'AUD' })
 }
-}
 
 export default function ReportsPage() {
   const { accountId } = useAuth()
