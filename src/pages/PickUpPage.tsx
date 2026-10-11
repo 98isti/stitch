@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
@@ -32,8 +32,14 @@ function firstDayOffset(year: number, month: number) {
 function pad(n: number) { return String(n).padStart(2, '0') }
 
 function CalendarMonth({
-  year, month, data, today
-}: { year: number; month: number; data: CalendarData; today: string }) {
+  year, month, data, today, isCurrentMonth
+}: { year: number; month: number; data: CalendarData; today: string; isCurrentMonth?: boolean }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (isCurrentMonth && ref.current) {
+      ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [isCurrentMonth])
   const days = daysInMonth(year, month)
   const offset = firstDayOffset(year, month)
   const cells: (number | null)[] = [
@@ -42,18 +48,18 @@ function CalendarMonth({
   ]
 
   return (
-    <div className="mb-8">
-      <h2 className="text-center text-lg font-bold text-gray-800 mb-4">{monthLabel(year, month)}</h2>
+    <div className="mb-10" ref={ref}>
+      <h2 className="text-center text-2xl font-bold text-gray-800 mb-5">{monthLabel(year, month)}</h2>
 
       {/* Day headers */}
-      <div className="grid grid-cols-7 mb-1">
+      <div className="grid grid-cols-7 mb-2">
         {DAY_HEADERS.map(d => (
-          <div key={d} className="text-center text-xs font-semibold text-gray-400 py-1">{d}</div>
+          <div key={d} className="text-center text-sm font-bold text-gray-400 py-1">{d}</div>
         ))}
       </div>
 
       {/* Day cells */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-1.5">
         {cells.map((day, i) => {
           if (!day) return <div key={i} />
           const iso = `${year}-${pad(month + 1)}-${pad(day)}`
@@ -63,13 +69,13 @@ function CalendarMonth({
 
           return (
             <div key={i}
-              className={`min-h-[72px] rounded-xl p-1.5 flex flex-col ${
+              className={`min-h-[90px] rounded-xl p-2 flex flex-col ${
                 isToday ? 'ring-2 ring-navy bg-navy/5' : ''
               }`}>
               {/* Day number */}
-              <div className="flex justify-center mb-1">
-                <span className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full ${
-                  isToday ? 'bg-navy text-white' : 'text-gray-500'
+              <div className="flex justify-center mb-1.5">
+                <span className={`text-base font-bold w-8 h-8 flex items-center justify-center rounded-full ${
+                  isToday ? 'bg-navy text-white' : 'text-gray-600'
                 }`}>
                   {day}
                 </span>
@@ -77,15 +83,15 @@ function CalendarMonth({
 
               {/* Order pill */}
               {dayData && (
-                <div className={`flex-1 rounded-lg px-1 py-1.5 flex flex-col items-center justify-center text-center ${
+                <div className={`flex-1 rounded-lg px-1.5 py-2 flex flex-col items-center justify-center text-center ${
                   isPast && !isToday
                     ? 'bg-red-100 text-red-700'
-                    : 'bg-blue-100 text-blue-700'
+                    : 'bg-blue-100 text-blue-800'
                 }`}>
-                  <p className="text-xs font-bold leading-tight">
+                  <p className="text-sm font-bold leading-tight">
                     {dayData.count} {dayData.count === 1 ? 'order' : 'orders'}
                   </p>
-                  <p className="text-xs font-semibold leading-tight mt-0.5">
+                  <p className="text-sm font-semibold leading-tight mt-0.5">
                     ${dayData.total.toFixed(2)}
                   </p>
                 </div>
@@ -177,8 +183,8 @@ export default function PickUpPage() {
               </div>
             </div>
 
-            {months.map(({ year, month }) => (
-              <CalendarMonth key={`${year}-${month}`} year={year} month={month} data={data} today={today} />
+            {months.map(({ year, month }, idx) => (
+              <CalendarMonth key={`${year}-${month}`} year={year} month={month} data={data} today={today} isCurrentMonth={idx === 1} />
             ))}
           </div>
         )}
