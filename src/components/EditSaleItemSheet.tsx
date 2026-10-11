@@ -7,10 +7,9 @@ interface Props {
   item: SaleItem | null
   onClose: () => void
   onSave: (updated: SaleItem) => void
-  onRemove: (id: string) => void
 }
 
-export default function EditSaleItemSheet({ item, onClose, onSave, onRemove }: Props) {
+export default function EditSaleItemSheet({ item, onClose, onSave }: Props) {
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [note, setNote] = useState('')
