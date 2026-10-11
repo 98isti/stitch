@@ -106,16 +106,31 @@ export default function OnboardingPage() {
         createdAt: serverTimestamp(),
       })
 
-      // 4. Copy default template (categories + items)
-      const { getDocs, collection: col, doc: docRef, setDoc: set } = await import('firebase/firestore')
-      const catSnap = await getDocs(col(db, 'defaults', 'sewSmart', 'categories'))
-      for (const d of catSnap.docs) {
-        await set(docRef(db, 'accounts', accountId, 'categories', d.id), { ...d.data(), source: 'default' })
+      // 4. Seed categories + items from hardcoded template
+      const { ALTERATIONS_ITEMS, ALTERATIONS_CATEGORIES, DC_ITEMS, DC_CATEGORIES } = await import('../data/templates')
+      const { collection: col, doc: docRef, setDoc: set } = await import('firebase/firestore')
+      const isAlt = form.shopType === 'alterations'
+      const templateItems = isAlt ? ALTERATIONS_ITEMS : DC_ITEMS
+      const templateCats = isAlt ? ALTERATIONS_CATEGORIES : DC_CATEGORIES
+
+      // Seed categories
+      for (const catName of templateCats) {
+        const catRef = docRef(db, 'accounts', accountId, 'categories', catName.replace(/[^a-zA-Z0-9]/g, '_'))
+        await set(catRef, { categoryName: catName, source: 'default', createdAt: serverTimestamp() })
       }
 
-      const itemSnap = await getDocs(col(db, 'defaults', 'sewSmart', 'items'))
-      for (const d of itemSnap.docs) {
-        await set(docRef(db, 'accounts', accountId, 'items', d.id), { ...d.data(), source: 'default' })
+      // Seed items
+      for (const item of templateItems) {
+        const itemRef = docRef(db, 'accounts', accountId, 'items', 
+          [item.category, item.subCategory, item.name].join('_').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 80))
+        await set(itemRef, {
+          itemCategoryName: item.category,
+          itemSubCategoryName: item.subCategory,
+          itemName: item.name,
+          itemPrice: item.price,
+          source: 'default',
+          createdAt: serverTimestamp(),
+        }, { merge: true })
       }
 
       // 5. Mark user profile
