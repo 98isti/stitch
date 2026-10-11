@@ -4,6 +4,7 @@ import { StaffProvider } from './context/StaffContext'
 import LoginPage from './pages/LoginPage'
 import StaffPinPage from './pages/StaffPinPage'
 import OnboardingPage from './pages/OnboardingPage'
+import LocationSetupPage from './pages/LocationSetupPage'
 import POSLayout from './layouts/POSLayout'
 import POSPage from './pages/POSPage'
 import OrdersPage from './pages/OrdersPage'
@@ -37,6 +38,11 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
       <Route path="/pin" element={<StaffPinPage />} />
+      <Route path="/location-setup" element={
+        !user ? <Navigate to="/login" /> :
+        !onboarded ? <Navigate to="/onboarding" /> :
+        <LocationSetupPage />
+      } />
       <Route path="/onboarding" element={
         !user ? <Navigate to="/login" /> :
         onboarded ? <Navigate to="/pos" /> :

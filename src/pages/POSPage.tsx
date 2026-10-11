@@ -293,10 +293,12 @@ export default function POSPage() {
   const { staff, clearStaff } = useStaff()
   const navigate = useNavigate()
 
-  // Redirect to PIN screen if no staff logged in
+  // Redirect to location-setup if no saved location (new device)
   useEffect(() => {
+    const saved = localStorage.getItem('stitch_active_location')
+    if (!saved) { navigate('/location-setup', { replace: true }); return }
     if (!staff) navigate('/pin', { replace: true })
-  }, [staff, navigate])
+  }, [staff, navigate, accountId])
   const [showStaffMenu, setShowStaffMenu] = useState(false)
   const { categories, loading: catsLoading } = useCategories(accountId)
   const { loading: itemsLoading, getItemsForCategory, getSubCategories } = useItems(accountId)
