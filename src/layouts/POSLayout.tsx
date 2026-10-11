@@ -125,7 +125,7 @@ export default function POSLayout() {
               <List size={17} />
               <span>Orders</span>
             </button>
-            <button onClick={() => navigate('/todaysdue')}
+            <button onClick={() => navigate('/pickup')}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors text-sm font-medium">
               <Calendar size={17} />
               <span>PickUp</span>
