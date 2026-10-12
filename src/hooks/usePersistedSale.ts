@@ -14,6 +14,7 @@ interface PersistedSale {
   customerPhone: string
   pickupDate: string // ISO string
   discount: Discount | null
+  orderNote: string
 }
 
 const KEY = 'stitch_current_sale'
@@ -45,11 +46,12 @@ export function usePersistedSale(defaultPickupDate: Date) {
     saved?.pickupDate ? new Date(saved.pickupDate) : defaultPickupDate
   )
   const [discount, setDiscount] = useState<Discount | null>(saved?.discount ?? null)
+  const [orderNote, setOrderNote] = useState(saved?.orderNote ?? '')
 
   // Persist whenever any sale state changes
   useEffect(() => {
-    save({ items, amount, customerName, customerPhone, pickupDate: pickupDate.toISOString(), discount })
-  }, [items, amount, customerName, customerPhone, pickupDate, discount])
+    save({ items, amount, customerName, customerPhone, pickupDate: pickupDate.toISOString(), discount, orderNote })
+  }, [items, amount, customerName, customerPhone, pickupDate, discount, orderNote])
 
   function clearSale() {
     setItems([])
@@ -58,6 +60,7 @@ export function usePersistedSale(defaultPickupDate: Date) {
     setCustomerPhone('')
     setPickupDate(defaultPickupDate)
     setDiscount(null)
+    setOrderNote('')
     clear()
   }
 
@@ -68,6 +71,7 @@ export function usePersistedSale(defaultPickupDate: Date) {
     customerPhone, setCustomerPhone,
     pickupDate, setPickupDate,
     discount, setDiscount,
+    orderNote, setOrderNote,
     clearSale,
   }
 }

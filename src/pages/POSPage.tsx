@@ -347,6 +347,7 @@ export default function POSPage() {
     customerPhone, setCustomerPhone,
     pickupDate, setPickupDate,
     discount, setDiscount,
+    orderNote, setOrderNote,
     clearSale: clearPersistedSale,
   } = usePersistedSale(defaultPickup())
   const [showPicker, setShowPicker] = useState(false)
@@ -355,7 +356,6 @@ export default function POSPage() {
   const [longPressGarmentId, setLongPressGarmentId] = useState<string | null>(null)
   const [showSaleMenu, setShowSaleMenu] = useState(false)
   const [showNoteSheet, setShowNoteSheet] = useState(false)
-  const [orderNote, setOrderNote] = useState('')
   const [showClearConfirm, setShowClearConfirm] = useState(false)
 
 
