@@ -32,6 +32,10 @@ interface OrderDoc {
   paymentMethod: string
   items: string
   subTotalAmount: number
+  shopType?: string
+  conveyorSlotNumber?: string
+  conveyorAssignedBy?: string
+  conveyorAssignedAt?: { seconds: number } | null
 }
 
 const STATUS_OPTIONS = ['In progress', 'Ready for Pick Up', 'Picked Up', 'Redo']
@@ -75,6 +79,8 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
   const [showCompletedByPopup, setShowCompletedByPopup] = useState(false)
   const [staffList, setStaffList] = useState<string[]>([])
   const [selectedEmployee, setSelectedEmployee] = useState('Select Your Name')
+  const [showConveyorSlotPopup, setShowConveyorSlotPopup] = useState(false)
+  const [conveyorSlotInput, setConveyorSlotInput] = useState('')
 
   useEffect(() => {
     setOrder(null)
@@ -92,8 +98,13 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
   async function updateStatus(status: string) {
     if (!accountId || !orderId || !order) return
     setShowStatusMenu(false)
-    // "Ready for Pick Up" triggers the "Job Completed By" popup
+    // "Ready for Pick Up" — dry cleaning shows conveyor slot, alterations shows employee selection
     if (status === 'Ready for Pick Up') {
+      if (order.shopType === 'dryCleaning') {
+        setConveyorSlotInput('')
+        setShowConveyorSlotPopup(true)
+        return
+      }
       setSaving(true)
       try {
         const snap = await getDocs(collection(db, 'accounts', accountId, 'staff'))
@@ -111,6 +122,44 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
     try {
       await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), { status, updatedAt: serverTimestamp() })
       setOrder(o => o ? { ...o, status } : o)
+    } finally { setSaving(false) }
+  }
+
+
+  async function confirmConveyorSlot() {
+    const slot = conveyorSlotInput.trim()
+    if (!slot || !accountId || !orderId || !order) return
+    setSaving(true)
+    try {
+      const assignedBy = staff?.name ?? ''
+      await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), {
+        status: 'Ready for Pick Up',
+        conveyorSlotNumber: slot,
+        conveyorAssignedBy: assignedBy,
+        conveyorAssignedAt: serverTimestamp(),
+        jobCompletedDate: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+      setOrder(o => o ? { ...o, status: 'Ready for Pick Up', conveyorSlotNumber: slot, conveyorAssignedBy: assignedBy } : o)
+      setShowConveyorSlotPopup(false)
+      if (order.customerPhone && accountProfile) {
+        const smsSettings = (accountProfile as any).sms
+        const senderName = smsSettings?.senderName || (accountProfile as any).businessName?.slice(0, 11) || 'Stitch'
+        const template = smsSettings?.template || 'Hi {firstName}, your order at {businessName} is ready for pick-up! Order: {orderNumber}.'
+        fetch(SMS_WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: order.customerPhone,
+            from: senderName,
+            body: template
+              .replace('{firstName}', order.customerName.split(' ')[0])
+              .replace('{businessName}', (accountProfile as any).businessName || 'us')
+              .replace('{orderNumber}', order.orderNumberString)
+              .replace('{balance}', '')
+          }),
+        }).catch(() => {})
+      }
     } finally { setSaving(false) }
   }
 
@@ -281,6 +330,14 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                 {order?.completedBy && (
                   <p className="text-white/50 text-xs text-right mt-1">Completed by: {order.completedBy}</p>
                 )}
+                {order?.shopType === 'dryCleaning' && order?.status === 'Ready for Pick Up' && order?.conveyorSlotNumber && (
+                  <div className="text-right">
+                    <p className="text-white font-bold text-lg">Conveyor # {order.conveyorSlotNumber}</p>
+                    {order.conveyorAssignedBy && (
+                      <p className="text-white/50 text-xs">Loaded by: {order.conveyorAssignedBy}</p>
+                    )}
+                  </div>
+                )}
               </div>
               {/* Edit button alongside status */}
               {order && onEdit && (
@@ -387,6 +444,38 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                 (this will send a text message to customer)
               </p>
               <button onClick={() => setShowCompletedByPopup(false)}
+                className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors mt-1">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Conveyor Slot Number popup — dry cleaning only */}
+        {showConveyorSlotPopup && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 rounded-3xl">
+            <div className="bg-white rounded-2xl shadow-xl p-6 mx-6 w-full">
+              <p className="text-center font-bold text-gray-900 text-lg mb-2">Conveyor Slot Number</p>
+              <p className="text-center text-gray-500 text-sm mb-4">Enter the slot where this order is loaded</p>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={conveyorSlotInput}
+                onChange={e => setConveyorSlotInput(e.target.value.replace(/\D/g, ''))}
+                placeholder="e.g. 42"
+                className="w-full text-center text-3xl font-bold border-2 border-gray-200 rounded-xl py-4 mb-3 focus:outline-none focus:border-navy"
+                autoFocus
+              />
+              <p className="text-center text-red-400 text-xs italic mb-4">
+                (this will send a text message to customer)
+              </p>
+              <button
+                onClick={confirmConveyorSlot}
+                disabled={!conveyorSlotInput.trim() || saving}
+                className="w-full py-3.5 rounded-xl bg-navy disabled:opacity-40 text-white font-semibold text-base transition-colors">
+                {saving ? 'Saving…' : 'Confirm'}
+              </button>
+              <button onClick={() => setShowConveyorSlotPopup(false)}
                 className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors mt-1">
                 Cancel
               </button>
