@@ -493,7 +493,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                     orderNote: order.orderNote ?? undefined,
                     barcode: order.barcode,
                   })
-                  const ok = await printer.printReceipt(html, 2)
+                  const ok = await printer.printReceipt(html, 1)
                   if (!ok) alert(printer.status !== 'connected' ? 'QZ Tray not running — check Settings → Printers' : 'No thermal printer selected — check Settings → Printers')
                 }}
                 disabled={printer.status !== 'connected' || !printer.thermalPrinter}
