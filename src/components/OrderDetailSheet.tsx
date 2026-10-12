@@ -469,28 +469,30 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                 onClick={async () => {
                   if (!order) return
                   const items = JSON.parse(order.items || '[]')
-                  const subtotal = order.orderAmount / 1.1
+                  const subtotal = Math.round((order.orderAmount / 1.1) * 100) / 100
+                  const createdDate = order.createdAt ? new Date(order.createdAt.seconds * 1000) : new Date()
+                  const pickupDateObj = order.pickupDate ? new Date(order.pickupDate) : null
                   const html = buildReceipt({
-                    businessName: order.location,
+                    businessName: 'Sew Smart Alterations',
                     locationName: order.location,
-                    locationAddress: '',
-                    locationPhone: '',
                     orderNumber: order.orderNumberString,
-                    orderDate: order.orderDate ?? '',
-                    orderTime: order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleTimeString('en-AU', { hour:'numeric', minute:'2-digit', hour12:true }) : '',
+                    orderDate: createdDate.toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' }),
+                    orderTime: createdDate.toLocaleTimeString('en-AU', { hour:'numeric', minute:'2-digit', hour12:true }),
+                    servedBy: staff?.name ?? '',
                     customerName: order.customerName,
                     customerPhone: order.customerPhone ?? '',
-                    pickupDate: order.pickupDate ?? '',
+                    pickupDay: pickupDateObj ? pickupDateObj.toLocaleDateString('en-AU', { weekday:'long' }) : '',
+                    pickupDateFull: pickupDateObj ? pickupDateObj.toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }) : (order.pickupDate ?? ''),
                     items: items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, unitPrice: i.unitPrice, note: i.note })),
-                    subtotal: Math.round(subtotal * 100) / 100,
+                    subtotal,
                     total: order.orderAmount,
                     paidAmount: order.paidAmount,
                     stillDue: order.stillDueAmount,
                     paymentMethod: order.paymentMethod ?? '',
-                    servedBy: staff?.name ?? '',
                     orderNote: order.orderNote ?? undefined,
+                    barcode: order.barcode,
                   })
-                  const ok = await printer.printReceipt(html)
+                  const ok = await printer.printReceipt(html, 2)
                   if (!ok) alert(printer.status !== 'connected' ? 'QZ Tray not running — check Settings → Printers' : 'No thermal printer selected — check Settings → Printers')
                 }}
                 disabled={printer.status !== 'connected' || !printer.thermalPrinter}

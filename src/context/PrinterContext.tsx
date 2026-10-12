@@ -16,7 +16,7 @@ interface PrinterContextValue {
   impactPrinter: string | null
   setThermalPrinter: (name: string) => void
   setImpactPrinter: (name: string) => void
-  printReceipt: (html: string) => Promise<boolean>
+  printReceipt: (html: string, copies?: number) => Promise<boolean>
   printLabel: (text: string) => Promise<boolean>
   openDrawer: () => Promise<boolean>
   reconnect: () => void
@@ -92,10 +92,12 @@ export function PrinterProvider({ children }: { children: ReactNode }) {
     setImpactState(name)
   }
 
-  async function printReceipt(html: string): Promise<boolean> {
+  async function printReceipt(html: string, copies = 2): Promise<boolean> {
     if (!thermalPrinter || !qz?.websocket?.isActive()) return false
     try {
-      const config = qz.configs.create(thermalPrinter, { size: { width: 72, height: null }, units: 'mm', scaleContent: true })
+      const config = qz.configs.create(thermalPrinter, {
+        size: { width: 72, height: null }, units: 'mm', scaleContent: true, copies,
+      })
       await qz.print(config, [{ type: 'pixel', format: 'html', flavor: 'plain', data: html }])
       return true
     } catch (e) { console.error('Receipt print failed:', e); return false }
