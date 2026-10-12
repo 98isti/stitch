@@ -63,15 +63,18 @@ export default function SettingsPinGate({ accountId, onUnlocked }: Props) {
           <div className="bg-white rounded-2xl px-6 py-3 inline-block shadow-lg mb-3">
             <img src="/stitch-logo.png" alt="Stitch" className="h-8 object-contain" />
           </div>
+          <div className="inline-flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/40 rounded-full px-3 py-1 mb-3">
+            <span className="text-amber-300 text-xs font-bold uppercase tracking-wide">🔐 Manager / Owner Access</span>
+          </div>
           <h2 className="text-white text-xl font-bold">Settings</h2>
-          <p className="text-white/50 text-sm mt-1">Enter Manager or Owner PIN</p>
+          <p className="text-white/50 text-sm mt-1">Enter your PIN to continue</p>
         </div>
 
         {/* PIN dots */}
         <div className="flex gap-4 mb-8">
           {[0,1,2,3].map(i => (
             <div key={i} className={`w-4 h-4 rounded-full transition-all duration-150 ${
-              i < pin.length ? 'bg-white scale-110' : 'bg-white/25'
+              i < pin.length ? 'bg-amber-400 scale-110' : 'bg-white/25'
             }`} />
           ))}
         </div>
@@ -87,13 +90,13 @@ export default function SettingsPinGate({ accountId, onUnlocked }: Props) {
             if (k === '') return <div key={i} />
             if (k === '⌫') return (
               <button key={i} onClick={handleDelete}
-                className="h-16 rounded-2xl bg-white/10 flex items-center justify-center active:bg-white/20 transition-colors">
-                <Delete size={20} className="text-white" />
+                className="h-16 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 active:bg-amber-500/30 border border-amber-500/20 flex items-center justify-center transition-colors">
+                <Delete size={20} className="text-amber-300" />
               </button>
             )
             return (
               <button key={i} onClick={() => handleKey(k)}
-                className="h-16 rounded-2xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-2xl font-semibold transition-colors">
+                className="h-16 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 active:bg-amber-500/30 border border-amber-500/20 text-white text-2xl font-semibold transition-colors">
                 {k}
               </button>
             )
