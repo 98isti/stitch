@@ -55,7 +55,13 @@ export function PrinterProvider({ children }: { children: ReactNode }) {
   const connectedRef = useRef(false)
 
   const connect = useCallback(async () => {
-    if (connectingRef.current || connectedRef.current) return
+    const qzActive = typeof qz !== 'undefined' && qz?.websocket?.isActive()
+    if (connectingRef.current || (connectedRef.current && qzActive)) return
+    if (connectedRef.current && !qzActive) {
+      // WebSocket dropped — reset and reconnect
+      connectedRef.current = false
+      setStatus('disconnected')
+    }
     connectingRef.current = true
     setStatus('connecting')
     try {
@@ -102,7 +108,11 @@ export function PrinterProvider({ children }: { children: ReactNode }) {
       const b64 = btoa(binary)
       await qz.print(config, [{ type: 'raw', format: 'base64', data: b64 }])
       return true
-    } catch (e) { console.error('Receipt print failed:', e); return false }
+    } catch (e) {
+      console.error('Receipt print failed:', e)
+      alert('Print failed: ' + String(e))
+      return false
+    }
   }
 
   async function printLabel(text: string): Promise<boolean> {

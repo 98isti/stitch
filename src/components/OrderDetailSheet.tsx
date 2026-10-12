@@ -502,6 +502,9 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
               </button>
             </div>
             <p className="text-center text-xs text-gray-400">Payment method: {order.paymentMethod}</p>
+            <p className="text-center text-xs mt-1 {printer.status === 'connected' ? 'text-green-500' : 'text-red-400'}">
+              {printer.status === 'connected' ? (printer.thermalPrinter ? `🖨️ ${printer.thermalPrinter}` : '⚠️ No printer selected') : '⚠️ Printer not connected'}
+            </p>
           </div>
         )}
       </div>
