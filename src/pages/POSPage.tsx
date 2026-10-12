@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, MapPin, CheckCircle , X} from 'lucide-react'
 import EditSaleItemSheet from '../components/EditSaleItemSheet'
 import SplitPaymentSheet from '../components/SplitPaymentSheet'
+import { usePrinter } from '../context/PrinterContext'
+import { buildReceipt } from '../lib/buildReceipt'
 import {
   collection, query, getDocs, addDoc, serverTimestamp, orderBy,
   doc, runTransaction
@@ -398,6 +400,7 @@ export default function POSPage() {
 
   const [showPayment, setShowPayment] = useState(false)
   const [showSplit, setShowSplit] = useState(false)
+  const printer = usePrinter()
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState<{ orderNumber: string; total: number; method: string } | null>(null)
 
@@ -476,6 +479,44 @@ export default function POSPage() {
     setCalMonth(() => { const d = defaultPickup(); return { year: d.getFullYear(), month: d.getMonth() } })
   }
 
+  async function autoPrintReceipt(params: {
+    orderNumber: string; items: any[]; total: number; paidAmount: number;
+    stillDue: number; method: string; createdAt: Date;
+  }) {
+    if (printer.status !== 'connected' || !printer.thermalPrinter) return
+    try {
+      const subtotal = Math.round((params.total / 1.1) * 100) / 100
+      const defaultPickup = new Date()
+      defaultPickup.setDate(defaultPickup.getDate() + 2)
+      const html = buildReceipt({
+        businessName: 'Sew Smart Alterations',
+        locationName: activeLocation?.name ?? '',
+        orderNumber: params.orderNumber,
+        orderDate: params.createdAt.toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' }),
+        orderTime: params.createdAt.toLocaleTimeString('en-AU', { hour:'numeric', minute:'2-digit', hour12:true }),
+        servedBy: staff?.name ?? '',
+        customerName,
+        customerPhone,
+        pickupDay: pickupDate.toLocaleDateString('en-AU', { weekday:'long' }),
+        pickupDateFull: pickupDate.toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }),
+        items: params.items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, unitPrice: i.unitPrice, note: i.note })),
+        subtotal,
+        total: params.total,
+        paidAmount: params.paidAmount,
+        stillDue: params.stillDue,
+        paymentMethod: params.method,
+        orderNote: orderNote || undefined,
+      })
+      await printer.printReceipt(html, 2)
+      // Open drawer for cash payments
+      if (params.method === 'Cash' || params.method === 'Split') {
+        await printer.openDrawer()
+      }
+    } catch (e) {
+      console.warn('Auto-print failed:', e)
+    }
+  }
+
   async function handlePay(method: 'Cash' | 'Card' | 'Pay Later') {
     if (!accountId || !activeLocation || items.length === 0) return
     setShowPayment(false)
@@ -509,6 +550,7 @@ export default function POSPage() {
         })
       }
       setSuccess({ orderNumber, total, method })
+      autoPrintReceipt({ orderNumber, items, total, paidAmount: method !== 'Pay Later' ? total : 0, stillDue: method !== 'Pay Later' ? 0 : total, method, createdAt: new Date() })
       clearSale()
     } catch (e) {
       console.error(e)
@@ -561,6 +603,7 @@ export default function POSPage() {
         })
       }
       setSuccess({ orderNumber, total: paidAmount, method })
+      autoPrintReceipt({ orderNumber, items, total, paidAmount, stillDue, method, createdAt: new Date() })
       clearSale()
     } catch (e) {
       console.error(e)
