@@ -19,7 +19,6 @@ const BOLD_OFF = ESC + '\x45\x00'
 
 const FONT_NORMAL       = ESC + '\x21\x00' // normal
 const FONT_DBL_HEIGHT   = ESC + '\x21\x10' // 2× height
-const FONT_DBL_WIDTH    = ESC + '\x21\x20' // 2× width
 const FONT_DBL_BOTH     = ESC + '\x21\x30' // 2× width + 2× height
 
 const INVERT_ON  = GS + '\x42\x01'  // white on black
