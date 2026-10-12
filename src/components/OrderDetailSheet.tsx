@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { Phone, ChevronDown, Pencil } from 'lucide-react'
 import { doc, getDoc, getDocs, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import SplitPaymentSheet from './SplitPaymentSheet'
+import { usePrinter } from '../hooks/usePrinter'
+import { buildReceipt } from '../lib/buildReceipt'
+import { buildLabelTwoCopies } from '../lib/buildLabel'
 import { db } from '../lib/firebase'
 import { useStaff } from '../context/StaffContext'
 import { useAccountProfile } from '../hooks/useAccountProfile'
@@ -67,6 +70,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
   const [saving, setSaving] = useState(false)
   const [showStatusMenu, setShowStatusMenu] = useState(false)
   const [showSplit, setShowSplit] = useState(false)
+  const printer = usePrinter()
   const [showPaymentPrompt, setShowPaymentPrompt] = useState(false)
   const [showCompletedByPopup, setShowCompletedByPopup] = useState(false)
   const [staffList, setStaffList] = useState<string[]>([])
@@ -433,8 +437,25 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
         {order && (
           <div className="shrink-0 border-t border-gray-100 px-5 py-4">
             <div className="grid grid-cols-3 gap-3 mb-3">
-              <button className="py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold transition-colors">
-                Print Labels
+              <button
+                onClick={async () => {
+                  if (!order) return
+                  const items = JSON.parse(order.items || '[]')
+                  const text = buildLabelTwoCopies({
+                    orderNumber: order.orderNumberString,
+                    customerName: order.customerName,
+                    customerPhone: order.customerPhone,
+                    pickupDate: order.pickupDate,
+                    locationName: order.location,
+                    orderNote: order.orderNote ?? undefined,
+                    items: items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, note: i.note })),
+                  })
+                  const ok = await printer.printLabel(text)
+                  if (!ok) alert(printer.status !== 'connected' ? 'QZ Tray not running — check Settings → Printers' : 'No label printer selected — check Settings → Printers')
+                }}
+                disabled={printer.status !== 'connected' || !printer.impactPrinter}
+                className="py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-gray-600 text-sm font-semibold transition-colors">
+                🖨️ Print Labels
               </button>
               <button
                 onClick={!order.isPaid ? () => setShowPaymentPrompt(true) : undefined}
@@ -444,8 +465,37 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                 }`}>
                 {order.isPaid ? '✓ Paid' : `Due $${order.stillDueAmount.toFixed(2)}`}
               </button>
-              <button className="py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold transition-colors">
-                Print Receipt
+              <button
+                onClick={async () => {
+                  if (!order) return
+                  const items = JSON.parse(order.items || '[]')
+                  const subtotal = order.orderAmount / 1.1
+                  const html = buildReceipt({
+                    businessName: order.location,
+                    locationName: order.location,
+                    locationAddress: '',
+                    locationPhone: '',
+                    orderNumber: order.orderNumberString,
+                    orderDate: order.orderDate ?? '',
+                    orderTime: order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleTimeString('en-AU', { hour:'numeric', minute:'2-digit', hour12:true }) : '',
+                    customerName: order.customerName,
+                    customerPhone: order.customerPhone ?? '',
+                    pickupDate: order.pickupDate ?? '',
+                    items: items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, unitPrice: i.unitPrice, note: i.note })),
+                    subtotal: Math.round(subtotal * 100) / 100,
+                    total: order.orderAmount,
+                    paidAmount: order.paidAmount,
+                    stillDue: order.stillDueAmount,
+                    paymentMethod: order.paymentMethod ?? '',
+                    servedBy: staff?.name ?? '',
+                    orderNote: order.orderNote ?? undefined,
+                  })
+                  const ok = await printer.printReceipt(html)
+                  if (!ok) alert(printer.status !== 'connected' ? 'QZ Tray not running — check Settings → Printers' : 'No thermal printer selected — check Settings → Printers')
+                }}
+                disabled={printer.status !== 'connected' || !printer.thermalPrinter}
+                className="py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-gray-600 text-sm font-semibold transition-colors">
+                🧾 Print Receipt
               </button>
             </div>
             <p className="text-center text-xs text-gray-400">Payment method: {order.paymentMethod}</p>

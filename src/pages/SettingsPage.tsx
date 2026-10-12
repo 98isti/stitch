@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, Save, Check, Plus, Pencil, Trash2 } from 'lucide-react'
 import SettingsPinGate from '../components/SettingsPinGate'
+import PrinterSettings from '../components/PrinterSettings'
 import { useLocations } from '../hooks/useLocations'
 
 interface AccountProfile {
@@ -393,6 +394,10 @@ export default function SettingsPage() {
               </Section>
 
               {/* ── Plan ── */}
+              <Section title="Printers">
+                <PrinterSettings />
+              </Section>
+
               <Section title="Locations">
                 <div className="space-y-2">
                   {allLocations.map(l => (
