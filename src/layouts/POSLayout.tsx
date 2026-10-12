@@ -17,7 +17,6 @@ const MORE_ITEMS = [
   { label: 'Items',        icon: '🏷️', path: '/items' },
   { label: 'Vouchers',     icon: '🎟️', path: '/vouchers' },
   { label: 'Settings',     icon: '⚙️', path: '/settings' },
-  { label: 'Daily Sales',   icon: '📊', path: '/reports' },
 ]
 
 export default function POSLayout() {
