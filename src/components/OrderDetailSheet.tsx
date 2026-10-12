@@ -494,15 +494,14 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                     barcode: order.barcode,
                   })
                   const ok = await printer.printReceipt(html, 1)
-                  if (!ok) alert(printer.status !== 'connected' ? 'QZ Tray not running — check Settings → Printers' : 'No thermal printer selected — check Settings → Printers')
+                  if (!ok) alert(`Print failed. Printer status: ${printer.status}, Thermal: ${printer.thermalPrinter ?? 'none'}, QZ active: ${typeof qz !== 'undefined' && qz?.websocket?.isActive()}`)
                 }}
-                disabled={printer.status !== 'connected' || !printer.thermalPrinter}
-                className="py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-gray-600 text-sm font-semibold transition-colors">
+                className="py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold transition-colors">
                 🧾 Print Receipt
               </button>
             </div>
             <p className="text-center text-xs text-gray-400">Payment method: {order.paymentMethod}</p>
-            <p className="text-center text-xs mt-1 {printer.status === 'connected' ? 'text-green-500' : 'text-red-400'}">
+            <p className={`text-center text-xs mt-1 ${printer.status === 'connected' ? 'text-green-500' : 'text-red-400'}`}>
               {printer.status === 'connected' ? (printer.thermalPrinter ? `🖨️ ${printer.thermalPrinter}` : '⚠️ No printer selected') : '⚠️ Printer not connected'}
             </p>
           </div>
