@@ -18,6 +18,7 @@ interface OrderDoc {
   orderDate: string
   createdAt?: { seconds: number } | null
   completedBy?: string
+  orderNote?: string
   pickupDate: string
   orderAmount: number
   paidAmount: number
