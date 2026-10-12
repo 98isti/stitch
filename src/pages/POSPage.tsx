@@ -98,6 +98,7 @@ async function saveOrder({
   overridePaidAmount?: number
   overrideStillDue?: number
   overrideIsPaid?: boolean
+  shopType?: string
 }): Promise<{ orderNumber: string; orderId: string }> {
   const counterRef = doc(db, 'accounts', accountId, 'orderCounters', locationId)
   const ordersRef = collection(db, 'accounts', accountId, 'orders')
