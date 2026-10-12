@@ -17,5 +17,8 @@ export const StarPrinter = registerPlugin<StarPrinterPlugin>('StarPrinterPlugin'
 
 /** Returns true when running inside the native Capacitor iOS app */
 export function isNativeApp(): boolean {
-  return !!(window as any).Capacitor?.isNative
+  const cap = (window as any).Capacitor
+  if (!cap) return false
+  // Capacitor v5+ uses isNativePlatform(), v3 used isNative
+  return !!(cap.isNativePlatform?.() ?? cap.isNative)
 }
