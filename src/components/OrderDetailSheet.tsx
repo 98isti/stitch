@@ -494,7 +494,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                     barcode: order.barcode,
                   })
                   const ok = await printer.printReceipt(html, 1)
-                  if (!ok) alert(`Print failed. Printer status: ${printer.status}, Thermal: ${printer.thermalPrinter ?? 'none'}, QZ active: ${typeof qz !== 'undefined' && qz?.websocket?.isActive()}`)
+                  if (!ok) alert(`Print failed. Printer status: ${printer.status}, Thermal: ${printer.thermalPrinter ?? 'none selected'}`)
                 }}
                 className="py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold transition-colors">
                 🧾 Print Receipt
