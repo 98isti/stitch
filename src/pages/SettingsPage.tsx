@@ -122,7 +122,7 @@ export default function SettingsPage() {
   }
 
   async function deleteLoc(id: string, name: string) {
-    if (!accountId || !confirm(\`Delete "\${name}"?\`)) return
+    if (!accountId || !confirm(`Delete "${name}"?`)) return
     await deleteDoc(doc(db, 'accounts', accountId, 'locations', id))
     setAllLocations(prev => prev.filter(l => l.id !== id))
   }
