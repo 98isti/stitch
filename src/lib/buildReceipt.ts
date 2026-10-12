@@ -1,8 +1,93 @@
 /**
- * buildReceipt — HTML receipt matching SmartPOS layout
- * 80mm paper (72mm printable) · Star mC-Print3 via QZ Tray
+ * buildReceipt — raw ESC/POS commands for Star mC-Print3 (80mm thermal)
+ * 42 characters wide at font A. Reliable, no HTML scaling issues.
+ *
+ * ESC/POS reference: https://reference.epson-biz.com/modules/ref_escpos/
+ * Star mC-Print3 is ESC/POS compatible.
  */
 
+// ── ESC/POS command constants ───────────────────────────────────────────────
+const ESC = '\x1b'
+const GS  = '\x1d'
+const LF  = '\x0a'
+
+const ALIGN_LEFT   = ESC + '\x61\x00'
+const ALIGN_CENTER = ESC + '\x61\x01'
+const ALIGN_RIGHT  = ESC + '\x61\x02'
+
+const BOLD_ON  = ESC + '\x45\x01'
+const BOLD_OFF = ESC + '\x45\x00'
+
+const FONT_NORMAL       = ESC + '\x21\x00' // normal
+const FONT_DBL_HEIGHT   = ESC + '\x21\x10' // 2× height
+const FONT_DBL_WIDTH    = ESC + '\x21\x20' // 2× width
+const FONT_DBL_BOTH     = ESC + '\x21\x30' // 2× width + 2× height
+
+const INVERT_ON  = GS + '\x42\x01'  // white on black
+const INVERT_OFF = GS + '\x42\x00'
+
+const CUT_PARTIAL = GS + '\x56\x42\x00'
+
+const WIDTH = 42
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function pad(text: string, total = WIDTH): string {
+  return text.slice(0, total).padEnd(total)
+}
+
+function row(left: string, right: string, width = WIDTH): string {
+  const space = width - left.length - right.length
+  if (space <= 0) return (left + ' ' + right).slice(0, width)
+  return left + ' '.repeat(space) + right
+}
+
+function center(text: string, width = WIDTH): string {
+  const trimmed = text.slice(0, width)
+  const spaces = Math.max(0, Math.floor((width - trimmed.length) / 2))
+  return ' '.repeat(spaces) + trimmed
+}
+
+function divider(char = '-', width = WIDTH): string {
+  return char.repeat(width)
+}
+
+function wrap(text: string, width = WIDTH): string[] {
+  const words = text.split(' ')
+  const lines: string[] = []
+  let line = ''
+  for (const word of words) {
+    if ((line + (line ? ' ' : '') + word).length > width) {
+      if (line) lines.push(line)
+      line = word.slice(0, width)
+    } else {
+      line = line ? line + ' ' + word : word
+    }
+  }
+  if (line) lines.push(line)
+  return lines
+}
+
+function fmt(n: number): string {
+  return `$${n.toFixed(2)}`
+}
+
+// ── QR Code via ESC/POS GS commands ─────────────────────────────────────────
+function qrCode(data: string): string {
+  const len = data.length
+  const pL = (len + 3) & 0xff
+  const pH = ((len + 3) >> 8) & 0xff
+  return (
+    ALIGN_CENTER +
+    GS + '(k\x04\x00\x31\x41\x32\x00' +        // Model 2
+    GS + '(k\x03\x00\x31\x43\x05' +              // Cell size 5
+    GS + '(k\x03\x00\x31\x45\x31' +              // Error correction L
+    GS + `(k${String.fromCharCode(pL, pH)}\x00\x31\x50\x30${data}` + // Store data
+    GS + '(k\x03\x00\x31\x51\x30' +              // Print QR
+    ALIGN_LEFT
+  )
+}
+
+// ── Receipt Data Interface ───────────────────────────────────────────────────
 export interface ReceiptItem {
   category: string
   name: string
@@ -12,25 +97,25 @@ export interface ReceiptItem {
 }
 
 export interface ReceiptData {
-  logoUrl?: string          // URL to logo image (optional)
-  businessName: string      // e.g. "Sew Smart Alterations"
-  locationName: string      // e.g. "Carlingford"
-  locationAddress?: string  // e.g. "123 Pennant Hills Rd, Carlingford NSW 2118"
+  logoUrl?: string
+  businessName: string
+  locationName: string
+  locationAddress?: string
   locationPhone?: string
   abn?: string
-  orderNumber: string       // e.g. "CAR 42"
-  orderDate: string         // e.g. "Sunday, 12 October 2026"
-  orderTime: string         // e.g. "10:49 am"
+  orderNumber: string
+  orderDate: string
+  orderTime: string
   servedBy: string
   customerName: string
   customerPhone?: string
-  pickupDay: string         // e.g. "Tuesday"
-  pickupDateFull: string    // e.g. "13 October 2026"
-  pickupTime?: string       // default "after 4PM"
+  pickupDay: string
+  pickupDateFull: string
+  pickupTime?: string
   items: ReceiptItem[]
-  subtotal: number          // ex-GST
+  subtotal: number
   discount?: number
-  total: number             // incl GST
+  total: number
   paidAmount: number
   stillDue: number
   paymentMethod: string
@@ -38,12 +123,54 @@ export interface ReceiptData {
   orderNote?: string
 }
 
-function fmt(n: number) {
-  return `$${n.toFixed(2)}`
-}
-
+// ── Main Receipt Builder ─────────────────────────────────────────────────────
 export function buildReceipt(d: ReceiptData): string {
-  // Group items by category
+  const lines: string[] = []
+
+  const push = (...parts: string[]) => lines.push(...parts)
+
+  // ── Header ────────────────────────────────────────────────────────────────
+  push(ALIGN_CENTER, BOLD_ON, FONT_DBL_BOTH)
+  push(d.businessName + LF)
+  push(FONT_NORMAL, BOLD_OFF)
+
+  push(BOLD_ON)
+  push(`${d.businessName} – ${d.locationName}` + LF)
+  push(BOLD_OFF, ALIGN_LEFT)
+
+  if (d.locationAddress) push(d.locationAddress + LF)
+  if (d.locationPhone)   push(`Phone: ${d.locationPhone}` + LF)
+  if (d.abn)             push(`ABN: ${d.abn}` + LF)
+
+  push(divider() + LF)
+
+  // ── Date / Staff ──────────────────────────────────────────────────────────
+  push(`Ordered: ${d.orderDate}` + LF)
+  push(d.orderTime + LF)
+  push(`Served by: ${d.servedBy}` + LF)
+
+  push(divider() + LF)
+
+  // ── Order # ───────────────────────────────────────────────────────────────
+  push(FONT_DBL_BOTH)
+  push(`Order # ${d.orderNumber}` + LF)
+  push(FONT_NORMAL)
+
+  push(d.customerName + LF)
+  if (d.customerPhone) push(d.customerPhone + LF)
+
+  push(divider() + LF)
+
+  // ── Pickup ────────────────────────────────────────────────────────────────
+  push(FONT_DBL_HEIGHT)
+  push(`Pick up: ${d.pickupDay}` + LF)
+  push(d.pickupDateFull + LF)
+  push(`Pick up time: ${d.pickupTime ?? 'after 4PM'}` + LF)
+  push(FONT_NORMAL)
+
+  push(divider() + LF)
+
+  // ── Items ─────────────────────────────────────────────────────────────────
   const groups: Record<string, ReceiptItem[]> = {}
   for (const item of d.items) {
     const cat = item.category || 'Other'
@@ -51,147 +178,71 @@ export function buildReceipt(d: ReceiptData): string {
     groups[cat].push(item)
   }
 
-  const itemCount = d.items.reduce((sum, i) => sum + i.qty, 0)
+  for (const [cat, items] of Object.entries(groups)) {
+    push(BOLD_ON + cat.toUpperCase() + BOLD_OFF + LF)
+    for (const item of items) {
+      const price = fmt(item.unitPrice * item.qty)
+      const qtyStr = item.qty > 1 ? ` x${item.qty}` : ''
+      const nameStr = `  ${item.name}${qtyStr}`
+      push(row(nameStr, price) + LF)
+      if (item.note) push(`  (${item.note})`.slice(0, WIDTH) + LF)
+    }
+  }
 
-  const logoHtml = d.logoUrl
-    ? `<img src="${d.logoUrl}" style="max-width:180px;max-height:60px;object-fit:contain;margin-bottom:4px" /><br>`
-    : `<div style="font-size:20px;font-weight:900;letter-spacing:-0.5px;margin-bottom:2px">${d.businessName}</div>`
+  if (d.orderNote) {
+    push(divider() + LF)
+    for (const line of wrap(`Note: ${d.orderNote}`)) {
+      push(line + LF)
+    }
+  }
 
-  const itemsHtml = Object.entries(groups).map(([cat, items]) => {
-    const rows = items.map(it => {
-      const price = fmt(it.unitPrice * it.qty)
-      const noteHtml = it.note ? `<div style="padding-left:8px;color:#666;font-size:10px">(${it.note})</div>` : ''
-      return `<div style="display:flex;justify-content:space-between;padding:1px 0">
-        <span>${it.qty > 1 ? `${it.name}` : it.name} ${it.qty > 1 ? `<span style="color:#888">x${it.qty}</span>` : ''}</span>
-        <span style="margin-left:8px;white-space:nowrap">${price}</span>
-      </div>${noteHtml}`
-    }).join('')
-    return `<div style="font-weight:bold;margin-top:4px">${cat.toUpperCase()}</div>${rows}`
-  }).join('')
+  push(divider() + LF)
 
-  // Payment status
-  let payStatusHtml = ''
+  // ── Totals ────────────────────────────────────────────────────────────────
+  push(row('Subtotal', fmt(d.subtotal)) + LF)
+  if (d.discount && d.discount > 0) {
+    push(row('Discount', `-${fmt(d.discount)}`) + LF)
+  }
+  push(BOLD_ON + row('Total (incl 10% GST)', fmt(d.total)) + BOLD_OFF + LF)
   if (d.stillDue > 0) {
-    payStatusHtml = `
-      <div style="text-align:center;font-size:18px;font-weight:bold;border:2px solid #000;padding:4px 8px;margin:6px 0">
-        PARTIAL PAYMENT<br>
-        <span style="font-size:13px">Due: ${fmt(d.stillDue)}</span>
-      </div>`
+    push(row('Paid', fmt(d.paidAmount)) + LF)
+  }
+
+  // ── Item count (inverted) ─────────────────────────────────────────────────
+  const itemCount = d.items.reduce((s, i) => s + i.qty, 0)
+  push(LF)
+  push(INVERT_ON + BOLD_ON + ` ${itemCount} ` + BOLD_OFF + INVERT_OFF)
+  push(` item${itemCount !== 1 ? 's' : ''}` + LF)
+
+  push(divider() + LF)
+
+  // ── Payment status ────────────────────────────────────────────────────────
+  push(ALIGN_CENTER)
+  if (d.stillDue > 0) {
+    push(FONT_DBL_HEIGHT + BOLD_ON + 'PARTIAL PAYMENT' + BOLD_OFF + FONT_NORMAL + LF)
+    push(`Due: ${fmt(d.stillDue)}` + LF)
   } else if (!d.paidAmount || d.paidAmount === 0) {
-    payStatusHtml = `
-      <div style="text-align:center;font-size:24px;font-weight:900;border:2px solid #000;padding:4px 8px;margin:6px 0;letter-spacing:2px">
-        NOT PAID
-      </div>`
+    push(FONT_DBL_BOTH + BOLD_ON + 'NOT PAID' + BOLD_OFF + FONT_NORMAL + LF)
   } else {
-    payStatusHtml = `
-      <div style="text-align:center;font-size:36px;font-weight:900;letter-spacing:3px;margin:8px 0">
-        PAID
-      </div>`
+    push(FONT_DBL_BOTH + BOLD_ON + 'PAID' + BOLD_OFF + FONT_NORMAL + LF)
+  }
+  push(ALIGN_LEFT)
+
+  push(center(`Payment method: ${d.paymentMethod}`) + LF)
+
+  push(divider() + LF)
+
+  push(ALIGN_CENTER + 'Thank you!' + ALIGN_LEFT + LF)
+
+  // ── QR Code ───────────────────────────────────────────────────────────────
+  if (d.barcode) {
+    push(qrCode(d.barcode))
+    push(LF)
   }
 
-  // QR code — encode barcode as a URL-based QR if barcode provided
-  const qrHtml = d.barcode
-    ? `<div style="text-align:center;margin-top:6px">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(d.barcode)}" width="100" height="100" />
-       </div>`
-    : ''
+  // ── Feed + Cut ────────────────────────────────────────────────────────────
+  push(LF + LF + LF)
+  push(CUT_PARTIAL)
 
-  const orderNoteHtml = d.orderNote
-    ? `<div style="margin-top:4px;font-size:10px;color:#444">Note: ${d.orderNote}</div>`
-    : ''
-
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 11px;
-    width: 72mm;
-    padding: 2mm;
-  }
-  .dash { border-top: 1px dashed #000; margin: 5px 0; }
-  .big { font-size: 20px; font-weight: bold; }
-  .xl  { font-size: 24px; font-weight: bold; }
-  .center { text-align: center; }
-  .right { text-align: right; }
-  .totals { width: 100%; }
-  .totals td { padding: 1px 0; }
-  .totals td:last-child { text-align: right; }
-  .inverted {
-    display: inline-block;
-    background: #000;
-    color: #fff;
-    font-weight: bold;
-    font-size: 14px;
-    padding: 1px 6px;
-    margin-right: 4px;
-  }
-</style>
-</head>
-<body>
-
-${logoHtml}
-<div style="font-size:11px">
-  <strong>${d.businessName} – ${d.locationName}</strong><br>
-  ${d.locationAddress ? `${d.locationAddress}<br>` : ''}
-  ${d.locationPhone ? `Phone: ${d.locationPhone}<br>` : ''}
-  ${d.abn ? `ABN: ${d.abn}` : ''}
-</div>
-
-<div class="dash"></div>
-
-<div style="font-size:11px">
-  Ordered: ${d.orderDate}<br>
-  ${d.orderTime}<br>
-  Served by: ${d.servedBy}
-</div>
-
-<div class="dash"></div>
-
-<div class="xl">Order # ${d.orderNumber}</div>
-<div style="font-size:13px">${d.customerName}</div>
-${d.customerPhone ? `<div style="font-size:11px">${d.customerPhone}</div>` : ''}
-
-<div class="dash"></div>
-
-<div class="big">Pick up: ${d.pickupDay}</div>
-<div class="big">${d.pickupDateFull}</div>
-<div class="big" style="margin-top:2px">Pick up time: ${d.pickupTime ?? 'after 4PM'}</div>
-
-<div class="dash"></div>
-
-<div style="font-size:11px">${itemsHtml}</div>
-
-${orderNoteHtml}
-
-<div class="dash"></div>
-
-<table class="totals">
-  <tr><td>Subtotal</td><td>${fmt(d.subtotal)}</td></tr>
-  ${d.discount && d.discount > 0 ? `<tr><td>Discount</td><td>-${fmt(d.discount)}</td></tr>` : ''}
-  <tr><td><strong>Total (incl 10% GST)</strong></td><td><strong>${fmt(d.total)}</strong></td></tr>
-  ${d.stillDue > 0 ? `<tr><td>Paid</td><td>${fmt(d.paidAmount)}</td></tr>` : ''}
-</table>
-
-<div style="margin-top:5px">
-  <span class="inverted">${itemCount}</span> item${itemCount !== 1 ? 's' : ''}
-</div>
-
-<div class="dash"></div>
-
-${payStatusHtml}
-
-<div style="text-align:center;font-size:11px">Payment method: ${d.paymentMethod}</div>
-
-<div class="dash"></div>
-
-<div class="center" style="font-size:11px">Thank you!</div>
-
-${qrHtml}
-
-</body>
-</html>`
+  return lines.join('')
 }
