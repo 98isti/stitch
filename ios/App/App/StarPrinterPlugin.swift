@@ -2,9 +2,9 @@ import Capacitor
 import StarIO10
 
 @objc(StarPrinterPlugin)
-public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin {
+public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscoveryManagerDelegate {
     public let identifier = "StarPrinterPlugin"
-    public let jsName = "StarPrinter"
+    public let jsName = "StarPrinterPlugin"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "discoverPrinters", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "printReceipt",     returnType: CAPPluginReturnPromise),
@@ -13,61 +13,53 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin {
     ]
 
     private var discoveryManager: StarDeviceDiscoveryManager?
-    private var discovered: [StarPrinter] = []
+    private var discoveredPrinters: [[String: String]] = []
+    private var discoveryCall: CAPPluginCall?
 
-    // ── Discover printers on LAN ───────────────────────────────────────────
+    // ── Discover printers ─────────────────────────────────────────────────
     @objc func discoverPrinters(_ call: CAPPluginCall) {
-        discovered = []
-        do {
-            try discoveryManager?.stopDiscovery()
-        } catch {}
+        discoveredPrinters = []
+        discoveryCall = call
+        call.keepAlive = true
+
+        try? discoveryManager?.stopDiscovery()
         discoveryManager = nil
 
-        do {
-            let mgr = try StarDeviceDiscoveryManagerFactory.create(interfaceTypes: [.lan])
-            self.discoveryManager = mgr
-            mgr.discoveryTime = 3000  // 3 seconds
-
-            var found: [[String: String]] = []
-
-            mgr.delegate = DiscoveryDelegate(
-                onFound: { printer in
-                    found.append([
-                        "identifier": printer.connectionSettings.identifier,
-                        "model": printer.information?.model.rawValue ?? "Unknown"
-                    ])
-                },
-                onFinished: {
-                    call.resolve(["printers": found])
-                }
-            )
-
-            try mgr.startDiscovery()
-        } catch {
-            call.reject("Discovery failed: \(error)")
-        }
-    }
-
-    // ── Print receipt (thermal) ────────────────────────────────────────────
-    @objc func printReceipt(_ call: CAPPluginCall) {
-        guard let identifier = call.getString("identifier") else {
-            call.reject("Missing printer identifier")
+        guard let mgr = try? StarDeviceDiscoveryManagerFactory.create(interfaceTypes: [.lan]) else {
+            call.reject("Failed to create discovery manager")
             return
         }
-        let receiptData = call.getObject("receipt") ?? [:]
-        let copies = call.getInt("copies") ?? 1
+        mgr.discoveryTime = 3000
+        mgr.delegate = self
+        discoveryManager = mgr
+        try? mgr.startDiscovery()
+    }
 
-        let settings = StarConnectionSettings(interfaceType: .lan, identifier: identifier)
-        let printer  = StarPrinter(settings)
-        let command  = buildReceiptCommand(receiptData)
+    public func manager(_ manager: StarDeviceDiscoveryManager, didFind printer: StarPrinter) {
+        let identifier = printer.connectionSettings.identifier
+        let model      = String(describing: printer.information?.model ?? StarPrinterModel.unknown)
+        discoveredPrinters.append(["identifier": identifier, "model": model])
+    }
+
+    public func managerDidFinishDiscovery(_ manager: StarDeviceDiscoveryManager) {
+        discoveryCall?.resolve(["printers": discoveredPrinters])
+        discoveryCall?.keepAlive = false
+        discoveryCall = nil
+    }
+
+    // ── Print receipt ─────────────────────────────────────────────────────
+    @objc func printReceipt(_ call: CAPPluginCall) {
+        guard let identifier = call.getString("identifier") else { call.reject("Missing identifier"); return }
+        let d      = call.getObject("receipt") ?? [:]
+        let copies = call.getInt("copies") ?? 1
+        let printer = StarPrinter(StarConnectionSettings(interfaceType: .lan, identifier: identifier))
 
         Task {
             do {
-                for _ in 0..<copies {
-                    try await printer.open()
-                    try await printer.print(command: command)
-                    await printer.close()
-                }
+                try await printer.open()
+                let cmd = buildReceipt(d)
+                for _ in 0..<copies { try await printer.print(command: cmd) }
+                await printer.close()
                 call.resolve(["success": true])
             } catch {
                 await printer.close()
@@ -76,287 +68,236 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    // ── Print label (impact SP742) ─────────────────────────────────────────
+    // ── Print label ───────────────────────────────────────────────────────
     @objc func printLabel(_ call: CAPPluginCall) {
-        guard let identifier = call.getString("identifier") else {
-            call.reject("Missing printer identifier")
-            return
-        }
-        let labelData = call.getObject("label") ?? [:]
-
-        let settings = StarConnectionSettings(interfaceType: .lan, identifier: identifier)
-        let printer  = StarPrinter(settings)
-        let command  = buildLabelCommand(labelData)
+        guard let identifier = call.getString("identifier") else { call.reject("Missing identifier"); return }
+        let d       = call.getObject("label") ?? [:]
+        let printer = StarPrinter(StarConnectionSettings(interfaceType: .lan, identifier: identifier))
 
         Task {
             do {
                 try await printer.open()
-                try await printer.print(command: command)
+                let cmd = buildLabel(d)
+                try await printer.print(command: cmd)
                 await printer.close()
                 call.resolve(["success": true])
             } catch {
                 await printer.close()
-                call.reject("Label print failed: \(error)")
+                call.reject("Label failed: \(error)")
             }
         }
     }
 
     // ── Open cash drawer ──────────────────────────────────────────────────
     @objc func openDrawer(_ call: CAPPluginCall) {
-        guard let identifier = call.getString("identifier") else {
-            call.reject("Missing printer identifier")
-            return
-        }
-
-        let settings = StarConnectionSettings(interfaceType: .lan, identifier: identifier)
-        let printer  = StarPrinter(settings)
-
-        let builder = StarXpandCommand.StarXpandCommandBuilder()
-        builder.addDocument(
-            StarXpandCommand.DocumentBuilder()
-                .addDrawer(StarXpandCommand.DrawerBuilder()
-                    .actionOpen(StarXpandCommand.Drawer.OpenParameter())
-                )
-        )
+        guard let identifier = call.getString("identifier") else { call.reject("Missing identifier"); return }
+        let printer = StarPrinter(StarConnectionSettings(interfaceType: .lan, identifier: identifier))
 
         Task {
             do {
                 try await printer.open()
-                try await printer.print(command: builder.getCommands())
+                let cmd = StarXpandCommand.StarXpandCommandBuilder()
+                    .addDocument(StarXpandCommand.DocumentBuilder()
+                        .addDrawer(StarXpandCommand.DrawerBuilder()
+                            .actionOpen(StarXpandCommand.Drawer.OpenParameter())))
+                    .getCommands()
+                try await printer.print(command: cmd)
                 await printer.close()
                 call.resolve(["success": true])
             } catch {
                 await printer.close()
-                call.reject("Drawer open failed: \(error)")
+                call.reject("Drawer failed: \(error)")
             }
         }
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────────
+    private func str(_ d: [String: Any], _ key: String) -> String { d[key] as? String ?? "" }
+    private func dbl(_ d: [String: Any], _ key: String) -> Double { d[key] as? Double ?? 0 }
+    private func fmt(_ n: Double) -> String { String(format: "$%.2f", n) }
+    private func items(_ d: [String: Any]) -> [[String: Any]] { d["items"] as? [[String: Any]] ?? [] }
+
+    private func padRow(_ left: String, _ right: String, _ width: Int = 40) -> String {
+        let space = max(1, width - left.count - right.count)
+        return left + String(repeating: " ", count: space) + right
+    }
+
     // ── Receipt builder ───────────────────────────────────────────────────
-    private func buildReceiptCommand(_ d: [String: Any]) -> String {
-        let builder  = StarXpandCommand.StarXpandCommandBuilder()
-        let doc      = StarXpandCommand.DocumentBuilder()
-        let printer  = StarXpandCommand.PrinterBuilder()
-
-        func str(_ key: String) -> String { d[key] as? String ?? "" }
-        func dbl(_ key: String) -> Double { d[key] as? Double ?? 0 }
-        func items() -> [[String: Any]] { d["items"] as? [[String: Any]] ?? [] }
-
-        let fmt: (Double) -> String = { String(format: "$%.2f", $0) }
+    private func buildReceipt(_ d: [String: Any]) -> String {
+        let doc = StarXpandCommand.DocumentBuilder()
+        let p   = StarXpandCommand.PrinterBuilder()
 
         // Header
-        printer
-            .styleAlignment(.center)
-            .styleBold(true)
-            .styleMagnification(StarXpandCommand.MagnificationParameter(width: 2, height: 2))
-            .actionPrintText("\(str("businessName"))\n")
-            .styleBold(false)
-            .styleMagnification(StarXpandCommand.MagnificationParameter(width: 1, height: 1))
+        p.styleAlignment(.center)
+         .styleMagnification(.init(width: 2, height: 2))
+         .styleBold(true)
+         .actionPrintText("\(str(d,"businessName"))\n")
+         .styleBold(false)
+         .styleMagnification(.init(width: 1, height: 1))
+         .styleAlignment(.left)
+         .styleBold(true)
+         .actionPrintText("\(str(d,"businessName")) - \(str(d,"locationName"))\n")
+         .styleBold(false)
 
-        printer.styleAlignment(.left)
-            .styleBold(true)
-            .actionPrintText("\(str("businessName")) - \(str("locationName"))\n")
-            .styleBold(false)
+        if !str(d,"locationAddress").isEmpty { p.actionPrintText("\(str(d,"locationAddress"))\n") }
+        if !str(d,"locationPhone").isEmpty   { p.actionPrintText("Phone: \(str(d,"locationPhone"))\n") }
+        if !str(d,"abn").isEmpty             { p.actionPrintText("ABN: \(str(d,"abn"))\n") }
 
-        if !str("locationAddress").isEmpty { printer.actionPrintText("\(str("locationAddress"))\n") }
-        if !str("locationPhone").isEmpty   { printer.actionPrintText("Phone: \(str("locationPhone"))\n") }
-        if !str("abn").isEmpty             { printer.actionPrintText("ABN: \(str("abn"))\n") }
+        p.actionPrintText("----------------------------------------\n")
+         .actionPrintText("Ordered: \(str(d,"orderDate"))\n\(str(d,"orderTime"))\nServed by: \(str(d,"servedBy"))\n")
+         .actionPrintText("----------------------------------------\n")
+         .styleMagnification(.init(width: 2, height: 2))
+         .actionPrintText("Order # \(str(d,"orderNumber"))\n")
+         .styleMagnification(.init(width: 1, height: 1))
+         .actionPrintText("\(str(d,"customerName"))\n")
 
-        printer.actionPrintText("----------------------------------------\n")
-        printer.actionPrintText("Ordered: \(str("orderDate"))\n\(str("orderTime"))\nServed by: \(str("servedBy"))\n")
-        printer.actionPrintText("----------------------------------------\n")
+        if !str(d,"customerPhone").isEmpty { p.actionPrintText("\(str(d,"customerPhone"))\n") }
 
-        // Order number
-        printer.styleMagnification(StarXpandCommand.MagnificationParameter(width: 2, height: 2))
-            .actionPrintText("Order # \(str("orderNumber"))\n")
-            .styleMagnification(StarXpandCommand.MagnificationParameter(width: 1, height: 1))
-            .actionPrintText("\(str("customerName"))\n")
-        if !str("customerPhone").isEmpty { printer.actionPrintText("\(str("customerPhone"))\n") }
+        p.actionPrintText("----------------------------------------\n")
+         .styleMagnification(.init(width: 2, height: 2))
+         .actionPrintText("Pick up: \(str(d,"pickupDay"))\n")
+         .actionPrintText("\(str(d,"pickupDateFull"))\n")
+         .actionPrintText("Pick up time: \(str(d,"pickupTime").isEmpty ? "after 4PM" : str(d,"pickupTime"))\n")
+         .styleMagnification(.init(width: 1, height: 1))
+         .actionPrintText("----------------------------------------\n")
 
-        printer.actionPrintText("----------------------------------------\n")
-
-        // Pickup
-        printer.styleMagnification(StarXpandCommand.MagnificationParameter(width: 2, height: 2))
-            .actionPrintText("Pick up: \(str("pickupDay"))\n")
-            .actionPrintText("\(str("pickupDateFull"))\n")
-            .actionPrintText("Pick up time: \(str("pickupTime").isEmpty ? "after 4PM" : str("pickupTime"))\n")
-            .styleMagnification(StarXpandCommand.MagnificationParameter(width: 1, height: 1))
-
-        printer.actionPrintText("----------------------------------------\n")
-
-        // Items grouped by category
+        // Items
         var groups: [String: [[String: Any]]] = [:]
-        for item in items() {
+        for item in items(d) {
             let cat = item["category"] as? String ?? "Other"
             groups[cat, default: []].append(item)
         }
         var totalItems = 0
         for (cat, catItems) in groups {
-            printer.styleBold(true).actionPrintText("\(cat.uppercased())\n").styleBold(false)
+            p.styleBold(true).actionPrintText("\(cat.uppercased())\n").styleBold(false)
             for item in catItems {
-                let name  = item["name"]  as? String ?? ""
-                let qty   = item["qty"]   as? Int    ?? 1
+                let name  = item["name"]      as? String ?? ""
+                let qty   = item["qty"]       as? Int    ?? 1
                 let price = item["unitPrice"] as? Double ?? 0
-                let note  = item["note"]  as? String ?? ""
+                let note  = item["note"]      as? String ?? ""
                 let priceStr = fmt(price * Double(qty))
-                let qtyStr   = qty > 1 ? " x\(qty)" : ""
-                let left     = "  \(name)\(qtyStr)"
-                let spaces   = max(1, 40 - left.count - priceStr.count)
-                printer.actionPrintText("\(left)\(String(repeating: " ", count: spaces))\(priceStr)\n")
-                if !note.isEmpty { printer.actionPrintText("  (\(note))\n") }
+                let label = "  \(name)\(qty > 1 ? " x\(qty)" : "")"
+                p.actionPrintText("\(padRow(label, priceStr))\n")
+                if !note.isEmpty { p.actionPrintText("  (\(note))\n") }
                 totalItems += qty
             }
         }
 
-        if !str("orderNote").isEmpty {
-            printer.actionPrintText("----------------------------------------\n")
-            printer.actionPrintText("Note: \(str("orderNote"))\n")
+        if !str(d,"orderNote").isEmpty {
+            p.actionPrintText("----------------------------------------\n")
+             .actionPrintText("Note: \(str(d,"orderNote"))\n")
         }
-
-        printer.actionPrintText("----------------------------------------\n")
 
         // Totals
-        let subtotal  = dbl("subtotal")
-        let total     = dbl("total")
-        let paid      = dbl("paidAmount")
-        let stillDue  = dbl("stillDue")
-        let discount  = dbl("discount")
+        let subtotal = dbl(d, "subtotal")
+        let total    = dbl(d, "total")
+        let paid     = dbl(d, "paidAmount")
+        let due      = dbl(d, "stillDue")
+        let discount = dbl(d, "discount")
 
-        printer.actionPrintText("Subtotal\(String(repeating: " ", count: 32 - 8 - fmt(subtotal).count))\(fmt(subtotal))\n")
-        if discount > 0 {
-            let dStr = "-\(fmt(discount))"
-            printer.actionPrintText("Discount\(String(repeating: " ", count: 32 - 8 - dStr.count))\(dStr)\n")
-        }
-        printer.styleBold(true)
-        let totalLine = "Total (incl 10% GST)"
-        let totalStr  = fmt(total)
-        printer.actionPrintText("\(totalLine)\(String(repeating: " ", count: 40 - totalLine.count - totalStr.count))\(totalStr)\n")
-        printer.styleBold(false)
+        p.actionPrintText("----------------------------------------\n")
+         .actionPrintText("\(padRow("Subtotal", fmt(subtotal)))\n")
 
-        if stillDue > 0 {
-            printer.actionPrintText("Paid\(String(repeating: " ", count: 36 - fmt(paid).count))\(fmt(paid))\n")
-            printer.actionPrintText("Still Due\(String(repeating: " ", count: 31 - fmt(stillDue).count))\(fmt(stillDue))\n")
+        if discount > 0 { p.actionPrintText("\(padRow("Discount", "-\(fmt(discount))"))\n") }
+
+        p.styleBold(true)
+         .actionPrintText("\(padRow("Total (incl 10% GST)", fmt(total)))\n")
+         .styleBold(false)
+
+        if due > 0 {
+            p.actionPrintText("\(padRow("Paid", fmt(paid)))\n")
+             .actionPrintText("\(padRow("Still Due", fmt(due)))\n")
         }
 
         // Item count
-        printer
-            .styleBold(true).styleInvert(true)
-            .actionPrintText(" \(totalItems) ")
-            .styleInvert(false).styleBold(false)
-            .actionPrintText(" item\(totalItems != 1 ? "s" : "")\n")
-
-        printer.actionPrintText("----------------------------------------\n")
+        p.styleBold(true).styleInvert(true)
+         .actionPrintText(" \(totalItems) ")
+         .styleInvert(false).styleBold(false)
+         .actionPrintText(" item\(totalItems != 1 ? "s" : "")\n")
+         .actionPrintText("----------------------------------------\n")
 
         // Payment status
-        printer.styleAlignment(.center)
-        if stillDue > 0 {
-            printer.styleMagnification(StarXpandCommand.MagnificationParameter(width: 2, height: 2))
-                .styleBold(true).actionPrintText("PARTIAL\n").styleBold(false)
-                .styleMagnification(StarXpandCommand.MagnificationParameter(width: 1, height: 1))
-                .actionPrintText("Due: \(fmt(stillDue))\n")
+        p.styleAlignment(.center)
+        if due > 0 {
+            p.styleMagnification(.init(width: 2, height: 2)).styleBold(true)
+             .actionPrintText("PARTIAL PAYMENT\n").styleBold(false)
+             .styleMagnification(.init(width: 1, height: 1))
+             .actionPrintText("Due: \(fmt(due))\n")
         } else if paid == 0 {
-            printer.styleMagnification(StarXpandCommand.MagnificationParameter(width: 2, height: 2))
-                .styleInvert(true).styleBold(true).actionPrintText("NOT PAID")
-                .styleInvert(false).styleBold(false)
-                .styleMagnification(StarXpandCommand.MagnificationParameter(width: 1, height: 1))
-                .actionPrintText("\n")
+            p.styleMagnification(.init(width: 2, height: 2)).styleInvert(true).styleBold(true)
+             .actionPrintText("NOT PAID\n").styleBold(false).styleInvert(false)
+             .styleMagnification(.init(width: 1, height: 1))
         } else {
-            printer.styleMagnification(StarXpandCommand.MagnificationParameter(width: 4, height: 4))
-                .styleBold(true).actionPrintText("PAID\n").styleBold(false)
-                .styleMagnification(StarXpandCommand.MagnificationParameter(width: 1, height: 1))
+            p.styleMagnification(.init(width: 4, height: 4)).styleBold(true)
+             .actionPrintText("PAID\n").styleBold(false)
+             .styleMagnification(.init(width: 1, height: 1))
         }
 
-        printer.styleAlignment(.left)
-            .actionPrintText("Payment method: \(str("paymentMethod"))\n")
-            .styleAlignment(.center)
-            .actionPrintText("Thank you!\n")
+        p.actionPrintText("Payment method: \(str(d,"paymentMethod"))\n")
+         .styleAlignment(.left)
+         .actionPrintText("----------------------------------------\n")
+         .styleAlignment(.center)
+         .actionPrintText("Thank you!\n")
 
-        // QR code
-        if !str("barcode").isEmpty {
-            printer.actionPrintQRCode(
-                StarXpandCommand.Printer.QRCodeParameter(content: str("barcode")).setCellSize(8)
-            )
+        if !str(d,"barcode").isEmpty {
+            p.actionPrintQRCode(.init(content: str(d,"barcode")).setCellSize(8))
         }
 
-        printer.actionCut(StarXpandCommand.Printer.CutType.partial)
-        doc.addPrinter(printer)
-        builder.addDocument(doc)
-        return builder.getCommands()
+        p.actionCut(.partial)
+
+        return StarXpandCommand.StarXpandCommandBuilder()
+            .addDocument(doc.addPrinter(p))
+            .getCommands()
     }
 
     // ── Label builder (SP742) ─────────────────────────────────────────────
-    private func buildLabelCommand(_ d: [String: Any]) -> String {
-        let builder = StarXpandCommand.StarXpandCommandBuilder()
-        let doc     = StarXpandCommand.DocumentBuilder()
-        let printer = StarXpandCommand.PrinterBuilder()
+    private func buildLabel(_ d: [String: Any]) -> String {
+        let doc = StarXpandCommand.DocumentBuilder()
+        let p   = StarXpandCommand.PrinterBuilder()
 
-        func str(_ key: String) -> String { d[key] as? String ?? "" }
-        func items() -> [[String: Any]] { d["items"] as? [[String: Any]] ?? [] }
+        p.styleAlignment(.center)
+         .styleMagnification(.init(width: 2, height: 2))
+         .actionPrintText("ORDER # \(str(d,"orderNumber"))\n")
+         .styleMagnification(.init(width: 1, height: 1))
+         .styleAlignment(.left)
+         .actionPrintText("----------------------------------------\n")
+         .actionPrintText("\(str(d,"customerName"))\n")
 
-        printer.styleAlignment(.center)
-            .styleMagnification(StarXpandCommand.MagnificationParameter(width: 2, height: 2))
-            .actionPrintText("ORDER # \(str("orderNumber"))\n")
-            .styleMagnification(StarXpandCommand.MagnificationParameter(width: 1, height: 1))
-            .styleAlignment(.left)
-            .actionPrintText("----------------------------------------\n")
-            .actionPrintText("\(str("customerName"))\n")
+        if !str(d,"customerPhone").isEmpty { p.actionPrintText("\(str(d,"customerPhone"))\n") }
 
-        if !str("customerPhone").isEmpty { printer.actionPrintText("\(str("customerPhone"))\n") }
-
-        printer.actionPrintText("----------------------------------------\n")
-            .styleMagnification(StarXpandCommand.MagnificationParameter(width: 2, height: 2))
-            .actionPrintText("Pick up: \(str("pickupDay"))\n\(str("pickupDateFull"))\n")
-            .styleMagnification(StarXpandCommand.MagnificationParameter(width: 1, height: 1))
-            .actionPrintText("----------------------------------------\n")
+        p.actionPrintText("----------------------------------------\n")
+         .styleMagnification(.init(width: 2, height: 2))
+         .actionPrintText("Pick up:\n\(str(d,"pickupDate"))\n")
+         .styleMagnification(.init(width: 1, height: 1))
+         .actionPrintText("----------------------------------------\n")
 
         var groups: [String: [[String: Any]]] = [:]
-        for item in items() {
+        for item in items(d) {
             let cat = item["category"] as? String ?? "Other"
             groups[cat, default: []].append(item)
         }
         for (cat, catItems) in groups {
-            printer.styleBold(true).actionPrintText("\(cat.uppercased())\n").styleBold(false)
+            p.styleBold(true).actionPrintText("\(cat.uppercased())\n").styleBold(false)
             for item in catItems {
                 let name = item["name"] as? String ?? ""
                 let qty  = item["qty"]  as? Int    ?? 1
                 let note = item["note"] as? String ?? ""
-                printer.actionPrintText("  \(name)\(qty > 1 ? " x\(qty)" : "")\n")
-                if !note.isEmpty { printer.actionPrintText("  (\(note))\n") }
+                p.actionPrintText("  \(name)\(qty > 1 ? " x\(qty)" : "")\n")
+                if !note.isEmpty { p.actionPrintText("  (\(note))\n") }
             }
         }
 
-        if !str("orderNote").isEmpty {
-            printer.actionPrintText("----------------------------------------\n")
-                .actionPrintText("Note: \(str("orderNote"))\n")
+        if !str(d,"orderNote").isEmpty {
+            p.actionPrintText("----------------------------------------\n")
+             .actionPrintText("Note: \(str(d,"orderNote"))\n")
         }
 
-        printer.actionPrintText("----------------------------------------\n")
-            .styleAlignment(.center)
-            .actionPrintText("CUSTOMER COPY\n")
-            .actionFeedLine(3)
-            .actionCut(StarXpandCommand.Printer.CutType.partial)
+        p.actionPrintText("----------------------------------------\n")
+         .styleAlignment(.center).actionPrintText("CUSTOMER COPY\n")
+         .actionFeedLine(3).actionCut(.partial)
 
-        doc.addPrinter(printer)
-        builder.addDocument(doc)
-        return builder.getCommands()
-    }
-}
-
-// ── Discovery delegate helper ─────────────────────────────────────────────
-private class DiscoveryDelegate: NSObject, StarDeviceDiscoveryManagerDelegate {
-    private let onFound:    (StarPrinter) -> Void
-    private let onFinished: () -> Void
-
-    init(onFound: @escaping (StarPrinter) -> Void, onFinished: @escaping () -> Void) {
-        self.onFound    = onFound
-        self.onFinished = onFinished
-    }
-
-    func manager(_ manager: StarDeviceDiscoveryManager, didFind printer: StarPrinter) {
-        onFound(printer)
-    }
-
-    func managerDidFinishDiscovery(_ manager: StarDeviceDiscoveryManager) {
-        onFinished()
+        return StarXpandCommand.StarXpandCommandBuilder()
+            .addDocument(doc.addPrinter(p))
+            .getCommands()
     }
 }
