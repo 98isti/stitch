@@ -418,6 +418,17 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
           </div>
         )}
 
+        {/* Order Note */}
+        {order?.orderNote && (
+          <div className="mx-5 mb-4 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+            <span className="text-lg shrink-0">📝</span>
+            <div>
+              <p className="text-xs font-bold text-amber-700 mb-0.5">Order Note</p>
+              <p className="text-sm text-amber-700 leading-snug">{order.orderNote}</p>
+            </div>
+          </div>
+        )}
+
         {/* ── Bottom action bar ── */}
         {order && (
           <div className="shrink-0 border-t border-gray-100 px-5 py-4">
