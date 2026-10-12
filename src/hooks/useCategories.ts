@@ -5,10 +5,11 @@ import { db } from '../lib/firebase'
 export interface Category {
   id: string
   categoryName: string
+  shopType?: string
 }
 
-export function useCategories(accountId: string | null) {
-  const [categories, setCategories] = useState<Category[]>([])
+export function useCategories(accountId: string | null, shopType?: string) {
+  const [allCategories, setAllCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -18,10 +19,14 @@ export function useCategories(accountId: string | null) {
       orderBy('categoryName')
     )
     getDocs(q).then(snap => {
-      setCategories(snap.docs.map(d => ({ id: d.id, ...d.data() } as Category)))
+      setAllCategories(snap.docs.map(d => ({ id: d.id, ...d.data() } as Category)))
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [accountId])
+
+  const categories = shopType
+    ? allCategories.filter(c => !c.shopType || c.shopType === shopType)
+    : allCategories
 
   return { categories, loading }
 }

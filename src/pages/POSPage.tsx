@@ -335,8 +335,9 @@ export default function POSPage() {
     if (!staff) navigate('/pin', { replace: true })
   }, [staff, navigate, accountId])
   const [showStaffMenu, setShowStaffMenu] = useState(false)
-  const { categories, loading: catsLoading } = useCategories(accountId)
-  const { loading: itemsLoading, getItemsForCategory, getSubCategories } = useItems(accountId)
+  const locationShopType = activeLocation?.shopType || 'alterations'
+  const { categories, loading: catsLoading } = useCategories(accountId, locationShopType)
+  const { loading: itemsLoading, getItemsForCategory, getSubCategories } = useItems(accountId, locationShopType)
   const { loading: locsLoading, activeLocation } = useLocations(accountId)
   const accountProfile = useAccountProfile(accountId)
   const loading = catsLoading || itemsLoading || locsLoading

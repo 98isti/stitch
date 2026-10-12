@@ -8,10 +8,11 @@ export interface PriceItem {
   itemCategoryName: string
   itemSubCategoryName: string | null
   itemPrice: number
+  shopType?: string
 }
 
-export function useItems(accountId: string | null) {
-  const [items, setItems] = useState<PriceItem[]>([])
+export function useItems(accountId: string | null, shopType?: string) {
+  const [allItems, setAllItems] = useState<PriceItem[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -21,10 +22,14 @@ export function useItems(accountId: string | null) {
       orderBy('itemCategoryName'),
     )
     getDocs(q).then(snap => {
-      setItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as PriceItem)))
+      setAllItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as PriceItem)))
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [accountId])
+
+  const items = shopType
+    ? allItems.filter(i => !i.shopType || i.shopType === shopType)
+    : allItems
 
   // Group items by category → subCategory
   function getItemsForCategory(categoryName: string) {
