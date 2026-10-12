@@ -13,7 +13,6 @@ const LF  = '\x0a'
 
 const ALIGN_LEFT   = ESC + '\x61\x00'
 const ALIGN_CENTER = ESC + '\x61\x01'
-const ALIGN_RIGHT  = ESC + '\x61\x02'
 
 const BOLD_ON  = ESC + '\x45\x01'
 const BOLD_OFF = ESC + '\x45\x00'
@@ -31,10 +30,6 @@ const CUT_PARTIAL = GS + '\x56\x42\x00'
 const WIDTH = 42
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-function pad(text: string, total = WIDTH): string {
-  return text.slice(0, total).padEnd(total)
-}
-
 function row(left: string, right: string, width = WIDTH): string {
   const space = width - left.length - right.length
   if (space <= 0) return (left + ' ' + right).slice(0, width)
