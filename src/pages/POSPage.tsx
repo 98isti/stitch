@@ -4,7 +4,6 @@ import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, MapPin, CheckC
 import EditSaleItemSheet from '../components/EditSaleItemSheet'
 import SplitPaymentSheet from '../components/SplitPaymentSheet'
 import { usePrinter } from '../context/PrinterContext'
-import { buildReceipt } from '../lib/buildReceipt'
 import {
   collection, query, getDocs, addDoc, serverTimestamp, orderBy,
   doc, runTransaction
@@ -488,7 +487,7 @@ export default function POSPage() {
       const subtotal = Math.round((params.total / 1.1) * 100) / 100
       const defaultPickup = new Date()
       defaultPickup.setDate(defaultPickup.getDate() + 2)
-      const html = buildReceipt({
+      await printer.printReceipt({
         businessName: 'Sew Smart Alterations',
         locationName: activeLocation?.name ?? '',
         orderNumber: params.orderNumber,
@@ -506,8 +505,7 @@ export default function POSPage() {
         stillDue: params.stillDue,
         paymentMethod: params.method,
         orderNote: orderNote || undefined,
-      })
-      await printer.printReceipt(html, 2)
+      }, 2)
       // Open drawer for cash payments
       if (params.method === 'Cash' || params.method === 'Split') {
         await printer.openDrawer()

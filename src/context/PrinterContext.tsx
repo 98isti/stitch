@@ -8,7 +8,7 @@
  *   → will be removed once iOS app is primary
  */
 
-import { createContext, useContext, useEffect, useRef, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { StarPrinter, isNativeApp } from '../plugins/StarPrinter'
 import type { ReceiptData } from '../lib/buildReceipt'
 import type { LabelData } from '../lib/buildLabel'

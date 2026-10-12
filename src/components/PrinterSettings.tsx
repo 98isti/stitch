@@ -9,7 +9,7 @@ import { usePrinter } from '../context/PrinterContext'
 
 export default function PrinterSettings() {
   const {
-    status, isNative, printers,
+    isNative, printers,
     thermalPrinter, setThermalPrinter,
     impactPrinter,  setImpactPrinter,
     discoverPrinters, printReceipt, printLabel, openDrawer,
@@ -63,8 +63,7 @@ export default function PrinterSettings() {
       orderNumber:  'CAR 0001',
       customerName: 'Test Customer',
       customerPhone:'0412 345 678',
-      pickupDay:    'Wednesday',
-      pickupDateFull: '14 October 2026',
+      pickupDate:   'Wednesday 14 October 2026',
       locationName: 'Carlingford',
       items: [
         { category:'Blazer', name:'Let Out',        qty:1 },

@@ -3,8 +3,7 @@ import { Phone, ChevronDown, Pencil } from 'lucide-react'
 import { doc, getDoc, getDocs, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import SplitPaymentSheet from './SplitPaymentSheet'
 import { usePrinter } from '../context/PrinterContext'
-import { buildReceipt } from '../lib/buildReceipt'
-import { buildLabelTwoCopies } from '../lib/buildLabel'
+
 import { db } from '../lib/firebase'
 import { useStaff } from '../context/StaffContext'
 import { useAccountProfile } from '../hooks/useAccountProfile'
@@ -442,16 +441,15 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                 onClick={async () => {
                   if (!order) return
                   const items = JSON.parse(order.items || '[]')
-                  const text = buildLabelTwoCopies({
+                  const ok = await printer.printLabel({
                     orderNumber: order.orderNumberString,
                     customerName: order.customerName,
                     customerPhone: order.customerPhone,
-                    pickupDate: order.pickupDate,
+                    pickupDate: order.pickupDate ?? '',
                     locationName: order.location,
                     orderNote: order.orderNote ?? undefined,
                     items: items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, note: i.note })),
                   })
-                  const ok = await printer.printLabel(text)
                   if (!ok) alert(printer.status !== 'connected' ? 'QZ Tray not running — check Settings → Printers' : 'No label printer selected — check Settings → Printers')
                 }}
                 disabled={printer.status !== 'connected' || !printer.impactPrinter}
@@ -473,7 +471,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                   const subtotal = Math.round((order.orderAmount / 1.1) * 100) / 100
                   const createdDate = order.createdAt ? new Date(order.createdAt.seconds * 1000) : new Date()
                   const pickupDateObj = order.pickupDate ? new Date(order.pickupDate) : null
-                  const html = buildReceipt({
+                  const ok = await printer.printReceipt({
                     businessName: 'Sew Smart Alterations',
                     locationName: order.location,
                     orderNumber: order.orderNumberString,
@@ -492,8 +490,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                     paymentMethod: order.paymentMethod ?? '',
                     orderNote: order.orderNote ?? undefined,
                     barcode: order.barcode,
-                  })
-                  const ok = await printer.printReceipt(html, 1)
+                  }, 1)
                   if (!ok) alert(`Print failed. Printer status: ${printer.status}, Thermal: ${printer.thermalPrinter ?? 'none selected'}`)
                 }}
                 className="py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold transition-colors">

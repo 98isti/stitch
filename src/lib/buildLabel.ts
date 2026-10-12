@@ -7,7 +7,7 @@ export interface LabelData {
   orderNumber: string
   customerName: string
   customerPhone?: string
-  pickupDate: string
+  pickupDate: string  // e.g. 'Wednesday 14 October 2026'
   items: { category: string; name: string; qty: number; note?: string }[]
   locationName: string
   orderNote?: string
