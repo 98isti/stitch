@@ -64,7 +64,7 @@ export function usePrinter(): PrinterState {
       qz.security.setSignaturePromise(() => Promise.resolve(''))
 
       if (!qz.websocket.isActive()) {
-        await qz.websocket.connect({ retries: 3, delay: 1 })
+        await qz.websocket.connect({ retries: 2, delay: 1 })
       }
 
       const found: string[] = await qz.printers.find()
