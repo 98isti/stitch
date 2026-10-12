@@ -1,25 +1,37 @@
 /**
- * PrinterContext — single QZ Tray connection for the whole app
- * Prevents reconnecting (and triggering approval dialogs) on every page navigation
+ * PrinterContext — unified printer bridge for Stitch POS
+ *
+ * Native iOS (Capacitor): uses StarPrinterPlugin → StarIO10 SDK
+ *   → supports mC-Print3 (thermal) and SP742 (impact) via LAN
+ *
+ * Web/Mac (fallback): QZ Tray WebSocket (currently disabled/broken)
+ *   → will be removed once iOS app is primary
  */
 
 import { createContext, useContext, useEffect, useRef, useState, useCallback, type ReactNode } from 'react'
-
-declare const qz: any
+import { StarPrinter, isNativeApp } from '../plugins/StarPrinter'
+import type { ReceiptData } from '../lib/buildReceipt'
+import type { LabelData } from '../lib/buildLabel'
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'unavailable'
 
+interface DiscoveredPrinter {
+  identifier: string
+  model: string
+}
+
 interface PrinterContextValue {
   status: ConnectionStatus
-  printers: string[]
-  thermalPrinter: string | null
-  impactPrinter: string | null
-  setThermalPrinter: (name: string) => void
-  setImpactPrinter: (name: string) => void
-  printReceipt: (rawEscPos: string, copies?: number) => Promise<boolean>
-  printLabel: (text: string) => Promise<boolean>
+  isNative: boolean
+  printers: DiscoveredPrinter[]
+  thermalPrinter: string | null   // IP / identifier for mC-Print3
+  impactPrinter: string | null    // IP / identifier for SP742
+  setThermalPrinter: (id: string) => void
+  setImpactPrinter: (id: string) => void
+  discoverPrinters: () => Promise<void>
+  printReceipt: (data: ReceiptData, copies?: number) => Promise<boolean>
+  printLabel: (data: LabelData) => Promise<boolean>
   openDrawer: () => Promise<boolean>
-  reconnect: () => void
 }
 
 const PrinterContext = createContext<PrinterContextValue | null>(null)
@@ -27,115 +39,111 @@ const PrinterContext = createContext<PrinterContextValue | null>(null)
 const THERMAL_KEY = 'stitch_thermal_printer'
 const IMPACT_KEY  = 'stitch_impact_printer'
 
-function loadQzScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (typeof qz !== 'undefined') { resolve(); return }
-    if (document.querySelector('script[src="/qz-tray.js"]')) {
-      // Script already loading — wait for it
-      const check = setInterval(() => {
-        if (typeof qz !== 'undefined') { clearInterval(check); resolve() }
-      }, 100)
-      setTimeout(() => { clearInterval(check); reject(new Error('QZ script timeout')) }, 5000)
-      return
-    }
-    const script = document.createElement('script')
-    script.src = '/qz-tray.js'
-    script.onload = () => resolve()
-    script.onerror = () => reject(new Error('QZ Tray script failed to load'))
-    document.head.appendChild(script)
-  })
-}
-
 export function PrinterProvider({ children }: { children: ReactNode }) {
-  const [status, setStatus] = useState<ConnectionStatus>('disconnected')
-  const [printers, setPrinters] = useState<string[]>([])
+  const native = isNativeApp()
+  const [status, setStatus]           = useState<ConnectionStatus>(native ? 'connected' : 'unavailable')
+  const [printers, setPrinters]       = useState<DiscoveredPrinter[]>([])
   const [thermalPrinter, setThermalState] = useState<string | null>(localStorage.getItem(THERMAL_KEY))
-  const [impactPrinter, setImpactState] = useState<string | null>(localStorage.getItem(IMPACT_KEY))
-  const connectingRef = useRef(false)
-  const connectedRef = useRef(false)
+  const [impactPrinter,  setImpactState]  = useState<string | null>(localStorage.getItem(IMPACT_KEY))
+  const discoveringRef = useRef(false)
 
-  const connect = useCallback(async () => {
-    const qzActive = typeof qz !== 'undefined' && qz?.websocket?.isActive()
-    if (connectingRef.current || (connectedRef.current && qzActive)) return
-    if (connectedRef.current && !qzActive) {
-      // WebSocket dropped — reset and reconnect
-      connectedRef.current = false
-      setStatus('disconnected')
+  // In native mode, auto-discover on first load if no printer saved
+  useEffect(() => {
+    if (native && !thermalPrinter && !impactPrinter) {
+      discoverPrinters()
     }
-    connectingRef.current = true
+  }, [native])
+
+  async function discoverPrinters() {
+    if (!native || discoveringRef.current) return
+    discoveringRef.current = true
     setStatus('connecting')
     try {
-      await loadQzScript()
-      if (typeof qz === 'undefined') throw new Error('QZ not loaded')
-      if (!qz.websocket.isActive()) {
-        await qz.websocket.connect({ retries: 2, delay: 1 })
-      }
-      connectedRef.current = true
+      const result = await StarPrinter.discoverPrinters()
+      setPrinters(result.printers)
       setStatus('connected')
-      try {
-        const found: string[] = await qz.printers.find()
-        setPrinters(Array.isArray(found) ? found : [found])
-      } catch { /* printer list is optional */ }
-    } catch {
+
+      // Auto-assign if only one printer found and none saved yet
+      if (result.printers.length === 1) {
+        if (!thermalPrinter) setThermalPrinter(result.printers[0].identifier)
+      }
+    } catch (e) {
+      console.error('Printer discovery failed:', e)
       setStatus('unavailable')
     } finally {
-      connectingRef.current = false
+      discoveringRef.current = false
     }
-  }, [])
-
-  useEffect(() => {
-    connect()
-    // Do NOT disconnect on unmount — keep connection alive across page changes
-  }, [connect])
-
-  function setThermalPrinter(name: string) {
-    localStorage.setItem(THERMAL_KEY, name)
-    setThermalState(name)
   }
 
-  function setImpactPrinter(name: string) {
-    localStorage.setItem(IMPACT_KEY, name)
-    setImpactState(name)
+  function setThermalPrinter(id: string) {
+    localStorage.setItem(THERMAL_KEY, id)
+    setThermalState(id)
   }
 
-  async function printReceipt(rawEscPos: string, copies = 1): Promise<boolean> {
-    if (!thermalPrinter || !qz?.websocket?.isActive()) return false
+  function setImpactPrinter(id: string) {
+    localStorage.setItem(IMPACT_KEY, id)
+    setImpactState(id)
+  }
+
+  async function printReceipt(data: ReceiptData, copies = 1): Promise<boolean> {
+    if (!native || !thermalPrinter) {
+      console.warn('printReceipt: not native or no thermal printer selected')
+      return false
+    }
     try {
-      const config = qz.configs.create(thermalPrinter, { copies })
-      await qz.print(config, [{ type: 'raw', format: 'plain', data: rawEscPos }])
+      await StarPrinter.printReceipt({
+        identifier: thermalPrinter,
+        receipt: data as unknown as Record<string, unknown>,
+        copies,
+      })
       return true
     } catch (e) {
-      console.error('Receipt print failed:', e)
-      alert('Print failed: ' + String(e))
+      console.error('printReceipt failed:', e)
       return false
     }
   }
 
-  async function printLabel(text: string): Promise<boolean> {
-    if (!impactPrinter || !qz?.websocket?.isActive()) return false
+  async function printLabel(data: LabelData): Promise<boolean> {
+    if (!native || !impactPrinter) {
+      console.warn('printLabel: not native or no impact printer selected')
+      return false
+    }
     try {
-      const config = qz.configs.create(impactPrinter)
-      await qz.print(config, [{ type: 'raw', format: 'plain', data: text }])
+      await StarPrinter.printLabel({
+        identifier: impactPrinter,
+        label: data as unknown as Record<string, unknown>,
+      })
       return true
-    } catch (e) { console.error('Label print failed:', e); return false }
+    } catch (e) {
+      console.error('printLabel failed:', e)
+      return false
+    }
   }
 
   async function openDrawer(): Promise<boolean> {
-    if (!thermalPrinter || !qz?.websocket?.isActive()) return false
+    if (!native || !thermalPrinter) return false
     try {
-      const config = qz.configs.create(thermalPrinter)
-      await qz.print(config, [{ type: 'raw', format: 'plain', data: '\x1B\x70\x00\x32\x32' }])
+      await StarPrinter.openDrawer({ identifier: thermalPrinter })
       return true
-    } catch (e) { console.error('Drawer open failed:', e); return false }
+    } catch (e) {
+      console.error('openDrawer failed:', e)
+      return false
+    }
   }
 
   return (
     <PrinterContext.Provider value={{
-      status, printers,
-      thermalPrinter, impactPrinter,
-      setThermalPrinter, setImpactPrinter,
-      printReceipt, printLabel, openDrawer,
-      reconnect: connect,
+      status,
+      isNative: native,
+      printers,
+      thermalPrinter,
+      impactPrinter,
+      setThermalPrinter,
+      setImpactPrinter,
+      discoverPrinters,
+      printReceipt,
+      printLabel,
+      openDrawer,
     }}>
       {children}
     </PrinterContext.Provider>
