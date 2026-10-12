@@ -102,11 +102,7 @@ export function PrinterProvider({ children }: { children: ReactNode }) {
     if (!thermalPrinter || !qz?.websocket?.isActive()) return false
     try {
       const config = qz.configs.create(thermalPrinter, { copies })
-      // Convert ESC/POS string to base64 — avoids NUL byte encoding issues in plain format
-      let binary = ''
-      for (let i = 0; i < rawEscPos.length; i++) binary += String.fromCharCode(rawEscPos.charCodeAt(i) & 0xff)
-      const b64 = btoa(binary)
-      await qz.print(config, [{ type: 'raw', format: 'base64', data: b64 }])
+      await qz.print(config, [{ type: 'raw', format: 'plain', data: rawEscPos }])
       return true
     } catch (e) {
       console.error('Receipt print failed:', e)
