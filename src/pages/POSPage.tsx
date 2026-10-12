@@ -908,6 +908,18 @@ export default function POSPage() {
           })()}
         </div>
 
+        {/* Order Note banner */}
+        {orderNote && (
+          <button onClick={() => setShowNoteSheet(true)}
+            className="w-full flex items-start gap-2 bg-amber-50 border-t border-b border-amber-200 px-4 py-2.5 text-left">
+            <span className="text-base shrink-0">📝</span>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-amber-700 mb-0.5">Order Note</p>
+              <p className="text-xs text-amber-600 leading-snug">{orderNote}</p>
+            </div>
+          </button>
+        )}
+
         <div className="border-t border-gray-100">
           <div className="px-4 py-3 bg-gray-50 space-y-1">
             <div className="flex justify-between text-sm text-gray-500">
