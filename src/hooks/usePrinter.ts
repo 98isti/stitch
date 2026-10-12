@@ -58,11 +58,8 @@ export function usePrinter(): PrinterState {
       await loadQzScript()
       if (typeof qz === 'undefined') throw new Error('QZ not loaded')
 
-      // QZ Tray security — use unsigned mode for development
-      qz.security.setCertificatePromise(() => Promise.resolve(''))
-      qz.security.setSignatureAlgorithm('SHA512')
-      qz.security.setSignaturePromise(() => Promise.resolve(''))
-
+      // QZ Tray — connect without certificate (development mode)
+      // QZ Tray will show an in-browser approval dialog on first connect
       if (!qz.websocket.isActive()) {
         await qz.websocket.connect({ retries: 2, delay: 1 })
       }
