@@ -28,39 +28,67 @@ export default function ReportsPage() {
     if (!accountId || !activeLocation) return
     setLoading(true)
 
-    // Last 30 days
     const since = new Date()
     since.setDate(since.getDate() - 30)
     const sinceIso = since.toISOString().split('T')[0]
 
-    const q = query(
-      collection(db, 'accounts', accountId, 'payments'),
-      where('location', '==', activeLocation.name),
-    )
+    ;(async () => {
+      try {
+        const [paymentsSnap, ordersSnap] = await Promise.all([
+          getDocs(query(
+            collection(db, 'accounts', accountId, 'payments'),
+            where('location', '==', activeLocation.name),
+          )),
+          getDocs(query(
+            collection(db, 'accounts', accountId, 'orders'),
+            where('location', '==', activeLocation.name),
+            where('isPaid', '==', true),
+          )),
+        ])
 
-    getDocs(q).then(snap => {
-      const map: Record<string, { cash: number; card: number }> = {}
+        // orderIds already in /payments/ — don't double-count
+        const coveredOrderIds = new Set(
+          paymentsSnap.docs.map(d => d.data().orderId).filter(Boolean)
+        )
 
-      snap.docs.forEach(d => {
-        const p = d.data()
-        // Use paidDate (YYYY-MM-DD string) for accurate daily grouping
-        const date: string = p.paidDate ?? ''
-        if (!date || date < sinceIso) return
+        const map: Record<string, { cash: number; card: number }> = {}
 
-        if (!map[date]) map[date] = { cash: 0, card: 0 }
-        const amount = p.amount ?? 0
-        const method = (p.method ?? '').toLowerCase()
-        if (method === 'cash') map[date].cash += amount
-        else map[date].card += amount
-      })
+        // 1. New orders — from /payments/ with accurate paidDate
+        paymentsSnap.docs.forEach(d => {
+          const p = d.data()
+          const date: string = p.paidDate ?? ''
+          if (!date || date < sinceIso) return
+          if (!map[date]) map[date] = { cash: 0, card: 0 }
+          const amount = p.amount ?? 0
+          const method = (p.method ?? '').toLowerCase()
+          if (method === 'cash') map[date].cash += amount
+          else map[date].card += amount
+        })
 
-      const sorted = Object.entries(map)
-        .map(([date, { cash, card }]) => ({ date, cash, card, total: cash + card }))
-        .sort((a, b) => b.date.localeCompare(a.date))
+        // 2. Legacy orders — isPaid but no /payments/ record yet
+        ordersSnap.docs.forEach(d => {
+          const o = d.data()
+          if (coveredOrderIds.has(d.id)) return
+          const date: string = o.paidDate ?? o.orderDate ?? ''
+          if (!date || date < sinceIso) return
+          if (!map[date]) map[date] = { cash: 0, card: 0 }
+          const amount = o.paidAmount ?? o.orderAmount ?? 0
+          const method = (o.paymentMethod ?? '').toLowerCase()
+          if (method === 'cash') map[date].cash += amount
+          else map[date].card += amount
+        })
 
-      setRows(sorted)
-      setLoading(false)
-    }).catch(() => setLoading(false))
+        const sorted = Object.entries(map)
+          .map(([date, { cash, card }]) => ({ date, cash, card, total: cash + card }))
+          .sort((a, b) => b.date.localeCompare(a.date))
+
+        setRows(sorted)
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
+    })()
   }, [accountId, activeLocation])
 
   return (
