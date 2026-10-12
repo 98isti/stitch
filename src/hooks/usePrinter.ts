@@ -59,14 +59,20 @@ export function usePrinter(): PrinterState {
       if (typeof qz === 'undefined') throw new Error('QZ not loaded')
 
       // QZ Tray — connect without certificate (development mode)
-      // QZ Tray will show an in-browser approval dialog on first connect
       if (!qz.websocket.isActive()) {
         await qz.websocket.connect({ retries: 2, delay: 1 })
       }
 
-      const found: string[] = await qz.printers.find()
-      setPrinters(Array.isArray(found) ? found : [found])
+      // Mark connected immediately after WebSocket is active
       setStatus('connected')
+
+      // Fetch printer list separately — don’t block connected status on this
+      try {
+        const found: string[] = await qz.printers.find()
+        setPrinters(Array.isArray(found) ? found : [found])
+      } catch (e) {
+        console.warn('Could not list printers (QZ Tray may need approval):', e)
+      }
     } catch (e) {
       console.warn('QZ Tray not available:', e)
       setStatus('unavailable')
