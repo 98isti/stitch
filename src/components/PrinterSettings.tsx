@@ -3,7 +3,7 @@
  * Shows QZ Tray connection status + thermal/impact printer selection
  */
 
-import { usePrinter } from '../hooks/usePrinter'
+import { usePrinter } from '../context/PrinterContext'
 import { buildReceipt } from '../lib/buildReceipt'
 import { buildLabelTwoCopies } from '../lib/buildLabel'
 

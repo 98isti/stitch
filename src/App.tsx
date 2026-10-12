@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { PrinterProvider } from './context/PrinterContext'
 import { StaffProvider } from './context/StaffContext'
 import LoginPage from './pages/LoginPage'
 import StaffPinPage from './pages/StaffPinPage'
