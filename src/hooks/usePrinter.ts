@@ -51,7 +51,7 @@ export function usePrinter(): PrinterState {
   const connectingRef = useRef(false)
 
   const connect = useCallback(async () => {
-    if (connectingRef.current) return
+    if (connectingRef.current || status === 'connected') return
     connectingRef.current = true
     setStatus('connecting')
     try {
@@ -66,23 +66,13 @@ export function usePrinter(): PrinterState {
       // Mark connected immediately after WebSocket is active
       setStatus('connected')
 
-      // Fetch printer list — retry once after short delay if first attempt fails
-      const fetchPrinters = async () => {
-        try {
-          const found: string[] = await qz.printers.find()
-          setPrinters(Array.isArray(found) ? found : [found])
-        } catch (e) {
-          console.warn('Retrying printer list...', e)
-          await new Promise(r => setTimeout(r, 1500))
-          try {
-            const found: string[] = await qz.printers.find()
-            setPrinters(Array.isArray(found) ? found : [found])
-          } catch (e2) {
-            console.warn('Could not list printers:', e2)
-          }
-        }
+      // Fetch printer list
+      try {
+        const found: string[] = await qz.printers.find()
+        setPrinters(Array.isArray(found) ? found : [found])
+      } catch (e) {
+        console.warn('Could not list printers:', e)
       }
-      fetchPrinters()
     } catch (e) {
       console.warn('QZ Tray not available:', e)
       setStatus('unavailable')
