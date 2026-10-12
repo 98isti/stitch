@@ -24,17 +24,22 @@ export default function PrinterSettings() {
   } = usePrinter()
 
   async function testReceipt() {
+    const now = new Date()
+    const pickup = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000)
     const html = buildReceipt({
-      businessName: 'Stitch POS',
+      businessName: 'Sew Smart Alterations',
       locationName: 'Test Location',
       locationAddress: '123 Test Street, Sydney NSW',
       locationPhone: '02 1234 5678',
-      orderNumber: 'CAR-0001',
-      orderDate: new Date().toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }),
-      orderTime: new Date().toLocaleTimeString('en-AU', { hour:'numeric', minute:'2-digit', hour12:true }),
+      abn: '12 345 678 901',
+      orderNumber: 'CAR 0001',
+      orderDate: now.toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' }),
+      orderTime: now.toLocaleTimeString('en-AU', { hour:'numeric', minute:'2-digit', hour12:true }),
+      servedBy: 'Isti',
       customerName: 'Test Customer',
       customerPhone: '0412 345 678',
-      pickupDate: 'Tomorrow',
+      pickupDay: pickup.toLocaleDateString('en-AU', { weekday:'long' }),
+      pickupDateFull: pickup.toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }),
       items: [
         { category: 'Blazer', name: 'Let Out', qty: 1, unitPrice: 85 },
         { category: 'Blazer', name: 'Shorten Sleeve', qty: 1, unitPrice: 35 },
@@ -44,7 +49,6 @@ export default function PrinterSettings() {
       paidAmount: 120,
       stillDue: 0,
       paymentMethod: 'Card',
-      servedBy: 'Isti',
     })
     const ok = await printReceipt(html)
     alert(ok ? '✅ Test receipt sent!' : '❌ Print failed — check printer is online')
