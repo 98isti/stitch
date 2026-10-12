@@ -2,15 +2,7 @@ import Capacitor
 import StarIO10
 
 @objc(StarPrinterPlugin)
-public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscoveryManagerDelegate {
-    public let identifier = "StarPrinterPlugin"
-    public let jsName = "StarPrinterPlugin"
-    public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "discoverPrinters", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "printReceipt",     returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "printLabel",       returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "openDrawer",       returnType: CAPPluginReturnPromise),
-    ]
+public class StarPrinterPlugin: CAPPlugin, StarDeviceDiscoveryManagerDelegate {
 
     private var discoveryManager: StarDeviceDiscoveryManager?
     private var discoveredPrinters: [[String: String]] = []
