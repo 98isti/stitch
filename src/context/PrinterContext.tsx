@@ -3,7 +3,7 @@
  * Prevents reconnecting (and triggering approval dialogs) on every page navigation
  */
 
-import { createContext, useContext, useEffect, useRef, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, useCallback, type ReactNode } from 'react'
 
 declare const qz: any
 

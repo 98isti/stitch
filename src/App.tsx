@@ -87,12 +87,14 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <StaffProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </StaffProvider>
-    </AuthProvider>
+    <PrinterProvider>
+      <AuthProvider>
+        <StaffProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </StaffProvider>
+      </AuthProvider>
+    </PrinterProvider>
   )
 }
