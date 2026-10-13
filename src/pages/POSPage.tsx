@@ -497,6 +497,9 @@ export default function POSPage() {
       await printer.printReceipt({
         businessName: activeLocation?.businessName || '',
         locationName: activeLocation?.name ?? '',
+        locationAddress: [activeLocation?.streetAddress, [activeLocation?.suburb, activeLocation?.state].filter(Boolean).join(' ')].filter(Boolean).join('\n'),
+        locationPhone: (activeLocation as any)?.phone || (activeLocation as any)?.businessPhone || '',
+        abn: (activeLocation as any)?.abn || '',
         orderNumber: params.orderNumber,
         orderDate: params.createdAt.toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' }),
         orderTime: params.createdAt.toLocaleTimeString('en-AU', { hour:'numeric', minute:'2-digit', hour12:true }),

@@ -14,6 +14,8 @@ export interface Location {
   shopType?: string
   orderPrefix?: string
   businessName?: string
+  abn?: string
+  businessPhone?: string
 }
 
 const LS_KEY = 'stitch_active_location'

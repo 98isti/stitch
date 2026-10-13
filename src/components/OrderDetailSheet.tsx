@@ -590,9 +590,20 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                   const subtotal = order.subTotalAmount ?? order.orderAmount
                   const createdDate = order.createdAt ? new Date(order.createdAt.seconds * 1000) : new Date()
                   const pickupDateObj = order.pickupDate ? new Date(order.pickupDate) : null
+                  // Fetch location for address/phone/ABN
+                  let locData: any = {}
+                  if (order.locationId) {
+                    try {
+                      const locSnap = await getDoc(doc(db, `accounts/${accountId}/locations/${order.locationId}`))
+                      if (locSnap.exists()) locData = locSnap.data()
+                    } catch {}
+                  }
                   const ok = await printer.printReceipt({
-                    businessName: 'Sew Smart Alterations',
+                    businessName: locData.businessName || order.location,
                     locationName: order.location,
+                    locationAddress: [locData.streetAddress, [locData.suburb, locData.state].filter(Boolean).join(' ')].filter(Boolean).join('\n'),
+                    locationPhone: locData.phone || locData.businessPhone || '',
+                    abn: locData.abn || '',
                     orderNumber: order.orderNumberString,
                     orderDate: createdDate.toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' }),
                     orderTime: createdDate.toLocaleTimeString('en-AU', { hour:'numeric', minute:'2-digit', hour12:true }),
