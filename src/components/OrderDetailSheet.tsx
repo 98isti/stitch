@@ -88,6 +88,11 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
     setOrder(null)
     setShowStatusMenu(false)
     setShowPaymentPrompt(false)
+    setShowCompletedByPopup(false)
+    setShowConveyorSlotPopup(false)
+    setConveyorSlotInput('')
+    setSelectedEmployee('Select Your Name')
+    setShowSplit(false)
     if (!orderId || !accountId) { return }
     setLoading(true)
     getDoc(doc(db, 'accounts', accountId, 'orders', orderId))
