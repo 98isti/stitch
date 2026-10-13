@@ -412,6 +412,16 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
 
                 {/* Totals */}
                 <div className="px-4 py-3 border-t border-gray-200 bg-white">
+                  {/* Piece count — one label per garment × quantity */}
+                  {(() => {
+                    const pieceCount = groups.reduce((sum, g) => sum + (g.items[0]?.quantity ?? 1), 0)
+                    return (
+                      <div className="flex justify-between text-sm text-gray-500 mb-2">
+                        <span>Total Pieces</span>
+                        <span className="font-semibold text-gray-700">{pieceCount} {pieceCount === 1 ? 'piece' : 'pieces'}</span>
+                      </div>
+                    )
+                  })()}
                   <div className="flex justify-between text-sm text-gray-500 mb-1">
                     <span>Subtotal</span>
                     <span>${(order.subTotalAmount ?? order.orderAmount / 1.1).toFixed(2)}</span>
