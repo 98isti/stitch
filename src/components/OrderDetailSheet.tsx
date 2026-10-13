@@ -422,14 +422,14 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                         </div>
                         <span className="text-xs text-gray-500">items</span>
                       </div>
-                      {/* Totals */}
-                      <div className="flex-1">
-                        <div className="flex justify-between text-sm text-gray-500 mb-1">
+                      {/* Totals — right-aligned */}
+                      <div className="flex-1 flex flex-col items-end">
+                        <div className="flex items-baseline gap-3 text-sm text-gray-500 mb-1">
                           <span>Subtotal</span>
                           <span>${(order.subTotalAmount ?? order.orderAmount).toFixed(2)}</span>
                         </div>
-                        <div className="border-t border-dashed border-gray-200 my-1.5" />
-                        <div className="flex justify-between font-bold text-gray-900 text-base">
+                        <div className="w-full border-t border-dashed border-gray-200 my-1.5" />
+                        <div className="flex items-baseline gap-3 font-bold text-gray-900 text-base">
                           <span>Total</span>
                           <span>${order.orderAmount.toFixed(2)}</span>
                         </div>
