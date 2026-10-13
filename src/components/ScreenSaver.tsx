@@ -28,9 +28,11 @@ export default function ScreenSaver({ onDismiss }: Props) {
     <div className="fixed inset-0 z-[200] bg-navy flex flex-col items-center justify-between py-20 select-none cursor-pointer"
       onClick={onDismiss}>
 
-      {/* Logo — top, no card wrapper, slow pulse */}
+      {/* Logo — top, rounded white card, slow pulse */}
       <div className="animate-pulse flex-1 flex items-center justify-center">
-        <img src="/stitch-logo.png" alt="Stitch" className="h-32 object-contain" />
+        <div className="bg-white rounded-3xl px-14 py-7 shadow-2xl">
+          <img src="/stitch-logo.png" alt="Stitch" className="h-24 object-contain" />
+        </div>
       </div>
 
       {/* Bottom: hint + clock */}
