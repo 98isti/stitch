@@ -270,11 +270,19 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
                 // .partialDirect cuts at the current position without extra paper
                 // feed, keeping the top margin as tight as .partialDirect allows.
 
-                // Row 1: order number large bold, left-aligned
+                // Row 1: large order# (2x, left) + small order# (1x, right) on
+                // same line. Keep alignment .left throughout — switching to .right
+                // mid-line causes mC-Print3 to centre the whole line. Instead,
+                // manually pad spaces to push the 1x order# to the right margin.
+                // 2x text takes (count × 2) char-widths; remaining = WIDTH − that.
+                let largeWidth = orderNumber.count * 2
+                let padSpaces  = max(1, WIDTH - largeWidth - orderNumber.count)
                 doc.addPrinter(StarXpandCommand.PrinterBuilder()
                     .styleAlignment(.left).styleBold(true)
                     .styleMagnification(.init(width: 2, height: 2))
-                    .actionPrintText(orderNumber).actionFeedLine(1))
+                    .actionPrintText(orderNumber)
+                    .styleMagnification(.init(width: 1, height: 1)).styleBold(false)
+                    .actionPrintText(String(repeating: " ", count: padSpaces) + orderNumber + "\n"))
 
                 // Row 2: date (left) + count (right)
                 doc.addPrinter(StarXpandCommand.PrinterBuilder()
