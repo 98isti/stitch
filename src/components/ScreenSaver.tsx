@@ -25,23 +25,22 @@ export default function ScreenSaver({ onDismiss }: Props) {
   }, [onDismiss])
 
   return (
-    <div className="fixed inset-0 z-[200] bg-navy flex flex-col items-center justify-center select-none cursor-pointer"
+    <div className="fixed inset-0 z-[200] bg-navy flex flex-col items-center justify-between py-20 select-none cursor-pointer"
       onClick={onDismiss}>
 
-      {/* Live clock — large */}
-      <p className="text-white/70 font-thin mb-12"
-        style={{ fontSize: '7rem', lineHeight: 1, letterSpacing: '-0.02em' }}>
-        {time}
-      </p>
-
-      {/* Logo — larger, slow pulse */}
-      <div className="animate-pulse">
-        <div className="bg-white/90 rounded-3xl px-12 py-6 inline-block shadow-2xl">
-          <img src="/stitch-logo.png" alt="Stitch" className="h-28 object-contain" />
-        </div>
+      {/* Logo — top, no card wrapper, slow pulse */}
+      <div className="animate-pulse flex-1 flex items-center justify-center">
+        <img src="/stitch-logo.png" alt="Stitch" className="h-32 object-contain" />
       </div>
 
-      <p className="text-white/30 text-base mt-10 tracking-wide">Tap anywhere to continue</p>
+      {/* Bottom: hint + clock */}
+      <div className="flex flex-col items-center gap-4">
+        <p className="text-white/30 text-base tracking-wide">Tap anywhere to continue</p>
+        <p className="text-white/60 font-thin"
+          style={{ fontSize: '4.5rem', lineHeight: 1, letterSpacing: '-0.02em' }}>
+          {time}
+        </p>
+      </div>
     </div>
   )
 }
