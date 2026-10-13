@@ -813,7 +813,16 @@ export default function POSPage() {
             {discount ? `${discount.type === 'percent' ? discount.value + '%' : '$' + discount.value.toFixed(2)} off` : 'Discount'}
           </button>
           <button
-            onClick={() => setShowDrawerConfirm(true)}
+            onClick={async () => {
+              if (!accountId || !activeLocation) return
+              await printer.openDrawer()
+              addDoc(collection(db, 'accounts', accountId, 'drawerLogs'), {
+                openedAt: serverTimestamp(),
+                openedBy: staff?.name ?? 'Unknown',
+                location: activeLocation.name,
+                locationId: activeLocation.id,
+              }).catch(() => {})
+            }}
             className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-sm font-semibold transition-all">
             Open Drawer
           </button>
