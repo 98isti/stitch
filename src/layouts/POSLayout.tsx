@@ -55,7 +55,7 @@ export default function POSLayout() {
     if (!showScreenSaver) return
     const check = async () => {
       try {
-        const res = await fetch('/version.json?t=' + Date.now())
+        const res = await fetch('https://stitchapp.com.au/version.json?t=' + Date.now())
         const { version } = await res.json()
         const current = (window as any).__STITCH_VERSION__
         if (current && version !== current) {
