@@ -288,9 +288,11 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
                     .styleAlignment(.left).styleBold(true)
                     .actionPrintText(twoCol(name, customerName.uppercased())))
 
-                // partialDirect: cuts at current position, no extra paper feed
+                // Standard partial cut — mC-Print3 feeds to cutter position.
+                // The resulting top margin is a fixed hardware distance on this
+                // printer and cannot be reduced further in software.
                 doc.addPrinter(StarXpandCommand.PrinterBuilder()
-                    .actionCut(.partialDirect))
+                    .actionCut(.partial))
             }
 
             builder.addDocument(doc)
