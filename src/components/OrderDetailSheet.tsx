@@ -71,6 +71,9 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
   const { staff } = useStaff()
   const accountProfile = useAccountProfile(accountId)
   const { locations } = useLocations(accountId)
+  const isDryCleaning = locations.length > 0 && !!order
+    ? locations.find(l => l.name === order.location)?.shopType === 'dryCleaning'
+    : false
   const [order, setOrder] = useState<OrderDoc | null>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -102,8 +105,6 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
     setShowStatusMenu(false)
     // "Ready for Pick Up" — dry cleaning shows conveyor slot, alterations shows employee selection
     if (status === 'Ready for Pick Up') {
-      const orderLocation = locations.find(l => l.name === order.location)
-      const isDryCleaning = orderLocation?.shopType === 'dryCleaning'
       if (isDryCleaning) {
         setConveyorSlotInput('')
         setShowConveyorSlotPopup(true)
