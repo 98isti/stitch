@@ -102,11 +102,19 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
         if (snap.exists()) {
           const orderData = { id: snap.id, ...snap.data() } as OrderDoc
           setOrder(orderData)
-          // Also fetch location doc for correct businessName + SMS settings
+          // Fetch location doc for correct businessName + SMS settings.
+          // Use locationId if present (new orders), else query by location name (old orders).
           if (orderData.locationId) {
             getDoc(doc(db, `accounts/${accountId}/locations/${orderData.locationId}`))
               .then(s => { if (s.exists()) setLocationData(s.data()) })
               .catch(() => {})
+          } else if (orderData.location) {
+            // Old orders don't have locationId — query by name
+            import('firebase/firestore').then(({ collection: col, query: q, where, getDocs: gd }) => {
+              gd(q(col(db, 'accounts', accountId, 'locations'), where('name', '==', orderData.location)))
+                .then(snap => { if (!snap.empty) setLocationData(snap.docs[0].data()) })
+                .catch(() => {})
+            })
           }
         }
         setLoading(false)
