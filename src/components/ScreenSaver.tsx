@@ -1,8 +1,19 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 interface Props { onDismiss: () => void }
 
 export default function ScreenSaver({ onDismiss }: Props) {
+  const [time, setTime] = useState(() =>
+    new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
+  )
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setTime(new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' }))
+    }, 1000)
+    return () => clearInterval(tick)
+  }, [])
+
   useEffect(() => {
     const handler = () => onDismiss()
     window.addEventListener('pointerdown', handler)
@@ -16,15 +27,21 @@ export default function ScreenSaver({ onDismiss }: Props) {
   return (
     <div className="fixed inset-0 z-[200] bg-navy flex flex-col items-center justify-center select-none cursor-pointer"
       onClick={onDismiss}>
-      <div className="text-center animate-pulse">
-        <div className="bg-white rounded-2xl px-8 py-4 inline-block shadow-xl mb-4 animate-pulse">
-        <img src="/stitch-logo.png" alt="Stitch" className="h-16 object-contain" />
+
+      {/* Live clock — large */}
+      <p className="text-white/70 font-thin mb-12"
+        style={{ fontSize: '7rem', lineHeight: 1, letterSpacing: '-0.02em' }}>
+        {time}
+      </p>
+
+      {/* Logo — larger, slow pulse */}
+      <div className="animate-pulse">
+        <div className="bg-white/90 rounded-3xl px-12 py-6 inline-block shadow-2xl">
+          <img src="/stitch-logo.png" alt="Stitch" className="h-28 object-contain" />
+        </div>
       </div>
-        <p className="text-white/40 text-sm mt-2">Tap anywhere to continue</p>
-      </div>
-      <div className="absolute bottom-8 left-0 right-0 text-center">
-        <p className="text-white/20 text-xs">{new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}</p>
-      </div>
+
+      <p className="text-white/30 text-base mt-10 tracking-wide">Tap anywhere to continue</p>
     </div>
   )
 }

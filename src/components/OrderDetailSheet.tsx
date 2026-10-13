@@ -590,16 +590,19 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                   const subtotal = order.subTotalAmount ?? order.orderAmount
                   const createdDate = order.createdAt ? new Date(order.createdAt.seconds * 1000) : new Date()
                   const pickupDateObj = order.pickupDate ? new Date(order.pickupDate) : null
-                  // Fetch location for address/phone/ABN
+                  // Fetch location + account for address/phone/ABN/company name
                   let locData: any = {}
-                  if (order.locationId) {
-                    try {
-                      const locSnap = await getDoc(doc(db, `accounts/${accountId}/locations/${order.locationId}`))
-                      if (locSnap.exists()) locData = locSnap.data()
-                    } catch {}
-                  }
+                  let acctData: any = {}
+                  try {
+                    const [acctSnap, locSnap] = await Promise.all([
+                      getDoc(doc(db, `accounts/${accountId}`)),
+                      order.locationId ? getDoc(doc(db, `accounts/${accountId}/locations/${order.locationId}`)) : Promise.resolve(null),
+                    ])
+                    if (acctSnap.exists()) acctData = acctSnap.data()
+                    if (locSnap?.exists()) locData = locSnap.data()
+                  } catch {}
                   const ok = await printer.printReceipt({
-                    businessName: locData.businessName || order.location,
+                    businessName: acctData.businessName || locData.businessName || order.location,
                     locationName: order.location,
                     locationAddress: [locData.streetAddress, [locData.suburb, locData.state].filter(Boolean).join(' ')].filter(Boolean).join('\n'),
                     locationPhone: locData.phone || locData.businessPhone || '',

@@ -495,7 +495,7 @@ export default function POSPage() {
       const defaultPickup = new Date()
       defaultPickup.setDate(defaultPickup.getDate() + 2)
       await printer.printReceipt({
-        businessName: activeLocation?.businessName || '',
+        businessName: accountProfile?.businessName || activeLocation?.businessName || '',
         locationName: activeLocation?.name ?? '',
         locationAddress: [activeLocation?.streetAddress, [activeLocation?.suburb, activeLocation?.state].filter(Boolean).join(' ')].filter(Boolean).join('\n'),
         locationPhone: (activeLocation as any)?.phone || (activeLocation as any)?.businessPhone || '',
