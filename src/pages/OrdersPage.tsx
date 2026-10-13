@@ -169,7 +169,7 @@ export default function OrdersPage() {
                   return (
                     <tr key={'drawer-' + d.id} className="border-b border-amber-100 bg-amber-50/40">
                       <td className="px-5 py-3">
-                        <span className="text-amber-600 text-lg">🔓</span>
+                        <span className="text-amber-600 text-lg">🗃️</span>
                       </td>
                       <td className="px-3 py-3 text-gray-500 text-xs whitespace-nowrap">{time}</td>
                       <td className="px-3 py-3 text-amber-700 font-medium text-sm" colSpan={5}>Drawer Opened — by {d.openedBy}</td>
