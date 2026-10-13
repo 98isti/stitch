@@ -3,7 +3,7 @@ import { Search, RefreshCw, ChevronLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import OrderDetailSheet from '../components/OrderDetailSheet'
 import EditOrderSheet from '../components/EditOrderSheet'
-import { collection, query, orderBy, getDocs } from 'firebase/firestore'
+import { collection, query, orderBy, getDocs, Timestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
@@ -41,6 +41,7 @@ export default function OrdersPage() {
   const { activeLocation } = useLocations(accountId)
 
   const [orders, setOrders] = useState<Order[]>([])
+  const [drawerLogs, setDrawerLogs] = useState<{ id: string; openedAt: Timestamp; openedBy: string; location: string }[]>([])
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -51,11 +52,12 @@ export default function OrdersPage() {
     if (!accountId) return
     setLoading(true)
     try {
-      const snap = await getDocs(query(
-        collection(db, 'accounts', accountId, 'orders'),
-        orderBy('createdAt', 'desc')
-      ))
-      setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Order)))
+      const [ordersSnap, drawerSnap] = await Promise.all([
+        getDocs(query(collection(db, 'accounts', accountId, 'orders'), orderBy('createdAt', 'desc'))),
+        getDocs(query(collection(db, 'accounts', accountId, 'drawerLogs'), orderBy('openedAt', 'desc'))),
+      ])
+      setOrders(ordersSnap.docs.map(d => ({ id: d.id, ...d.data() } as Order)))
+      setDrawerLogs(drawerSnap.docs.map(d => ({ id: d.id, ...d.data() } as any)))
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
   }
@@ -72,6 +74,18 @@ export default function OrdersPage() {
       o.customerPhone?.includes(search)
     return matchLocation && matchFilter && matchSearch
   })
+
+  // Merge orders + drawer logs into one list sorted by date (newest first)
+  // Drawer logs only show when filter is 'All' and no search term
+  const filteredDrawerLogs = (filter === 'All' && !search)
+    ? drawerLogs.filter(d => !activeLocation || d.location === activeLocation.name)
+    : []
+
+  type Row = { type: 'order'; data: Order } | { type: 'drawer'; data: typeof drawerLogs[0] }
+  const rows: Row[] = [
+    ...filtered.map(o => ({ type: 'order' as const, data: o, ts: o.orderDate || '' })),
+    ...filteredDrawerLogs.map(d => ({ type: 'drawer' as const, data: d, ts: d.openedAt?.seconds ? new Date(d.openedAt.seconds * 1000).toISOString() : '' })),
+  ].sort((a, b) => b.ts.localeCompare(a.ts)) as Row[]
 
 
   return (
@@ -126,14 +140,13 @@ export default function OrdersPage() {
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : rows.length === 0 ? (
           <div className="text-center py-20 text-gray-400">
             <p className="text-4xl mb-3">🧵</p>
             <p className="text-sm">No orders found</p>
           </div>
         ) : (
           <table className="w-full text-sm border-collapse">
-            {/* Header */}
             <thead className="sticky top-0 bg-gray-50 z-10">
               <tr className="border-b border-gray-200">
                 <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wide">Order #</th>
@@ -146,72 +159,57 @@ export default function OrdersPage() {
                 <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wide">Pickup</th>
               </tr>
             </thead>
-
             <tbody className="bg-white">
-              {filtered.map((order, idx) => {
+              {rows.map((row, idx) => {
+                if (row.type === 'drawer') {
+                  const d = row.data
+                  const time = d.openedAt?.seconds
+                    ? new Date(d.openedAt.seconds * 1000).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true })
+                    : ''
+                  return (
+                    <tr key={'drawer-' + d.id} className="border-b border-amber-100 bg-amber-50/40">
+                      <td className="px-5 py-3">
+                        <span className="text-amber-600 text-lg">🔓</span>
+                      </td>
+                      <td className="px-3 py-3 text-gray-500 text-xs whitespace-nowrap">{time}</td>
+                      <td className="px-3 py-3 text-amber-700 font-medium text-sm" colSpan={5}>Drawer Opened — by {d.openedBy}</td>
+                      <td className="px-5 py-3" />
+                    </tr>
+                  )
+                }
+                const order = row.data as Order
                 const isNewest = idx === 0
                 const isDue = order.stillDueAmount > 0 && order.status !== 'Picked Up'
-
                 return (
                   <tr key={order.id}
                     onClick={() => setSelectedOrderId(order.id)}
                     className={`border-b border-gray-100 cursor-pointer transition-colors ${
                       isNewest ? 'bg-blue-50/60 hover:bg-blue-50' : 'hover:bg-gray-50'
                     }`}>
-
-                    {/* Order Number */}
                     <td className="px-5 py-4">
                       <span className="font-bold text-navy text-sm">{order.orderNumberString}</span>
                     </td>
-
-                    {/* Date */}
-                    <td className="px-3 py-4 text-gray-600 whitespace-nowrap">
-                      {formatDate(order.orderDate)}
-                    </td>
-
-                    {/* Customer */}
+                    <td className="px-3 py-4 text-gray-600 whitespace-nowrap">{formatDate(order.orderDate)}</td>
                     <td className="px-3 py-4">
                       <span className={`font-medium ${order.customerName ? 'text-gray-900' : 'text-gray-400 italic'}`}>
                         {order.customerName || 'Walk-in'}
                       </span>
-                      {order.customerPhone && (
-                        <p className="text-xs text-gray-400 mt-0.5">{order.customerPhone}</p>
-                      )}
+                      {order.customerPhone && <p className="text-xs text-gray-400 mt-0.5">{order.customerPhone}</p>}
                     </td>
-
-                    {/* Amount */}
-                    <td className="px-3 py-4 text-right font-semibold text-gray-900 whitespace-nowrap">
-                      ${order.orderAmount.toFixed(2)}
-                    </td>
-
-                    {/* Paid */}
-                    <td className="px-3 py-4 text-right text-gray-600 whitespace-nowrap">
-                      ${order.paidAmount.toFixed(2)}
-                    </td>
-
-                    {/* Due */}
+                    <td className="px-3 py-4 text-right font-semibold text-gray-900 whitespace-nowrap">${order.orderAmount.toFixed(2)}</td>
+                    <td className="px-3 py-4 text-right text-gray-600 whitespace-nowrap">${order.paidAmount.toFixed(2)}</td>
                     <td className="px-3 py-4 text-right whitespace-nowrap">
-                      <span className={isDue ? 'font-semibold text-red-500' : 'text-gray-400'}>
-                        ${order.stillDueAmount.toFixed(2)}
-                      </span>
+                      <span className={isDue ? 'font-semibold text-red-500' : 'text-gray-400'}>${order.stillDueAmount.toFixed(2)}</span>
                     </td>
-
-                    {/* Status */}
                     <td className="px-3 py-4">
                       <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        order.status === 'In progress'    ? 'bg-blue-50 text-blue-600' :
-                        order.status === 'Ready for Pick Up'     ? 'bg-green-100 text-green-700' :
+                        order.status === 'In progress' ? 'bg-blue-50 text-blue-600' :
+                        order.status === 'Ready for Pick Up' ? 'bg-green-100 text-green-700' :
                         order.status === 'Picked Up' ? 'bg-gray-100 text-gray-500' :
                         'bg-gray-100 text-gray-500'
-                      }`}>
-                        {order.status}
-                      </span>
+                      }`}>{order.status}</span>
                     </td>
-
-                    {/* Pickup Date */}
-                    <td className="px-5 py-4 text-gray-600 whitespace-nowrap">
-                      {formatDate(order.pickupDate)}
-                    </td>
+                    <td className="px-5 py-4 text-gray-600 whitespace-nowrap">{formatDate(order.pickupDate)}</td>
                   </tr>
                 )
               })}

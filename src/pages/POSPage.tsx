@@ -408,6 +408,8 @@ export default function POSPage() {
   const [showSplit, setShowSplit] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
   const [scannedOrderId, setScannedOrderId] = useState<string | null>(null)
+  const [showDrawerConfirm, setShowDrawerConfirm] = useState(false)
+  const [drawerOpening, setDrawerOpening] = useState(false)
   const printer = usePrinter()
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState<{ orderNumber: string; total: number; method: string } | null>(null)
@@ -810,7 +812,9 @@ export default function POSPage() {
             className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 active:scale-95 text-white text-sm font-semibold transition-all">
             {discount ? `${discount.type === 'percent' ? discount.value + '%' : '$' + discount.value.toFixed(2)} off` : 'Discount'}
           </button>
-          <button className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-sm font-semibold transition-all">
+          <button
+            onClick={() => setShowDrawerConfirm(true)}
+            className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-sm font-semibold transition-all">
             Open Drawer
           </button>
           <button
@@ -1178,6 +1182,46 @@ export default function POSPage() {
               }}
                 className="flex-1 py-3 rounded-xl bg-navy text-white font-semibold text-sm">
                 Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Open Drawer confirmation */}
+      {showDrawerConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowDrawerConfirm(false)} />
+          <div className="relative z-10 bg-white rounded-3xl p-8 w-full max-w-sm text-center shadow-2xl">
+            <p className="text-4xl mb-4">🔓</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Open Cash Drawer?</h2>
+            <p className="text-sm text-gray-500 mb-6">This will open the drawer and log the event.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowDrawerConfirm(false)}
+                className="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-700 font-semibold text-sm">
+                Cancel
+              </button>
+              <button
+                disabled={drawerOpening}
+                onClick={async () => {
+                  if (!accountId || !activeLocation) return
+                  setDrawerOpening(true)
+                  try {
+                    await printer.openDrawer()
+                    await addDoc(collection(db, 'accounts', accountId, 'drawerLogs'), {
+                      openedAt: serverTimestamp(),
+                      openedBy: staff?.name ?? 'Unknown',
+                      location: activeLocation.name,
+                      locationId: activeLocation.id,
+                    })
+                  } catch (e) { console.error(e) }
+                  finally {
+                    setDrawerOpening(false)
+                    setShowDrawerConfirm(false)
+                  }
+                }}
+                className="flex-1 py-3 rounded-2xl bg-amber-500 text-white font-semibold text-sm disabled:opacity-50">
+                {drawerOpening ? 'Opening…' : 'Yes, Open'}
               </button>
             </div>
           </div>
