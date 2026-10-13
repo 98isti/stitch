@@ -10,6 +10,15 @@ export interface StarPrinterPlugin {
   discoverPrinters(): Promise<{ printers: { identifier: string; model: string }[] }>
   printReceipt(options: { identifier: string; receipt: Record<string, unknown>; copies?: number }): Promise<{ success: boolean }>
   printLabel(options: { identifier: string; label: Record<string, unknown> }): Promise<{ success: boolean }>
+  printLabelsForOrder(options: {
+    orderNumber: string
+    customerName: string
+    pickupDate: string
+    itemsJson: string
+    shopType: string
+    impactIdentifier: string
+    thermalIdentifier: string
+  }): Promise<{ success: boolean }>
   openDrawer(options: { identifier: string }): Promise<{ success: boolean }>
 }
 

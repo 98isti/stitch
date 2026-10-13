@@ -6,10 +6,11 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
     public let identifier = "StarPrinterPlugin"
     public let jsName = "StarPrinterPlugin"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "discoverPrinters", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "printReceipt",     returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "printLabel",       returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "openDrawer",       returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "discoverPrinters",    returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "printReceipt",        returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "printLabel",          returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "printLabelsForOrder", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "openDrawer",          returnType: CAPPluginReturnPromise),
     ]
 
     private var discoveryManager: StarDeviceDiscoveryManager?
@@ -68,7 +69,211 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
         }
     }
 
-    // ── Print label ───────────────────────────────────────────────────────
+    // ── Print labels for order ──────────────────────────────────────────────
+    // Routes dry-cleaning items → impact printer (SP742, blank leader+trailer)
+    // and alterations items → thermal printer (mC-Print3, no blanks).
+    @objc func printLabelsForOrder(_ call: CAPPluginCall) {
+        guard let orderNumber  = call.getString("orderNumber"),
+              let customerName = call.getString("customerName"),
+              let pickupDate   = call.getString("pickupDate"),
+              let itemsJson    = call.getString("itemsJson"),
+              let shopType     = call.getString("shopType"),
+              let impactId     = call.getString("impactIdentifier"),
+              let thermalId    = call.getString("thermalIdentifier")
+        else { call.reject("Missing required parameters"); return }
+
+        guard let data  = itemsJson.data(using: .utf8),
+              let items = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+        else { call.reject("Invalid items JSON"); return }
+
+        let isDCShop = shopType == "dryCleaning"
+
+        // Split items into dry-cleaning vs alterations
+        var dcItems:  [[String: Any]] = []
+        var altItems: [[String: Any]] = []
+        for item in items {
+            let cat  = (item["category"] as? String ?? "").lowercased()
+            let name = (item["name"]     as? String ?? "").lowercased()
+            let isDC = isDCShop || cat.contains("dry cleaning") || name.contains("dry cleaning")
+            if isDC { dcItems.append(item) } else { altItems.append(item) }
+        }
+
+        // Build one label-name entry per physical garment × quantity
+        func buildLabelNames(from src: [[String: Any]]) -> [String] {
+            var names: [String] = []
+            var handled = Set<String>()
+            for item in src {
+                let garmentId  = item["garmentId"]  as? String ?? ""
+                let qty        = item["quantity"]   as? Int    ?? 1
+                let itemName   = item["name"]       as? String ?? ""
+                let components = item["components"] as? [String] ?? []
+                if !garmentId.isEmpty {
+                    if handled.contains(garmentId) { continue }
+                    handled.insert(garmentId)
+                }
+                let count = max(qty, 1)
+                if components.isEmpty {
+                    names.append(contentsOf: Array(repeating: itemName, count: count))
+                } else {
+                    for _ in 0..<count { names.append(contentsOf: components) }
+                }
+            }
+            return names
+        }
+
+        let dcLabelNames  = isDCShop
+            ? buildLabelNames(from: items)
+            : buildLabelNames(from: dcItems)
+        let altLabelNames = buildLabelNames(from: altItems)
+
+        Task {
+            var anyPrinted = false
+
+            // Impact printer: dry-cleaning labels
+            if !dcLabelNames.isEmpty {
+                let printer = StarPrinter(StarConnectionSettings(interfaceType: .lan, identifier: impactId))
+                do {
+                    try await printer.open()
+                    let cmd = self.buildCompactLabels(
+                        orderNumber: orderNumber, customerName: customerName,
+                        pickupDate: pickupDate, labelNames: dcLabelNames, isDryCleaning: true)
+                    try await printer.print(command: cmd)
+                    await printer.close()
+                    anyPrinted = true
+                } catch {
+                    await printer.close()
+                    print("Impact label print failed: \(error)")
+                }
+            }
+
+            // Thermal printer: alterations labels
+            if !altLabelNames.isEmpty {
+                let printer = StarPrinter(StarConnectionSettings(interfaceType: .lan, identifier: thermalId))
+                do {
+                    try await printer.open()
+                    let cmd = self.buildCompactLabels(
+                        orderNumber: orderNumber, customerName: customerName,
+                        pickupDate: pickupDate, labelNames: altLabelNames, isDryCleaning: false)
+                    try await printer.print(command: cmd)
+                    await printer.close()
+                    anyPrinted = true
+                } catch {
+                    await printer.close()
+                    print("Thermal label print failed: \(error)")
+                }
+            }
+
+            if anyPrinted { call.resolve(["success": true]) }
+            else { call.reject("No labels printed — check printer connections") }
+        }
+    }
+
+    // ── Compact label builder ──────────────────────────────────────────────────
+    // 3-row layout matching the STIDC green label format:
+    //   Row 1: ORDER NUMBER (2× bold left)    ORDER NUMBER (small right)
+    //   Row 2: Pickup date (left)             X of N (right)
+    //   Row 3: ITEM NAME ≤25 chars (left)     CUSTOMER NAME (right)
+    //
+    // isDryCleaning=true  → blank leader + ESC d 1 cuts + blank trailer (SP742)
+    // isDryCleaning=false → standard partial cuts, no blanks (mC-Print3)
+    private func buildCompactLabels(
+        orderNumber:  String,
+        customerName: String,
+        pickupDate:   String,
+        labelNames:   [String],
+        isDryCleaning: Bool
+    ) -> String {
+        let total = labelNames.count
+        let WIDTH = 42
+
+        // Build a fixed-width two-column string (left + spaces + right)
+        func twoCol(_ left: String, _ right: String) -> String {
+            let l      = String(left.prefix(WIDTH))
+            let spaces = max(1, WIDTH - l.count - right.count)
+            return l + String(repeating: " ", count: spaces) + right
+        }
+
+        // Blank label — same physical height as a garment label
+        func makeBlank(finalCut: Bool) -> StarXpandCommand.DocumentBuilder {
+            let doc = StarXpandCommand.DocumentBuilder()
+            doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                .styleMagnification(.init(width: 1, height: 1)).actionFeedLine(1))
+            doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                .styleAlignment(.left).styleBold(true)
+                .styleMagnification(.init(width: 2, height: 2))
+                .actionPrintText(" ").actionFeedLine(1))
+            doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                .styleAlignment(.right).actionPrintText(" \n"))
+            doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                .styleAlignment(.left).styleBold(true)
+                .actionPrintText(" ").actionFeedLine(1))
+            doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                .styleAlignment(.left).styleBold(true)
+                .actionPrintText(" ").actionFeedLine(1))
+            if finalCut {
+                doc.addPrinter(StarXpandCommand.PrinterBuilder().actionCut(.partial))
+            } else {
+                doc.addRaw(Data([0x1B, 0x64, 0x01]))
+            }
+            return doc
+        }
+
+        let builder = StarXpandCommand.StarXpandCommandBuilder()
+
+        // Leading blank label (dry cleaning only)
+        if isDryCleaning { builder.addDocument(makeBlank(finalCut: false)) }
+
+        for i in 1...total {
+            let name = String(labelNames[i - 1].prefix(25)).uppercased()
+            let doc  = StarXpandCommand.DocumentBuilder()
+
+            // Pre-feed: text starts immediately after cut
+            doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                .styleMagnification(.init(width: 1, height: 1)).actionFeedLine(1))
+
+            // Row 1 LEFT: order number large bold
+            doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                .styleAlignment(.left).styleBold(true)
+                .styleMagnification(.init(width: 2, height: 2))
+                .actionPrintText(orderNumber).actionFeedLine(1))
+            // Row 1 RIGHT: order number small, right-aligned
+            doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                .styleAlignment(.right).styleBold(false)
+                .styleMagnification(.init(width: 1, height: 1))
+                .actionPrintText("\(orderNumber) \n"))
+
+            // Row 2: pickup date (left) + "X of N" (right)
+            doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                .styleAlignment(.left).styleBold(true)
+                .styleMagnification(.init(width: 1, height: 1))
+                .actionPrintText(twoCol(pickupDate, "\(i) of \(total)"))
+                .actionFeedLine(1))
+
+            // Row 3: item name ≤25 chars (left) + full customer name (right)
+            doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                .styleAlignment(.left).styleBold(true)
+                .actionPrintText(twoCol(name, customerName.uppercased())))
+
+            // Post-feed: 1 line so cut lands tight after text
+            doc.addPrinter(StarXpandCommand.PrinterBuilder().actionFeedLine(1))
+
+            // Cut
+            if isDryCleaning {
+                doc.addRaw(Data([0x1B, 0x64, 0x01]))  // current-position cut (SP742)
+            } else {
+                doc.addPrinter(StarXpandCommand.PrinterBuilder().actionCut(.partial))
+            }
+
+            builder.addDocument(doc)
+        }
+
+        // Trailing blank label (dry cleaning only — flushes last garment label cleanly)
+        if isDryCleaning { builder.addDocument(makeBlank(finalCut: true)) }
+
+        return builder.getCommands()
+    }
+
+    // ── Print label (legacy) ───────────────────────────────────────────────
     @objc func printLabel(_ call: CAPPluginCall) {
         guard let identifier = call.getString("identifier") else { call.reject("Missing identifier"); return }
         let d       = call.getObject("label") ?? [:]

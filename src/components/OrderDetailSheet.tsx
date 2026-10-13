@@ -541,19 +541,21 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
               <button
                 onClick={async () => {
                   if (!order) return
-                  const items = JSON.parse(order.items || '[]')
-                  const ok = await printer.printLabel({
-                    orderNumber: order.orderNumberString,
+                  const ok = await printer.printLabelsForOrder({
+                    orderNumberString: order.orderNumberString,
                     customerName: order.customerName,
-                    customerPhone: order.customerPhone,
                     pickupDate: order.pickupDate ?? '',
-                    locationName: order.location,
-                    orderNote: order.orderNote ?? undefined,
-                    items: items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, note: i.note })),
+                    items: order.items,
+                    shopType: order.shopType,
                   })
-                  if (!ok) alert(printer.status !== 'connected' ? 'QZ Tray not running — check Settings → Printers' : 'No label printer selected — check Settings → Printers')
+                  if (!ok) {
+                    const noImpact = !printer.impactPrinter
+                    const noThermal = !printer.thermalPrinter
+                    if (noImpact && noThermal) alert('No printers selected — check Settings → Printers')
+                    else alert('Print failed — check printer connections in Settings → Printers')
+                  }
                 }}
-                disabled={printer.status !== 'connected' || !printer.impactPrinter}
+                disabled={printer.status !== 'connected' || (!printer.impactPrinter && !printer.thermalPrinter)}
                 className="py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-gray-600 text-sm font-semibold transition-colors">
                 🖨️ Print Labels
               </button>

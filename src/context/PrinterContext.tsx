@@ -20,6 +20,14 @@ interface DiscoveredPrinter {
   model: string
 }
 
+export interface OrderForLabels {
+  orderNumberString: string
+  customerName: string
+  pickupDate: string
+  items: string        // raw JSON string from Firestore
+  shopType?: string
+}
+
 interface PrinterContextValue {
   status: ConnectionStatus
   isNative: boolean
@@ -31,6 +39,7 @@ interface PrinterContextValue {
   discoverPrinters: () => Promise<void>
   printReceipt: (data: ReceiptData, copies?: number) => Promise<boolean>
   printLabel: (data: LabelData) => Promise<boolean>
+  printLabelsForOrder: (order: OrderForLabels) => Promise<boolean>
   openDrawer: () => Promise<boolean>
 }
 
@@ -120,6 +129,32 @@ export function PrinterProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function printLabelsForOrder(order: OrderForLabels): Promise<boolean> {
+    if (!native) {
+      console.warn('printLabelsForOrder: not running in native app')
+      return false
+    }
+    if (!impactPrinter && !thermalPrinter) {
+      console.warn('printLabelsForOrder: no printers selected')
+      return false
+    }
+    try {
+      await StarPrinter.printLabelsForOrder({
+        orderNumber:      order.orderNumberString,
+        customerName:     order.customerName,
+        pickupDate:       order.pickupDate || '',
+        itemsJson:        order.items,
+        shopType:         order.shopType ?? 'alterations',
+        impactIdentifier: impactPrinter ?? '',
+        thermalIdentifier: thermalPrinter ?? '',
+      })
+      return true
+    } catch (e) {
+      console.error('printLabelsForOrder failed:', e)
+      return false
+    }
+  }
+
   async function openDrawer(): Promise<boolean> {
     if (!native || !thermalPrinter) return false
     try {
@@ -143,6 +178,7 @@ export function PrinterProvider({ children }: { children: ReactNode }) {
       discoverPrinters,
       printReceipt,
       printLabel,
+      printLabelsForOrder,
       openDrawer,
     }}>
       {children}
