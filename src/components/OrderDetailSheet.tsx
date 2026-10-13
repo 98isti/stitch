@@ -411,27 +411,32 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                 ))}
 
                 {/* Totals */}
-                <div className="px-4 py-3 border-t border-gray-200 bg-white">
-                  {/* Piece count — one label per garment × quantity */}
-                  {(() => {
-                    const pieceCount = groups.reduce((sum, g) => sum + (g.items[0]?.quantity ?? 1), 0)
-                    return (
-                      <div className="flex justify-between text-sm text-gray-500 mb-2">
-                        <span>Total Pieces</span>
-                        <span className="font-semibold text-gray-700">{pieceCount} {pieceCount === 1 ? 'piece' : 'pieces'}</span>
+                {(() => {
+                  const pieceCount = groups.reduce((sum, g) => sum + (g.items[0]?.quantity ?? 1), 0)
+                  return (
+                    <div className="px-4 py-3 border-t border-gray-200 bg-white flex items-center gap-4">
+                      {/* Piece count circle */}
+                      <div className="flex flex-col items-center gap-1 shrink-0">
+                        <div className="w-14 h-14 rounded-full border-2 border-gray-800 flex items-center justify-center">
+                          <span className="text-2xl font-bold text-gray-900">{pieceCount}</span>
+                        </div>
+                        <span className="text-xs text-gray-500">items</span>
                       </div>
-                    )
-                  })()}
-                  <div className="flex justify-between text-sm text-gray-500 mb-1">
-                    <span>Subtotal</span>
-                    <span>${(order.subTotalAmount ?? order.orderAmount / 1.1).toFixed(2)}</span>
-                  </div>
-                  <div className="border-t border-dashed border-gray-200 my-1.5" />
-                  <div className="flex justify-between font-bold text-gray-900 text-base">
-                    <span>Total</span>
-                    <span>${order.orderAmount.toFixed(2)}</span>
-                  </div>
-                </div>
+                      {/* Totals */}
+                      <div className="flex-1">
+                        <div className="flex justify-between text-sm text-gray-500 mb-1">
+                          <span>Subtotal</span>
+                          <span>${(order.subTotalAmount ?? order.orderAmount).toFixed(2)}</span>
+                        </div>
+                        <div className="border-t border-dashed border-gray-200 my-1.5" />
+                        <div className="flex justify-between font-bold text-gray-900 text-base">
+                          <span>Total</span>
+                          <span>${order.orderAmount.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
 
             </div>
