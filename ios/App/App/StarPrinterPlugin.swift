@@ -461,16 +461,20 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
          .actionPrintText("----------------------------------------\n")
 
         // Payment status
+        // due > 0 && paid > 0  → PARTIALLY PAID (some money collected, still owing)
+        // due > 0 && paid == 0 → NOT PAID (Pay Later / nothing collected yet)
+        // due == 0             → PAID
         p.styleAlignment(.center)
-        if due > 0 {
+        if due > 0 && paid > 0 {
             p.styleMagnification(.init(width: 2, height: 2)).styleBold(true)
-             .actionPrintText("PARTIAL PAYMENT\n").styleBold(false)
+             .actionPrintText("PARTIALLY PAID\n").styleBold(false)
              .styleMagnification(.init(width: 1, height: 1))
              .actionPrintText("Due: \(fmt(due))\n")
-        } else if paid == 0 {
+        } else if due > 0 {
             p.styleMagnification(.init(width: 2, height: 2)).styleInvert(true).styleBold(true)
              .actionPrintText("NOT PAID\n").styleBold(false).styleInvert(false)
              .styleMagnification(.init(width: 1, height: 1))
+             .actionPrintText("Due: \(fmt(due))\n")
         } else {
             p.styleMagnification(.init(width: 4, height: 4)).styleBold(true)
              .actionPrintText("PAID\n").styleBold(false)

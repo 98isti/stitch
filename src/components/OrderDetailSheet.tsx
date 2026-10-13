@@ -32,6 +32,7 @@ interface OrderDoc {
   paymentMethod: string
   items: string
   subTotalAmount: number
+  discountApplied?: number
   locationId?: string
   shopType?: string
   conveyorSlotNumber?: string
@@ -571,7 +572,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                 onClick={async () => {
                   if (!order) return
                   const items = JSON.parse(order.items || '[]')
-                  const subtotal = Math.round((order.orderAmount / 1.1) * 100) / 100
+                  const subtotal = order.subTotalAmount ?? order.orderAmount
                   const createdDate = order.createdAt ? new Date(order.createdAt.seconds * 1000) : new Date()
                   const pickupDateObj = order.pickupDate ? new Date(order.pickupDate) : null
                   const ok = await printer.printReceipt({
@@ -587,6 +588,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                     pickupDateFull: pickupDateObj ? pickupDateObj.toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }) : (order.pickupDate ?? ''),
                     items: items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, unitPrice: i.unitPrice, note: i.note })),
                     subtotal,
+                    discount: (order.discountApplied ?? 0) > 0 ? order.discountApplied : undefined,
                     total: order.orderAmount,
                     paidAmount: order.paidAmount,
                     stillDue: order.stillDueAmount,
