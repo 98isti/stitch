@@ -7,6 +7,7 @@ import { usePrinter } from '../context/PrinterContext'
 import { db } from '../lib/firebase'
 import { useStaff } from '../context/StaffContext'
 import { useAccountProfile } from '../hooks/useAccountProfile'
+import { useLocations } from '../hooks/useLocations'
 
 interface OrderItem {
   id: string; garmentId?: string; category: string; name: string; quantity: number; unitPrice: number; note: string
@@ -69,6 +70,7 @@ const SMS_WORKER_URL = 'https://stitch-sms.supto98.workers.dev'
 export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }: Props) {
   const { staff } = useStaff()
   const accountProfile = useAccountProfile(accountId)
+  const { locations } = useLocations(accountId)
   const [order, setOrder] = useState<OrderDoc | null>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -100,7 +102,8 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
     setShowStatusMenu(false)
     // "Ready for Pick Up" — dry cleaning shows conveyor slot, alterations shows employee selection
     if (status === 'Ready for Pick Up') {
-      const isDryCleaning = order.shopType === 'dryCleaning' || order.location === 'St Ives DC'
+      const orderLocation = locations.find(l => l.name === order.location)
+      const isDryCleaning = orderLocation?.shopType === 'dryCleaning'
       if (isDryCleaning) {
         setConveyorSlotInput('')
         setShowConveyorSlotPopup(true)
@@ -331,7 +334,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                 {order?.completedBy && (
                   <p className="text-white/50 text-xs text-right mt-1">Completed by: {order.completedBy}</p>
                 )}
-                {(order?.shopType === 'dryCleaning' || order?.location === 'St Ives DC') && order?.status === 'Ready for Pick Up' && order?.conveyorSlotNumber && (
+                {locations.find(l => l.name === order?.location)?.shopType === 'dryCleaning' && order?.status === 'Ready for Pick Up' && order?.conveyorSlotNumber && (
                   <div className="text-right">
                     <p className="text-white font-bold text-lg">Conveyor # {order.conveyorSlotNumber}</p>
                     {order.conveyorAssignedBy && (
