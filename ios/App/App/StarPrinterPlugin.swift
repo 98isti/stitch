@@ -466,12 +466,12 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
         // due == 0             → PAID
         p.styleAlignment(.center)
         if due > 0 && paid > 0 {
-            p.styleMagnification(.init(width: 2, height: 2)).styleBold(true)
-             .actionPrintText("PARTIALLY PAID\n").styleBold(false)
+            p.styleMagnification(.init(width: 3, height: 3)).styleInvert(true).styleBold(true)
+             .actionPrintText("PARTIALLY PAID\n").styleBold(false).styleInvert(false)
              .styleMagnification(.init(width: 1, height: 1))
              .actionPrintText("Due: \(fmt(due))\n")
         } else if due > 0 {
-            p.styleMagnification(.init(width: 2, height: 2)).styleInvert(true).styleBold(true)
+            p.styleMagnification(.init(width: 4, height: 4)).styleInvert(true).styleBold(true)
              .actionPrintText("NOT PAID\n").styleBold(false).styleInvert(false)
              .styleMagnification(.init(width: 1, height: 1))
              .actionPrintText("Due: \(fmt(due))\n")
