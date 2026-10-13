@@ -7,7 +7,6 @@ import { usePrinter } from '../context/PrinterContext'
 import { db } from '../lib/firebase'
 import { useStaff } from '../context/StaffContext'
 import { useAccountProfile } from '../hooks/useAccountProfile'
-import { useLocations } from '../hooks/useLocations'
 
 interface OrderItem {
   id: string; garmentId?: string; category: string; name: string; quantity: number; unitPrice: number; note: string
@@ -33,6 +32,7 @@ interface OrderDoc {
   paymentMethod: string
   items: string
   subTotalAmount: number
+  locationId?: string
   shopType?: string
   conveyorSlotNumber?: string
   conveyorAssignedBy?: string
@@ -70,11 +70,8 @@ const SMS_WORKER_URL = 'https://stitch-sms.supto98.workers.dev'
 export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }: Props) {
   const { staff } = useStaff()
   const accountProfile = useAccountProfile(accountId)
-  const { locations } = useLocations(accountId)
   const [order, setOrder] = useState<OrderDoc | null>(null)
-  const isDryCleaning = locations.length > 0 && !!order
-    ? locations.find(l => l.name === order.location)?.shopType === 'dryCleaning'
-    : false
+  const [isDryCleaning, setIsDryCleaning] = useState(false)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showStatusMenu, setShowStatusMenu] = useState(false)
@@ -94,8 +91,16 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
     if (!orderId || !accountId) { return }
     setLoading(true)
     getDoc(doc(db, 'accounts', accountId, 'orders', orderId))
-      .then(snap => {
-        if (snap.exists()) setOrder({ id: snap.id, ...snap.data() } as OrderDoc)
+      .then(async snap => {
+        if (snap.exists()) {
+          const orderData = { id: snap.id, ...snap.data() } as OrderDoc
+          setOrder(orderData)
+          // Look up the location's shopType — single doc read via locationId
+          if (orderData.locationId) {
+            const locSnap = await getDoc(doc(db, 'accounts', accountId, 'locations', orderData.locationId))
+            setIsDryCleaning(locSnap.data()?.shopType === 'dryCleaning')
+          }
+        }
         setLoading(false)
       }).catch(() => setLoading(false))
   }, [orderId, accountId])
