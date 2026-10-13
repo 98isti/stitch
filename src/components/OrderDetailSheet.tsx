@@ -340,7 +340,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                 {order?.completedBy && (
                   <p className="text-white/50 text-xs text-right mt-1">Completed by: {order.completedBy}</p>
                 )}
-                {locations.find(l => l.name === order?.location)?.shopType === 'dryCleaning' && order?.status === 'Ready for Pick Up' && order?.conveyorSlotNumber && (
+                {isDryCleaning && order?.status === 'Ready for Pick Up' && order?.conveyorSlotNumber && (
                   <div className="text-right">
                     <p className="text-white font-bold text-lg">Conveyor # {order.conveyorSlotNumber}</p>
                     {order.conveyorAssignedBy && (
