@@ -155,21 +155,22 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
       setShowConveyorSlotPopup(false)
       if (order.customerPhone && accountProfile) {
         const smsSettings = (accountProfile as any).sms
-        const senderName = smsSettings?.senderName || (accountProfile as any).businessName?.slice(0, 11) || 'Stitch'
-        const template = smsSettings?.template || 'Hi {firstName}, your order at {businessName} is ready for pick-up! Order: {orderNumber}.'
+        const senderName = smsSettings?.senderName || accountProfile.businessName?.slice(0, 11) || 'Stitch'
+        const template = smsSettings?.template ||
+          'Hi {firstName}, your order at {businessName} is ready for pick-up! Order: {orderNumber}. {balance}'
         fetch(SMS_WORKER_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             to: order.customerPhone,
-            from: senderName,
-            body: template
-              .replace('{firstName}', order.customerName.split(' ')[0])
-              .replace('{businessName}', (accountProfile as any).businessName || 'us')
-              .replace('{orderNumber}', order.orderNumberString)
-              .replace('{balance}', '')
-          }),
-        }).catch(() => {})
+            senderName,
+            template,
+            firstName: order.customerName || 'there',
+            orderNumber: order.orderNumberString,
+            businessName: accountProfile.businessName || 'Us',
+            stillDueAmount: order.stillDueAmount,
+          })
+        }).then(r => r.json()).then(d => console.log('[SMS]', d)).catch(e => console.error('[SMS]', e))
       }
     } finally { setSaving(false) }
   }
