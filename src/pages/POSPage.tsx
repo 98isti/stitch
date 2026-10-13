@@ -511,6 +511,18 @@ export default function POSPage() {
       if (params.method === 'Cash' || params.method === 'Split') {
         await printer.openDrawer()
       }
+
+      // Print garment labels (1 copy — same logic as Order Detail view)
+      await printer.printLabelsForOrder({
+        orderNumberString: params.orderNumber,
+        customerName,
+        pickupDate: pickupDate.toISOString().split('T')[0],
+        items: JSON.stringify(items.map(i => ({
+          id: i.id, garmentId: i.garmentId, category: i.category,
+          name: i.name, quantity: i.quantity, unitPrice: i.unitPrice, note: i.note
+        }))),
+        shopType: activeLocation?.shopType,
+      })
     } catch (e) {
       console.warn('Auto-print failed:', e)
     }
