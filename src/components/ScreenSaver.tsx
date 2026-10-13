@@ -29,7 +29,7 @@ export default function ScreenSaver({ onDismiss }: Props) {
       onClick={onDismiss}>
 
       {/* Centred logo + time as one unit */}
-      <div className="animate-pulse flex flex-col items-center gap-8">
+      <div className="animate-pulse flex flex-col items-center gap-8" style={{ animationDuration: '3.5s' }}>
 
         {/* Logo card — slightly smaller */}
         <div className="bg-white rounded-3xl px-12 py-5 shadow-2xl">
