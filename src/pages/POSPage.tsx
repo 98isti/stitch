@@ -408,8 +408,7 @@ export default function POSPage() {
   const [showSplit, setShowSplit] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
   const [scannedOrderId, setScannedOrderId] = useState<string | null>(null)
-  const [showDrawerConfirm, setShowDrawerConfirm] = useState(false)
-  const [drawerOpening, setDrawerOpening] = useState(false)
+  const [showDrawerSuccess, setShowDrawerSuccess] = useState(false)
   const printer = usePrinter()
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState<{ orderNumber: string; total: number; method: string } | null>(null)
@@ -822,6 +821,7 @@ export default function POSPage() {
                 location: activeLocation.name,
                 locationId: activeLocation.id,
               }).catch(() => {})
+              setShowDrawerSuccess(true)
             }}
             className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-sm font-semibold transition-all">
             Open Drawer
@@ -1233,6 +1233,18 @@ export default function POSPage() {
                 {drawerOpening ? 'Opening…' : 'Yes, Open'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Drawer opened toast */}
+      {showDrawerSuccess && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
+          <div className="bg-gray-900 text-white rounded-3xl shadow-2xl px-10 py-8 text-center pointer-events-auto min-w-[280px]"
+            ref={el => { if (el) setTimeout(() => setShowDrawerSuccess(false), 2500) }}>
+            <p className="text-5xl mb-4">🗃️</p>
+            <p className="text-white/60 text-sm mb-1">Cash Drawer</p>
+            <p className="text-2xl font-bold text-amber-400">Opened</p>
           </div>
         </div>
       )}
