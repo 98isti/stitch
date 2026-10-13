@@ -72,6 +72,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
   const { staff } = useStaff()
   const accountProfile = useAccountProfile(accountId)
   const [order, setOrder] = useState<OrderDoc | null>(null)
+  const [locationData, setLocationData] = useState<any>(null)
   const isDryCleaning = order?.shopType === 'dryCleaning'
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -101,7 +102,12 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
         if (snap.exists()) {
           const orderData = { id: snap.id, ...snap.data() } as OrderDoc
           setOrder(orderData)
-
+          // Also fetch location doc for correct businessName + SMS settings
+          if (orderData.locationId) {
+            getDoc(doc(db, `accounts/${accountId}/locations/${orderData.locationId}`))
+              .then(s => { if (s.exists()) setLocationData(s.data()) })
+              .catch(() => {})
+          }
         }
         setLoading(false)
       }).catch(() => setLoading(false))
@@ -155,8 +161,8 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
       setOrder(o => o ? { ...o, status: 'Ready for Pick Up', conveyorSlotNumber: slot, conveyorAssignedBy: assignedBy } : o)
       setShowConveyorSlotPopup(false)
       if (order.customerPhone && accountProfile) {
-        const smsSettings = (accountProfile as any).sms
-        const senderName = smsSettings?.senderName || accountProfile.businessName?.slice(0, 11) || 'Stitch'
+        const smsSettings = locationData?.sms || (accountProfile as any).sms
+        const senderName = smsSettings?.senderName || (locationData?.businessName || accountProfile.businessName || 'Stitch').slice(0, 11) || 'Stitch'
         const template = smsSettings?.template ||
           'Hi {firstName}, your order at {businessName} is ready for pick-up! Order: {orderNumber}. {balance}'
         fetch(SMS_WORKER_URL, {
@@ -168,7 +174,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
             template,
             firstName: order.customerName || 'there',
             orderNumber: order.orderNumberString,
-            businessName: accountProfile.businessName || 'Us',
+            businessName: locationData?.businessName || accountProfile.businessName || 'Us',
             stillDueAmount: order.stillDueAmount,
           })
         }).then(r => r.json()).then(d => console.log('[SMS]', d)).catch(e => console.error('[SMS]', e))
@@ -190,8 +196,8 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
       setShowCompletedByPopup(false)
       // Send SMS if customer has a phone number
       if (order.customerPhone && accountProfile) {
-        const smsSettings = (accountProfile as any).sms
-        const senderName = smsSettings?.senderName || accountProfile.businessName?.slice(0, 11) || 'Stitch'
+        const smsSettings = locationData?.sms || (accountProfile as any).sms
+        const senderName = smsSettings?.senderName || (locationData?.businessName || accountProfile.businessName || 'Stitch').slice(0, 11) || 'Stitch'
         const template = smsSettings?.template ||
           'Hi {firstName}, your order at {businessName} is ready for pick-up! Order: {orderNumber}. {balance}'
         fetch(SMS_WORKER_URL, {
@@ -203,7 +209,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
             template,
             firstName: order.customerName || 'there',
             orderNumber: order.orderNumberString,
-            businessName: accountProfile.businessName || 'Us',
+            businessName: locationData?.businessName || accountProfile.businessName || 'Us',
             stillDueAmount: order.stillDueAmount,
           })
         }).then(r => r.json()).then(d => console.log('[SMS]', d)).catch(e => console.error('[SMS]', e))
