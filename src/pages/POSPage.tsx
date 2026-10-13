@@ -82,6 +82,7 @@ async function saveOrder({
   overridePaidAmount,
   overrideStillDue,
   overrideIsPaid,
+  barcode,
 }: {
   accountId: string
   locationId: string
@@ -99,11 +100,13 @@ async function saveOrder({
   overrideStillDue?: number
   overrideIsPaid?: boolean
   shopType?: string
-}): Promise<{ orderNumber: string; orderId: string }> {
+  barcode?: string
+}): Promise<{ orderNumber: string; orderId: string; barcode: string }> {
   const counterRef = doc(db, 'accounts', accountId, 'orderCounters', locationId)
   const ordersRef = collection(db, 'accounts', accountId, 'orders')
 
   let orderNumberString = ''
+  const savedBarcode = barcode ?? crypto.randomUUID()
   const newOrderRef = doc(ordersRef) // pre-generate ID before transaction
 
   await runTransaction(db, async (tx) => {
@@ -136,7 +139,7 @@ async function saveOrder({
       status: 'In progress',
       location: locationName,
       paymentMethod,
-      barcode: crypto.randomUUID(),
+      barcode: savedBarcode,
       orderNote: orderNote || null,
       completedBy: '',
       jobCompletedDate: null,
@@ -144,7 +147,7 @@ async function saveOrder({
     })
   })
 
-  return { orderNumber: orderNumberString, orderId: newOrderRef.id }
+  return { orderNumber: orderNumberString, orderId: newOrderRef.id, barcode: savedBarcode }
 }
 
 // ── Success Screen ────────────────────────────────────────────────────────────
@@ -481,7 +484,7 @@ export default function POSPage() {
 
   async function autoPrintReceipt(params: {
     orderNumber: string; items: any[]; subtotal: number; total: number;
-    discount?: number; paidAmount: number; stillDue: number; method: string; createdAt: Date;
+    discount?: number; paidAmount: number; stillDue: number; method: string; createdAt: Date; barcode?: string;
   }) {
     if (printer.status !== 'connected' || !printer.thermalPrinter) return
     try {
@@ -506,6 +509,7 @@ export default function POSPage() {
         stillDue: params.stillDue,
         paymentMethod: params.method,
         orderNote: orderNote || undefined,
+        barcode: params.barcode,
       }, 2)
       // Open drawer for cash payments
       if (params.method === 'Cash' || params.method === 'Split') {
@@ -535,7 +539,7 @@ export default function POSPage() {
     try {
       const prefix = activeLocation.orderPrefix
         || activeLocation.name.slice(0, 3).toUpperCase()
-      const { orderNumber, orderId } = await saveOrder({
+      const { orderNumber, orderId, barcode } = await saveOrder({
         accountId,
         locationId: activeLocation.id,
         locationName: activeLocation.name,
@@ -562,7 +566,7 @@ export default function POSPage() {
         })
       }
       setSuccess({ orderNumber, total, method })
-      autoPrintReceipt({ orderNumber, items, subtotal: rawTotal, discount: discountAmount > 0 ? discountAmount : undefined, total, paidAmount: method !== 'Pay Later' ? total : 0, stillDue: method !== 'Pay Later' ? 0 : total, method, createdAt: new Date() })
+      autoPrintReceipt({ orderNumber, items, subtotal: rawTotal, discount: discountAmount > 0 ? discountAmount : undefined, total, paidAmount: method !== 'Pay Later' ? total : 0, stillDue: method !== 'Pay Later' ? 0 : total, method, createdAt: new Date(), barcode })
       clearSale()
     } catch (e) {
       console.error(e)
@@ -582,7 +586,7 @@ export default function POSPage() {
       const isPaid = stillDue === 0
       const method = cash > 0 && card > 0 ? 'Split' : cash > 0 ? 'Cash' : 'Card'
 
-      const { orderNumber, orderId } = await saveOrder({
+      const { orderNumber, orderId, barcode } = await saveOrder({
         accountId,
         locationId: activeLocation.id,
         locationName: activeLocation.name,
@@ -616,7 +620,7 @@ export default function POSPage() {
         })
       }
       setSuccess({ orderNumber, total: paidAmount, method })
-      autoPrintReceipt({ orderNumber, items, subtotal: rawTotal, discount: discountAmount > 0 ? discountAmount : undefined, total, paidAmount, stillDue, method, createdAt: new Date() })
+      autoPrintReceipt({ orderNumber, items, subtotal: rawTotal, discount: discountAmount > 0 ? discountAmount : undefined, total, paidAmount, stillDue, method, createdAt: new Date(), barcode })
       clearSale()
     } catch (e) {
       console.error(e)
