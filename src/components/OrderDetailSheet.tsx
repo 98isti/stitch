@@ -396,7 +396,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                       <p className="text-xs font-bold text-navy uppercase tracking-wide">{group.category}</p>
                     </div>
                     {group.items.map((item, i) => (
-                      <div key={i} className="flex items-start justify-between px-4 py-3 border-b border-gray-100 last:border-0">
+                      <div key={i} className="flex items-start justify-between pl-7 pr-4 py-3 border-b border-gray-100 last:border-0">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-gray-900">{item.name}</p>
                           {item.note && <p className="text-xs text-gray-400 italic mt-0.5">Note: {item.note}</p>}
