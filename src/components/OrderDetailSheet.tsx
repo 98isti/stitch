@@ -71,10 +71,10 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
   const { staff } = useStaff()
   const accountProfile = useAccountProfile(accountId)
   const { locations } = useLocations(accountId)
+  const [order, setOrder] = useState<OrderDoc | null>(null)
   const isDryCleaning = locations.length > 0 && !!order
     ? locations.find(l => l.name === order.location)?.shopType === 'dryCleaning'
     : false
-  const [order, setOrder] = useState<OrderDoc | null>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showStatusMenu, setShowStatusMenu] = useState(false)
