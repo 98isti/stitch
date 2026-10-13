@@ -113,7 +113,7 @@ async function saveOrder({
     orderNumberString = `${orderPrefix}-${String(next).padStart(4, '0')}`
 
     const isPaid = overrideIsPaid !== undefined ? overrideIsPaid : paymentMethod !== 'Pay Later'
-    const subTotalAmount = (total - discountAmount) / 1.1
+    const subTotalAmount = total + discountAmount  // sum of items incl GST, before discount
 
     tx.set(newOrderRef, {
       orderNumber: next,
@@ -127,7 +127,7 @@ async function saveOrder({
         quantity: i.quantity, unitPrice: i.unitPrice, note: i.note
       }))),
       subTotalAmount: Math.round(subTotalAmount * 100) / 100,
-      discountApplied: discountAmount > 0,
+      discountApplied: discountAmount,          // actual amount, not boolean
       discountType: discountAmount > 0 ? 'flat' : null,
       orderAmount: Math.round(total * 100) / 100,
       paidAmount: overridePaidAmount !== undefined ? overridePaidAmount : (isPaid ? Math.round(total * 100) / 100 : 0),
@@ -410,7 +410,6 @@ export default function POSPage() {
     ? discount.type === 'percent' ? rawTotal * discount.value / 100 : Math.min(discount.value, rawTotal)
     : 0
   const total = rawTotal - discountAmount
-  const subtotal = total / 1.1
 
   const categoryCount: Record<string, number> = {}
   items.forEach(i => {
@@ -481,12 +480,11 @@ export default function POSPage() {
   }
 
   async function autoPrintReceipt(params: {
-    orderNumber: string; items: any[]; total: number; paidAmount: number;
-    stillDue: number; method: string; createdAt: Date;
+    orderNumber: string; items: any[]; subtotal: number; total: number;
+    discount?: number; paidAmount: number; stillDue: number; method: string; createdAt: Date;
   }) {
     if (printer.status !== 'connected' || !printer.thermalPrinter) return
     try {
-      const subtotal = Math.round((params.total / 1.1) * 100) / 100
       const defaultPickup = new Date()
       defaultPickup.setDate(defaultPickup.getDate() + 2)
       await printer.printReceipt({
@@ -501,7 +499,8 @@ export default function POSPage() {
         pickupDay: pickupDate.toLocaleDateString('en-AU', { weekday:'long' }),
         pickupDateFull: pickupDate.toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }),
         items: params.items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, unitPrice: i.unitPrice, note: i.note })),
-        subtotal,
+        subtotal: params.subtotal,
+        discount: (params.discount ?? 0) > 0 ? params.discount : undefined,
         total: params.total,
         paidAmount: params.paidAmount,
         stillDue: params.stillDue,
@@ -551,7 +550,7 @@ export default function POSPage() {
         })
       }
       setSuccess({ orderNumber, total, method })
-      autoPrintReceipt({ orderNumber, items, total, paidAmount: method !== 'Pay Later' ? total : 0, stillDue: method !== 'Pay Later' ? 0 : total, method, createdAt: new Date() })
+      autoPrintReceipt({ orderNumber, items, subtotal: rawTotal, discount: discountAmount > 0 ? discountAmount : undefined, total, paidAmount: method !== 'Pay Later' ? total : 0, stillDue: method !== 'Pay Later' ? 0 : total, method, createdAt: new Date() })
       clearSale()
     } catch (e) {
       console.error(e)
@@ -605,7 +604,7 @@ export default function POSPage() {
         })
       }
       setSuccess({ orderNumber, total: paidAmount, method })
-      autoPrintReceipt({ orderNumber, items, total, paidAmount, stillDue, method, createdAt: new Date() })
+      autoPrintReceipt({ orderNumber, items, subtotal: rawTotal, discount: discountAmount > 0 ? discountAmount : undefined, total, paidAmount, stillDue, method, createdAt: new Date() })
       clearSale()
     } catch (e) {
       console.error(e)
@@ -968,7 +967,7 @@ export default function POSPage() {
         <div className="border-t border-gray-100">
           <div className="px-4 py-3 bg-gray-50 space-y-1">
             <div className="flex justify-between text-sm text-gray-500">
-              <span>Subtotal (ex GST)</span><span>${subtotal.toFixed(2)}</span>
+              <span>Subtotal</span><span>${rawTotal.toFixed(2)}</span>
             </div>
             {discount && discountAmount > 0 && (
               <div className="flex justify-between text-sm text-red-500">
