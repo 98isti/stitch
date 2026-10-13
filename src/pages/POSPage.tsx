@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Delete, ScanLine, UserPlus, ChevronDown, MoreHorizontal, MapPin, CheckCircle , X} from 'lucide-react'
 import EditSaleItemSheet from '../components/EditSaleItemSheet'
+import ScanOrderSheet from '../components/ScanOrderSheet'
+import OrderDetailSheet from '../components/OrderDetailSheet'
 import SplitPaymentSheet from '../components/SplitPaymentSheet'
 import { usePrinter } from '../context/PrinterContext'
 import {
@@ -404,6 +406,8 @@ export default function POSPage() {
 
   const [showPayment, setShowPayment] = useState(false)
   const [showSplit, setShowSplit] = useState(false)
+  const [showScanner, setShowScanner] = useState(false)
+  const [scannedOrderId, setScannedOrderId] = useState<string | null>(null)
   const printer = usePrinter()
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState<{ orderNumber: string; total: number; method: string } | null>(null)
@@ -806,7 +810,9 @@ export default function POSPage() {
           <button className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-sm font-semibold transition-all">
             Open Drawer
           </button>
-          <button className="flex-1 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 active:scale-95 text-white text-sm font-semibold transition-all flex items-center justify-center gap-1.5">
+          <button
+            onClick={() => setShowScanner(true)}
+            className="flex-1 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 active:scale-95 text-white text-sm font-semibold transition-all flex items-center justify-center gap-1.5">
             <ScanLine size={15} /> Scan
           </button>
         </div>
@@ -1173,6 +1179,24 @@ export default function POSPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* QR Scanner */}
+      {showScanner && accountId && (
+        <ScanOrderSheet
+          accountId={accountId}
+          onFound={orderId => { setShowScanner(false); setScannedOrderId(orderId) }}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      {/* Order Detail from scan result */}
+      {scannedOrderId && accountId && (
+        <OrderDetailSheet
+          orderId={scannedOrderId}
+          accountId={accountId}
+          onClose={() => setScannedOrderId(null)}
+        />
       )}
     </div>
   )
