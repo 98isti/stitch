@@ -71,7 +71,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
   const { staff } = useStaff()
   const accountProfile = useAccountProfile(accountId)
   const [order, setOrder] = useState<OrderDoc | null>(null)
-  const [isDryCleaning, setIsDryCleaning] = useState(false)
+  const isDryCleaning = order?.shopType === 'dryCleaning'
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showStatusMenu, setShowStatusMenu] = useState(false)
@@ -91,15 +91,11 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
     if (!orderId || !accountId) { return }
     setLoading(true)
     getDoc(doc(db, 'accounts', accountId, 'orders', orderId))
-      .then(async snap => {
+      .then(snap => {
         if (snap.exists()) {
           const orderData = { id: snap.id, ...snap.data() } as OrderDoc
           setOrder(orderData)
-          // Look up the location's shopType — single doc read via locationId
-          if (orderData.locationId) {
-            const locSnap = await getDoc(doc(db, 'accounts', accountId, 'locations', orderData.locationId))
-            setIsDryCleaning(locSnap.data()?.shopType === 'dryCleaning')
-          }
+
         }
         setLoading(false)
       }).catch(() => setLoading(false))
