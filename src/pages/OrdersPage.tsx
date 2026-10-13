@@ -4,6 +4,24 @@ import { useNavigate } from 'react-router-dom'
 import OrderDetailSheet from '../components/OrderDetailSheet'
 import EditOrderSheet from '../components/EditOrderSheet'
 import { collection, query, orderBy, getDocs, Timestamp } from 'firebase/firestore'
+
+// Simple cash drawer SVG icon
+function CashDrawerIcon({ size = 20, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+      className={className}>
+      {/* Main body of the POS unit */}
+      <rect x="2" y="3" width="20" height="11" rx="2" />
+      {/* Drawer slot / separation line */}
+      <line x1="2" y1="10" x2="22" y2="10" />
+      {/* Drawer pulling out at the bottom */}
+      <rect x="4" y="14" width="16" height="7" rx="1.5" />
+      {/* Drawer handle */}
+      <line x1="9" y1="17.5" x2="15" y2="17.5" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
@@ -169,7 +187,7 @@ export default function OrdersPage() {
                   return (
                     <tr key={'drawer-' + d.id} className="border-b border-amber-100 bg-amber-50/40">
                       <td className="px-5 py-3">
-                        <span className="text-amber-600 text-lg">🗃️</span>
+                        <CashDrawerIcon size={20} className="text-amber-600" />
                       </td>
                       <td className="px-3 py-3 text-gray-500 text-xs whitespace-nowrap">{time}</td>
                       <td className="px-3 py-3 text-amber-700 font-medium text-sm" colSpan={5}>Drawer Opened — by {d.openedBy}</td>
