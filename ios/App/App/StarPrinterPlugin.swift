@@ -263,23 +263,18 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
                 doc.addRaw(Data([0x1B, 0x64, 0x01]))
 
             } else {
-                // ── THERMAL (mC-Print3) — standard actionCut(.partial) ──────────────
-                // mC-Print3 interprets ESC d 1 differently from SP742 so we
-                // use the StarXpand cut API. No pre/post feed to keep height tight.
+                // ── THERMAL (mC-Print3) — partialDirect cut ───────────────────────
+                // Mixing .left and .right alignments without a line feed causes
+                // the mC-Print3 to centre the entire line. Fix: print the large
+                // order# with a line feed (left-only, no right-side duplicate).
+                // .partialDirect cuts at the current position without extra paper
+                // feed, keeping the top margin as tight as .partialDirect allows.
 
-                // Row 1 LEFT: order number large bold (2×2) — NO actionFeedLine after.
-                // Without the line feed the print head stays at the end of the large
-                // text; the right-aligned 1x text then lands alongside the bottom of
-                // the 2x area, matching the visual of the DC impact labels.
+                // Row 1: order number large bold, left-aligned
                 doc.addPrinter(StarXpandCommand.PrinterBuilder()
                     .styleAlignment(.left).styleBold(true)
                     .styleMagnification(.init(width: 2, height: 2))
-                    .actionPrintText(orderNumber))
-                // Row 1 RIGHT: order number small right-aligned (same visual row)
-                doc.addPrinter(StarXpandCommand.PrinterBuilder()
-                    .styleAlignment(.right).styleBold(false)
-                    .styleMagnification(.init(width: 1, height: 1))
-                    .actionPrintText("\(orderNumber) \n"))
+                    .actionPrintText(orderNumber).actionFeedLine(1))
 
                 // Row 2: date (left) + count (right)
                 doc.addPrinter(StarXpandCommand.PrinterBuilder()
@@ -293,8 +288,9 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
                     .styleAlignment(.left).styleBold(true)
                     .actionPrintText(twoCol(name, customerName.uppercased())))
 
-                // Standard partial cut (feeds to cutter position — no addRaw needed)
-                doc.addPrinter(StarXpandCommand.PrinterBuilder().actionCut(.partial))
+                // partialDirect: cuts at current position, no extra paper feed
+                doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                    .actionCut(.partialDirect))
             }
 
             builder.addDocument(doc)
