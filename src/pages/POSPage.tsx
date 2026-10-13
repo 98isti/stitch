@@ -490,7 +490,7 @@ export default function POSPage() {
       const defaultPickup = new Date()
       defaultPickup.setDate(defaultPickup.getDate() + 2)
       await printer.printReceipt({
-        businessName: 'Sew Smart Alterations',
+        businessName: activeLocation?.businessName || '',
         locationName: activeLocation?.name ?? '',
         orderNumber: params.orderNumber,
         orderDate: params.createdAt.toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' }),
@@ -662,8 +662,8 @@ export default function POSPage() {
                 {/* Business name */}
                 <div className="text-center px-2">
                   {accountProfile?.logoUrl
-                    ? <img src={accountProfile.logoUrl} alt={accountProfile.businessName} className="h-10 object-contain mx-auto" />
-                    : <p className="font-bold text-navy text-sm leading-tight">{accountProfile?.businessName ?? 'Your Business'}</p>
+                    ? <img src={accountProfile.logoUrl} alt={activeLocation?.businessName || accountProfile.businessName} className="h-10 object-contain mx-auto" />
+                    : <p className="font-bold text-navy text-sm leading-tight">{activeLocation?.businessName || accountProfile?.businessName || 'Your Business'}</p>
                   }
                 </div>
                 {/* Powered by Stitch */}
