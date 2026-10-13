@@ -48,9 +48,25 @@ export default function POSLayout() {
 
   const isPos = location.pathname === '/pos'
 
+  // Auto-update check: fires when screensaver activates.
+  // Fetches /version.json from Cloudflare and reloads if a newer build is available.
+  // Safe to reload during screensaver — app is idle, no transaction in progress.
+  useEffect(() => {
+    if (!showScreenSaver) return
+    const check = async () => {
+      try {
+        const res = await fetch('/version.json?t=' + Date.now())
+        const { version } = await res.json()
+        const current = (window as any).__STITCH_VERSION__
+        if (current && version !== current) {
+          window.location.reload()
+        }
+      } catch {}
+    }
+    check()
+  }, [showScreenSaver])
+
   // Screen saver idle timer
-
-
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>
     function resetTimer() {
