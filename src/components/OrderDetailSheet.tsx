@@ -388,10 +388,10 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                 </div>
               </div>
 
-              {/* Items */}
-              <div className="bg-gray-50 rounded-2xl overflow-hidden">
+              {/* Items — each garment group is its own card */}
+              <div className="flex flex-col gap-2">
                 {groups.map(group => (
-                  <div key={group.garmentId}>
+                  <div key={group.garmentId} className="bg-white rounded-2xl overflow-hidden border border-gray-100">
                     <div className="px-4 py-2 bg-gray-100">
                       <p className="text-xs font-bold text-navy uppercase tracking-wide">{group.category}</p>
                     </div>
