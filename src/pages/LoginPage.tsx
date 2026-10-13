@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../lib/firebase'
 
@@ -6,6 +7,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
 
   async function handleLogin(e: React.FormEvent) {
@@ -71,7 +73,7 @@ export default function LoginPage() {
 
           <p className="text-center text-xs text-gray-400 mt-6">
             Need an account?{' '}
-            <a href="#" className="text-navy font-medium hover:underline">Start free trial</a>
+            <button onClick={() => navigate('/onboarding')} className="text-navy font-semibold hover:underline">Start free trial</button>
           </p>
         </div>
 
