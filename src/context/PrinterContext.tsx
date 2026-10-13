@@ -129,6 +129,18 @@ export function PrinterProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  function formatLabelDate(dateStr: string): string {
+    if (!dateStr) return ''
+    // Parse YYYY-MM-DD in local timezone to avoid UTC-shift issues
+    const parts = dateStr.split('-').map(Number)
+    if (parts.length !== 3 || parts.some(isNaN)) return dateStr
+    const [year, month, day] = parts
+    const d = new Date(year, month - 1, day)
+    const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December']
+    return `${days[d.getDay()]} ${day} ${months[month - 1]} ${year}`
+  }
+
   async function printLabelsForOrder(order: OrderForLabels): Promise<boolean> {
     if (!native) {
       console.warn('printLabelsForOrder: not running in native app')
@@ -140,12 +152,12 @@ export function PrinterProvider({ children }: { children: ReactNode }) {
     }
     try {
       await StarPrinter.printLabelsForOrder({
-        orderNumber:      order.orderNumberString,
-        customerName:     order.customerName,
-        pickupDate:       order.pickupDate || '',
-        itemsJson:        order.items,
-        shopType:         order.shopType ?? 'alterations',
-        impactIdentifier: impactPrinter ?? '',
+        orderNumber:       order.orderNumberString,
+        customerName:      order.customerName,
+        pickupDate:        formatLabelDate(order.pickupDate || ''),
+        itemsJson:         order.items,
+        shopType:          order.shopType ?? 'alterations',
+        impactIdentifier:  impactPrinter ?? '',
         thermalIdentifier: thermalPrinter ?? '',
       })
       return true

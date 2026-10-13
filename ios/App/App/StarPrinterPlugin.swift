@@ -267,12 +267,15 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
                 // mC-Print3 interprets ESC d 1 differently from SP742 so we
                 // use the StarXpand cut API. No pre/post feed to keep height tight.
 
-                // Row 1 LEFT: order number large bold (2×2)
+                // Row 1 LEFT: order number large bold (2×2) — NO actionFeedLine after.
+                // Without the line feed the print head stays at the end of the large
+                // text; the right-aligned 1x text then lands alongside the bottom of
+                // the 2x area, matching the visual of the DC impact labels.
                 doc.addPrinter(StarXpandCommand.PrinterBuilder()
                     .styleAlignment(.left).styleBold(true)
                     .styleMagnification(.init(width: 2, height: 2))
-                    .actionPrintText(orderNumber).actionFeedLine(1))
-                // Row 1 RIGHT: order number small right-aligned
+                    .actionPrintText(orderNumber))
+                // Row 1 RIGHT: order number small right-aligned (same visual row)
                 doc.addPrinter(StarXpandCommand.PrinterBuilder()
                     .styleAlignment(.right).styleBold(false)
                     .styleMagnification(.init(width: 1, height: 1))
