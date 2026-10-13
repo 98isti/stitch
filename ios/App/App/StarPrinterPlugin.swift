@@ -229,40 +229,70 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
             let name = String(labelNames[i - 1].prefix(25)).uppercased()
             let doc  = StarXpandCommand.DocumentBuilder()
 
-            // Pre-feed: text starts immediately after cut
-            doc.addPrinter(StarXpandCommand.PrinterBuilder()
-                .styleMagnification(.init(width: 1, height: 1)).actionFeedLine(1))
+            if isDryCleaning {
+                // ── IMPACT (SP742) — ESC d 1 current-position cut ─────────────────────
+                // Pre-feed: 1 line so text starts right after cut
+                doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                    .styleMagnification(.init(width: 1, height: 1)).actionFeedLine(1))
 
-            // Row 1 LEFT: order number large bold
-            doc.addPrinter(StarXpandCommand.PrinterBuilder()
-                .styleAlignment(.left).styleBold(true)
-                .styleMagnification(.init(width: 2, height: 2))
-                .actionPrintText(orderNumber).actionFeedLine(1))
-            // Row 1 RIGHT: order number small, right-aligned
-            doc.addPrinter(StarXpandCommand.PrinterBuilder()
-                .styleAlignment(.right).styleBold(false)
-                .styleMagnification(.init(width: 1, height: 1))
-                .actionPrintText("\(orderNumber) \n"))
+                // Row 1 LEFT: order number large bold (2×2)
+                doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                    .styleAlignment(.left).styleBold(true)
+                    .styleMagnification(.init(width: 2, height: 2))
+                    .actionPrintText(orderNumber).actionFeedLine(1))
+                // Row 1 RIGHT: order number small right-aligned
+                doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                    .styleAlignment(.right).styleBold(false)
+                    .styleMagnification(.init(width: 1, height: 1))
+                    .actionPrintText("\(orderNumber) \n"))
 
-            // Row 2: pickup date (left) + "X of N" (right)
-            doc.addPrinter(StarXpandCommand.PrinterBuilder()
-                .styleAlignment(.left).styleBold(true)
-                .styleMagnification(.init(width: 1, height: 1))
-                .actionPrintText(twoCol(pickupDate, "\(i) of \(total)"))
-                .actionFeedLine(1))
+                // Row 2: date (left) + count (right)
+                doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                    .styleAlignment(.left).styleBold(true)
+                    .styleMagnification(.init(width: 1, height: 1))
+                    .actionPrintText(twoCol(pickupDate, "\(i) of \(total)"))
+                    .actionFeedLine(1))
 
-            // Row 3: item name ≤25 chars (left) + full customer name (right)
-            doc.addPrinter(StarXpandCommand.PrinterBuilder()
-                .styleAlignment(.left).styleBold(true)
-                .actionPrintText(twoCol(name, customerName.uppercased())))
+                // Row 3: item name (left) + customer name (right)
+                doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                    .styleAlignment(.left).styleBold(true)
+                    .actionPrintText(twoCol(name, customerName.uppercased())))
 
-            // Post-feed: 1 line so cut lands tight after text
-            doc.addPrinter(StarXpandCommand.PrinterBuilder().actionFeedLine(1))
+                // Post-feed + ESC d 1 current-position cut
+                doc.addPrinter(StarXpandCommand.PrinterBuilder().actionFeedLine(1))
+                doc.addRaw(Data([0x1B, 0x64, 0x01]))
 
-            // ESC d 1 = current-position partial cut (StarPRNT mode).
-            // Both SP742 (impact) and mC-Print3 (thermal) support this command,
-            // keeping label height identical and compact on both printers.
-            doc.addRaw(Data([0x1B, 0x64, 0x01]))
+            } else {
+                // ── THERMAL (mC-Print3) — standard actionCut(.partial) ──────────────
+                // mC-Print3 interprets ESC d 1 differently from SP742 so we
+                // use the StarXpand cut API. No pre/post feed to keep height tight.
+
+                // Row 1 LEFT: order number large bold (2×2)
+                doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                    .styleAlignment(.left).styleBold(true)
+                    .styleMagnification(.init(width: 2, height: 2))
+                    .actionPrintText(orderNumber).actionFeedLine(1))
+                // Row 1 RIGHT: order number small right-aligned
+                doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                    .styleAlignment(.right).styleBold(false)
+                    .styleMagnification(.init(width: 1, height: 1))
+                    .actionPrintText("\(orderNumber) \n"))
+
+                // Row 2: date (left) + count (right)
+                doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                    .styleAlignment(.left).styleBold(true)
+                    .styleMagnification(.init(width: 1, height: 1))
+                    .actionPrintText(twoCol(pickupDate, "\(i) of \(total)"))
+                    .actionFeedLine(1))
+
+                // Row 3: item name (left) + customer name (right)
+                doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                    .styleAlignment(.left).styleBold(true)
+                    .actionPrintText(twoCol(name, customerName.uppercased())))
+
+                // Standard partial cut (feeds to cutter position — no addRaw needed)
+                doc.addPrinter(StarXpandCommand.PrinterBuilder().actionCut(.partial))
+            }
 
             builder.addDocument(doc)
         }
