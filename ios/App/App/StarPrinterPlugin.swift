@@ -210,10 +210,12 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
             doc.addPrinter(StarXpandCommand.PrinterBuilder()
                 .styleAlignment(.left).styleBold(true)
                 .actionPrintText(" ").actionFeedLine(1))
+            // ESC d 1 releases the previous (last garment) label at current position.
+            // actionCut(.partial) then ejects the blank itself — the extra cutter-feed
+            // distance is confined to this sacrificial blank, not a garment label.
+            doc.addRaw(Data([0x1B, 0x64, 0x01]))
             if finalCut {
                 doc.addPrinter(StarXpandCommand.PrinterBuilder().actionCut(.partial))
-            } else {
-                doc.addRaw(Data([0x1B, 0x64, 0x01]))
             }
             return doc
         }
@@ -257,12 +259,10 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
             // Post-feed: 1 line so cut lands tight after text
             doc.addPrinter(StarXpandCommand.PrinterBuilder().actionFeedLine(1))
 
-            // Cut
-            if isDryCleaning {
-                doc.addRaw(Data([0x1B, 0x64, 0x01]))  // current-position cut (SP742)
-            } else {
-                doc.addPrinter(StarXpandCommand.PrinterBuilder().actionCut(.partial))
-            }
+            // ESC d 1 = current-position partial cut (StarPRNT mode).
+            // Both SP742 (impact) and mC-Print3 (thermal) support this command,
+            // keeping label height identical and compact on both printers.
+            doc.addRaw(Data([0x1B, 0x64, 0x01]))
 
             builder.addDocument(doc)
         }
