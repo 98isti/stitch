@@ -5,56 +5,57 @@ import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 
 const STATES = ['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA']
-const COUNTRIES = ['Australia', 'New Zealand', 'United Kingdom', 'United States', 'Other']
 
 interface FormData {
-  companyName: string
-  abn: string
+  // Step 0 — personal / account
   ownerFirstName: string
-  ownerLastName: string
-  ownerPin: string
-  locationName: string
+  ownerLastName:  string
+  ownerPin:       string
+  // Step 1 — shop / location
+  shopName:     string   // saved as businessName on location doc
+  shopNickname: string   // saved as name on location doc (defaults to shopName)
+  abn:          string
+  shopType:     'alterations' | 'dryCleaning'
+  phone:        string
   streetAddress: string
-  suburb: string
-  state: string
-  country: string
-  phone: string
-  shopType: 'alterations' | 'dryCleaning'
-  dailyTarget: string
+  suburb:       string
+  state:        string
+  dailyTarget:  string
 }
 
 const INITIAL: FormData = {
-  companyName: '',
-  abn: '',
   ownerFirstName: '',
-  ownerLastName: '',
-  ownerPin: '',
-  locationName: '',
-  streetAddress: '',
-  suburb: '',
-  state: 'NSW',
-  country: 'Australia',
-  phone: '',
-  shopType: 'alterations',
-  dailyTarget: '1000',
+  ownerLastName:  '',
+  ownerPin:       '',
+  shopName:       '',
+  shopNickname:   '',
+  abn:            '',
+  shopType:       'alterations',
+  phone:          '',
+  streetAddress:  '',
+  suburb:         '',
+  state:          'NSW',
+  dailyTarget:    '1000',
 }
-
-const STEPS = ['Business', 'Location', 'Done']
 
 export default function OnboardingPage() {
   const { user } = useAuth()
-  const [step, setStep] = useState(0)
-  const [form, setForm] = useState<FormData>(INITIAL)
+  const [step, setStep]     = useState(0)
+  const [form, setForm]     = useState<FormData>(INITIAL)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError]   = useState('')
 
   function set(field: keyof FormData, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
   function canNext() {
-    if (step === 0) return form.companyName.trim().length > 0 && form.ownerFirstName.trim().length > 0 && form.ownerPin.length === 4
-    if (step === 1) return form.locationName.trim().length > 0 && form.phone.trim().length > 0
+    if (step === 0) {
+      return form.ownerFirstName.trim().length > 0 && form.ownerPin.length === 4
+    }
+    if (step === 1) {
+      return form.shopName.trim().length > 0 && form.phone.trim().length > 0
+    }
     return true
   }
 
@@ -65,76 +66,75 @@ export default function OnboardingPage() {
     try {
       const accountId = user.uid
 
-      // 1. Create account profile
+      // 1. Account doc — auth / plan layer only, no business data
       await setDoc(doc(db, 'accounts', accountId), {
-        businessName: form.companyName.trim(),
-        abn: form.abn.trim(),
-        email: user.email,
-        phone: form.phone.trim(),
-        shopType: form.shopType,
-        plan: 'trial',
+        plan:       'trial',
         trialEndsAt: new Date(Date.now() + 14 * 86400000),
-        createdAt: serverTimestamp(),
-        templateApplied: 'sewSmart',
+        email:      user.email,
+        createdAt:  serverTimestamp(),
       })
 
-      // 2. Create Owner staff record
+      // 2. Owner staff record
       const ownerPinHash = await (async () => {
         const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(form.ownerPin))
         return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
       })()
       await addDoc(collection(db, 'accounts', accountId, 'staff'), {
-        firstName: form.ownerFirstName.trim(),
-        lastName: form.ownerLastName.trim(),
-        pinHash: ownerPinHash,
-        role: 'Owner',
-        payRate: 0,
-        isActive: true,
-        createdAt: serverTimestamp(),
+        firstName:  form.ownerFirstName.trim(),
+        lastName:   form.ownerLastName.trim(),
+        pinHash:    ownerPinHash,
+        role:       'Owner',
+        payRate:    0,
+        isActive:   true,
+        createdAt:  serverTimestamp(),
       })
 
-      // 3. Create first location
+      // 3. First location — ALL business data lives here
+      const locationName = form.shopNickname.trim() || form.shopName.trim()
       await addDoc(collection(db, 'accounts', accountId, 'locations'), {
-        name: form.locationName.trim(),
+        businessName:  form.shopName.trim(),
+        name:          locationName,
+        abn:           form.abn.trim(),
+        shopType:      form.shopType,
+        phone:         form.phone.trim(),
         streetAddress: form.streetAddress.trim(),
-        suburb: form.suburb.trim(),
-        state: form.state,
-        country: form.country,
-        phone: form.phone.trim(),
-        shopType: form.shopType,
-        dailyTarget: parseFloat(form.dailyTarget) || 1000,
-        createdAt: serverTimestamp(),
+        suburb:        form.suburb.trim(),
+        state:         form.state,
+        country:       'Australia',
+        dailyTarget:   parseFloat(form.dailyTarget) || 1000,
+        orderPrefix:   locationName.slice(0, 3).toUpperCase(),
+        createdAt:     serverTimestamp(),
       })
 
-      // 4. Seed categories + items from JSON template files
-      const templateFile = form.shopType === 'alterations' ? '/templates/alterations.json' : '/templates/dry-cleaning.json'
+      // 4. Seed categories + items from template
+      const templateFile = form.shopType === 'alterations'
+        ? '/templates/alterations.json'
+        : '/templates/dry-cleaning.json'
       const template = await fetch(templateFile).then(r => r.json())
-      const { doc: docRef, setDoc: set } = await import('firebase/firestore')
+      const { doc: docRef, setDoc: setD } = await import('firebase/firestore')
 
-      // Seed categories
       for (const catName of template.categories) {
-        const catRef = docRef(db, 'accounts', accountId, 'categories', catName.replace(/[^a-zA-Z0-9]/g, '_'))
-        await set(catRef, { categoryName: catName, source: 'default', createdAt: serverTimestamp() })
+        const catRef = docRef(db, 'accounts', accountId, 'categories',
+          catName.replace(/[^a-zA-Z0-9]/g, '_'))
+        await setD(catRef, { categoryName: catName, source: 'default', createdAt: serverTimestamp() })
       }
-
-      // Seed items
       for (const item of template.items) {
         const itemRef = docRef(db, 'accounts', accountId, 'items',
           [item.category, item.subCategory, item.name].join('_').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 80))
-        await set(itemRef, {
-          itemCategoryName: item.category,
+        await setD(itemRef, {
+          itemCategoryName:    item.category,
           itemSubCategoryName: item.subCategory,
-          itemName: item.name,
-          itemPrice: item.price,
-          source: 'default',
-          createdAt: serverTimestamp(),
+          itemName:            item.name,
+          itemPrice:           item.price,
+          source:              'default',
+          createdAt:           serverTimestamp(),
         }, { merge: true })
       }
 
-      // 5. Mark user profile
+      // 5. Mark user as onboarded
       await setDoc(doc(db, 'users', accountId), {
         accountId,
-        email: user.email,
+        email:     user.email,
         onboarded: true,
         createdAt: serverTimestamp(),
       })
@@ -149,202 +149,216 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-navy flex items-center justify-center p-4">
-      <div className="w-full max-w-lg">
+      <div className="w-full max-w-md">
+
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3">
-            <img src="/stitch-logo.png" alt="Stitch" className="h-12 object-contain brightness-0 invert" />
-          </div>
+          <img src="/stitch-logo.png" alt="Stitch" className="h-10 object-contain brightness-0 invert mx-auto" />
         </div>
 
-        {/* Progress */}
+        {/* Step dots */}
         {step < 2 && (
-          <div className="flex items-center gap-2 mb-6 px-2">
-            {STEPS.slice(0, 2).map((s, i) => (
-              <div key={s} className="flex items-center gap-2 flex-1">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
-                  i <= step ? 'bg-tan text-navy' : 'bg-white/20 text-white/40'
-                }`}>{i + 1}</div>
-                <span className={`text-xs font-medium transition-colors ${i <= step ? 'text-white' : 'text-white/40'}`}>{s}</span>
-                {i < 1 && <div className={`flex-1 h-0.5 rounded ${i < step ? 'bg-tan' : 'bg-white/20'}`} />}
-              </div>
+          <div className="flex items-center justify-center gap-2 mb-6">
+            {[0, 1].map(i => (
+              <div key={i} className={`rounded-full transition-all duration-300 ${
+                i === step ? 'w-6 h-2 bg-tan' : i < step ? 'w-2 h-2 bg-tan/60' : 'w-2 h-2 bg-white/30'
+              }`} />
             ))}
           </div>
         )}
 
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          {/* Step 0 — Business info */}
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+
+          {/* ── Step 0: Your account ──────────────────────────────── */}
           {step === 0 && (
-            <div className="p-6">
-              <h2 className="font-bold text-navy text-lg mb-1">Business details</h2>
-              <p className="text-sm text-gray-500 mb-5">Tell us about your business</p>
+            <div className="p-7">
+              <h2 className="font-bold text-navy text-xl mb-1">Welcome to Stitch</h2>
+              <p className="text-sm text-gray-500 mb-6">Let's start with your owner account</p>
 
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Company Name <span className="text-red-400">*</span></label>
-                  <input type="text" value={form.companyName} onChange={e => set('companyName', e.target.value)}
-                    placeholder="e.g. Sew Smart Alterations"
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ABN <span className="text-gray-400 font-normal">(optional)</span></label>
-                  <input type="text" value={form.abn} onChange={e => set('abn', e.target.value)}
-                    placeholder="e.g. 12 345 678 901"
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
-                </div>
-
-                <div className="pt-2 border-t border-gray-100">
-                  <p className="text-sm font-semibold text-gray-700 mb-3">Your Owner Account</p>
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">First Name <span className="text-red-400">*</span></label>
-                      <input type="text" value={form.ownerFirstName} onChange={e => set('ownerFirstName', e.target.value)}
-                        placeholder="Isti"
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                      <input type="text" value={form.ownerLastName} onChange={e => set('ownerLastName', e.target.value)}
-                        placeholder="Islam"
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
-                    </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      First Name <span className="text-red-400">*</span>
+                    </label>
+                    <input type="text" value={form.ownerFirstName}
+                      onChange={e => set('ownerFirstName', e.target.value)}
+                      placeholder="Isti"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Owner PIN <span className="text-red-400">*</span></label>
-                    <input type="password" inputMode="numeric" maxLength={4} value={form.ownerPin} onChange={e => set('ownerPin', e.target.value.replace(/\D/g, '').slice(0, 4))}
-                      placeholder="4-digit PIN for Settings & Admin access"
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy tracking-widest" />
-                    <p className="text-xs text-gray-400 mt-1">Used to access Settings and mark orders as complete</p>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Last Name</label>
+                    <input type="text" value={form.ownerLastName}
+                      onChange={e => set('ownerLastName', e.target.value)}
+                      placeholder="Islam"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Owner PIN <span className="text-red-400">*</span>
+                  </label>
+                  <input type="password" inputMode="numeric" maxLength={4}
+                    value={form.ownerPin}
+                    onChange={e => set('ownerPin', e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    placeholder="••••"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy tracking-[0.5em] text-center text-xl" />
+                  <p className="text-xs text-gray-400 mt-1.5 text-center">4 digits — used for Settings and admin access</p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 1 — Location info */}
+          {/* ── Step 1: Your shop ─────────────────────────────────── */}
           {step === 1 && (
-            <div className="p-6">
-              <h2 className="font-bold text-navy text-lg mb-1">Your first location</h2>
-              <p className="text-sm text-gray-500 mb-5">You can add more locations later</p>
+            <div className="p-7">
+              <h2 className="font-bold text-navy text-xl mb-1">Your shop</h2>
+              <p className="text-sm text-gray-500 mb-6">Tell us about your business</p>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
+                {/* Shop type — pick first, affects everything */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Location Name <span className="text-red-400">*</span></label>
-                  <input type="text" value={form.locationName} onChange={e => set('locationName', e.target.value)}
-                    placeholder="e.g. Eastgardens, Sydney CBD"
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
-                  <input type="text" value={form.streetAddress} onChange={e => set('streetAddress', e.target.value)}
-                    placeholder="e.g. Shop 12, 152 Bunnerong Road"
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Suburb / City</label>
-                    <input type="text" value={form.suburb} onChange={e => set('suburb', e.target.value)}
-                      placeholder="e.g. Eastgardens"
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Shop type</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['alterations', 'dryCleaning'] as const).map(type => (
+                      <button key={type} type="button"
+                        onClick={() => set('shopType', type)}
+                        className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                          form.shopType === type
+                            ? 'border-navy bg-navy text-white'
+                            : 'border-gray-200 text-gray-600 hover:border-navy/30'
+                        }`}>
+                        {type === 'alterations' ? '✂️  Alterations' : '👔  Dry Cleaning'}
+                      </button>
+                    ))}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                </div>
+
+                {/* Shop name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Shop name <span className="text-red-400">*</span>
+                  </label>
+                  <input type="text" value={form.shopName}
+                    onChange={e => set('shopName', e.target.value)}
+                    placeholder="e.g. Sew Smart Alterations"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
+                </div>
+
+                {/* ABN */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    ABN <span className="text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  <input type="text" value={form.abn}
+                    onChange={e => set('abn', e.target.value)}
+                    placeholder="e.g. 12 345 678 901"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Phone <span className="text-red-400">*</span>
+                  </label>
+                  <input type="tel" value={form.phone}
+                    onChange={e => set('phone', e.target.value)}
+                    placeholder="e.g. 02 9123 4567"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
+                </div>
+
+                {/* Address */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Address</label>
+                  <input type="text" value={form.streetAddress}
+                    onChange={e => set('streetAddress', e.target.value)}
+                    placeholder="e.g. Shop 12, Westfield Eastgardens"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
+                </div>
+
+                <div className="grid grid-cols-5 gap-2">
+                  <div className="col-span-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Suburb</label>
+                    <input type="text" value={form.suburb}
+                      onChange={e => set('suburb', e.target.value)}
+                      placeholder="Eastgardens"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">State</label>
                     <select value={form.state} onChange={e => set('state', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy bg-white">
+                      className="w-full px-3 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy bg-white">
                       {STATES.map(s => <option key={s}>{s}</option>)}
                     </select>
                   </div>
                 </div>
 
+                {/* Daily target */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                  <select value={form.country} onChange={e => set('country', e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy bg-white">
-                    {COUNTRIES.map(c => <option key={c}>{c}</option>)}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number <span className="text-red-400">*</span></label>
-                  <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)}
-                    placeholder="e.g. 02 9123 4567"
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Daily Sales Target ($)</label>
-                  <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus-within:border-navy">
-                    <span className="text-gray-400 font-medium">$</span>
-                    <input type="number" value={form.dailyTarget} onChange={e => set('dailyTarget', e.target.value)}
-                      placeholder="500"
-                      className="flex-1 bg-transparent text-gray-900 text-sm focus:outline-none"
-                      inputMode="numeric" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Daily sales target <span className="text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 focus-within:border-navy focus-within:ring-2 focus-within:ring-navy/20">
+                    <span className="text-gray-400">$</span>
+                    <input type="number" value={form.dailyTarget}
+                      onChange={e => set('dailyTarget', e.target.value)}
+                      placeholder="1000" inputMode="numeric"
+                      className="flex-1 bg-transparent text-sm text-gray-900 focus:outline-none" />
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">Used for the daily revenue progress bar</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Shop Type</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(['alterations', 'dryCleaning'] as const).map(type => (
-                      <button key={type} onClick={() => set('shopType', type)}
-                        className={`py-2.5 rounded-lg border-2 text-sm font-medium transition-colors ${
-                          form.shopType === type
-                            ? 'border-navy bg-navy text-white'
-                            : 'border-gray-200 text-gray-600 hover:border-navy/40'
-                        }`}>
-                        {type === 'alterations' ? '✂️ Alterations' : '👔 Dry Cleaning'}
-                      </button>
-                    ))}
-                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Shows as a daily progress bar on the POS</p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 2 — Done */}
+          {/* ── Step 2: Done ──────────────────────────────────────── */}
           {step === 2 && (
-            <div className="p-8 text-center">
-              <div className="text-5xl mb-4">🎉</div>
-              <h2 className="font-bold text-navy text-xl mb-2">You're all set!</h2>
-              <p className="text-sm text-gray-500 mb-1">Your account has been created.</p>
-              <p className="text-sm text-gray-500 mb-6">
-                We've loaded <strong>256 services</strong> and prices as a starting point — edit them anytime.
+            <div className="p-10 text-center">
+              <div className="text-6xl mb-5">🎉</div>
+              <h2 className="font-bold text-navy text-2xl mb-2">You're all set!</h2>
+              <p className="text-sm text-gray-500 mb-1">Your shop has been created.</p>
+              <p className="text-sm text-gray-500 mb-8">
+                We've loaded services and prices as a starting point — edit them anytime in Settings.
               </p>
               <button onClick={() => window.location.reload()}
-                className="w-full bg-navy text-white py-3 rounded-xl font-semibold hover:bg-navy-light transition-colors">
+                className="w-full bg-navy text-white py-3.5 rounded-xl font-semibold hover:bg-navy/90 transition-colors text-sm">
                 Open Stitch →
               </button>
             </div>
           )}
 
-          {/* Footer buttons */}
+          {/* Footer nav */}
           {step < 2 && (
-            <div className="px-6 pb-6 flex gap-3">
-              {step > 0 && (
-                <button onClick={() => setStep(s => s - 1)}
-                  className="flex-1 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
-                  Back
-                </button>
+            <div className="px-7 pb-7 flex flex-col gap-3">
+              {error && (
+                <p className="text-red-500 text-xs text-center">{error}</p>
               )}
-              {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
-              {step < 1 ? (
-                <button onClick={() => setStep(s => s + 1)} disabled={!canNext()}
-                  className="flex-1 py-2.5 rounded-lg bg-navy text-white text-sm font-semibold hover:bg-navy-light disabled:opacity-40 transition-colors">
-                  Next →
-                </button>
-              ) : (
-                <button onClick={handleFinish} disabled={!canNext() || saving}
-                  className="flex-1 py-2.5 rounded-lg bg-navy text-white text-sm font-semibold hover:bg-navy-light disabled:opacity-40 transition-colors">
-                  {saving ? 'Setting up...' : 'Finish →'}
-                </button>
-              )}
+              <div className="flex gap-3">
+                {step > 0 && (
+                  <button onClick={() => setStep(s => s - 1)}
+                    className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
+                    ← Back
+                  </button>
+                )}
+                {step < 1 ? (
+                  <button onClick={() => setStep(s => s + 1)} disabled={!canNext()}
+                    className="flex-1 py-3 rounded-xl bg-navy text-white text-sm font-semibold hover:bg-navy/90 disabled:opacity-40 transition-colors">
+                    Next →
+                  </button>
+                ) : (
+                  <button onClick={handleFinish} disabled={!canNext() || saving}
+                    className="flex-1 py-3 rounded-xl bg-navy text-white text-sm font-semibold hover:bg-navy/90 disabled:opacity-40 transition-colors">
+                    {saving ? 'Setting up…' : 'Create my shop →'}
+                  </button>
+                )}
+              </div>
             </div>
           )}
+
         </div>
+
+        <p className="text-center text-white/30 text-xs mt-6">Stitch POS · stitch.com.au</p>
       </div>
     </div>
   )
