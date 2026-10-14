@@ -619,7 +619,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                     if (locSnap?.exists()) locData = locSnap.data()
                   } catch {}
                   const ok = await printer.printReceipt({
-                    businessName: acctData.businessName || locData.businessName || order.location,
+                    businessName: locData.businessName || acctData.businessName || order.location,
                     locationName: order.location,
                     locationAddress: [locData.streetAddress, [locData.suburb, locData.state].filter(Boolean).join(' ')].filter(Boolean).join('\n'),
                     locationPhone: locData.phone || locData.businessPhone || '',
