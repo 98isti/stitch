@@ -40,6 +40,7 @@ interface PrinterContextValue {
   printReceipt: (data: ReceiptData, copies?: number) => Promise<boolean>
   printLabel: (data: LabelData) => Promise<boolean>
   printLabelsForOrder: (order: OrderForLabels) => Promise<boolean>
+  printRawText: (text: string) => Promise<boolean>
   openDrawer: () => Promise<boolean>
 }
 
@@ -167,6 +168,24 @@ export function PrinterProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function printRawText(text: string): Promise<boolean> {
+    if (!native || !thermalPrinter) {
+      console.warn('printRawText: not native or no thermal printer selected')
+      return false
+    }
+    try {
+      await StarPrinter.printReceipt({
+        identifier: thermalPrinter,
+        receipt: { rawText: text } as unknown as Record<string, unknown>,
+        copies: 1,
+      })
+      return true
+    } catch (e) {
+      console.error('printRawText failed:', e)
+      return false
+    }
+  }
+
   async function openDrawer(): Promise<boolean> {
     if (!native || !thermalPrinter) return false
     try {
@@ -192,6 +211,7 @@ export function PrinterProvider({ children }: { children: ReactNode }) {
       printLabel,
       printLabelsForOrder,
       openDrawer,
+      printRawText,
     }}>
       {children}
     </PrinterContext.Provider>
