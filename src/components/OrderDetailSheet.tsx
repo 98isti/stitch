@@ -9,7 +9,7 @@ import { useStaff } from '../context/StaffContext'
 import { useAccountProfile } from '../hooks/useAccountProfile'
 
 interface OrderItem {
-  id: string; garmentId?: string; category: string; name: string; quantity: number; unitPrice: number; note: string
+  id: string; garmentId?: string; category: string; name: string; quantity: number; unitPrice: number; note: string; components?: string[]
 }
 
 interface OrderDoc {
