@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { doc, setDoc, collection, addDoc } from 'firebase/firestore'
 import { serverTimestamp } from 'firebase/firestore'
+import { seedItemsForLocation } from '../lib/seedItemsForLocation'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 
@@ -91,7 +92,7 @@ export default function OnboardingPage() {
 
       // 3. First location — ALL business data lives here
       const locationName = form.shopNickname.trim() || form.shopName.trim()
-      await addDoc(collection(db, 'accounts', accountId, 'locations'), {
+      const newLocRef = await addDoc(collection(db, 'accounts', accountId, 'locations'), {
         businessName:  form.shopName.trim(),
         name:          locationName,
         abn:           form.abn.trim(),
@@ -106,30 +107,8 @@ export default function OnboardingPage() {
         createdAt:     serverTimestamp(),
       })
 
-      // 4. Seed categories + items from template
-      const templateFile = form.shopType === 'alterations'
-        ? '/templates/alterations.json'
-        : '/templates/dry-cleaning.json'
-      const template = await fetch(templateFile).then(r => r.json())
-      const { doc: docRef, setDoc: setD } = await import('firebase/firestore')
-
-      for (const catName of template.categories) {
-        const catRef = docRef(db, 'accounts', accountId, 'categories',
-          catName.replace(/[^a-zA-Z0-9]/g, '_'))
-        await setD(catRef, { categoryName: catName, source: 'default', createdAt: serverTimestamp() })
-      }
-      for (const item of template.items) {
-        const itemRef = docRef(db, 'accounts', accountId, 'items',
-          [item.category, item.subCategory, item.name].join('_').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 80))
-        await setD(itemRef, {
-          itemCategoryName:    item.category,
-          itemSubCategoryName: item.subCategory,
-          itemName:            item.name,
-          itemPrice:           item.price,
-          source:              'default',
-          createdAt:           serverTimestamp(),
-        }, { merge: true })
-      }
+      // 4. Seed categories + items from Firestore template for this location
+      seedItemsForLocation(accountId, newLocRef.id, form.shopType).catch(console.error)
 
       // 5. Mark user as onboarded
       await setDoc(doc(db, 'users', accountId), {

@@ -7,6 +7,7 @@ import { ChevronLeft, Save, Check, Plus, Pencil, Trash2 } from 'lucide-react'
 import SettingsPinGate from '../components/SettingsPinGate'
 import PrinterSettings from '../components/PrinterSettings'
 import { useLocations } from '../hooks/useLocations'
+import { seedItemsForLocation } from '../lib/seedItemsForLocation'
 
 const DEFAULT_SMS_TEMPLATE = 'Hi {firstName}, your order at {businessName} is ready for pick-up! Order: {orderNumber}. {balance}'
 
@@ -165,7 +166,10 @@ export default function SettingsPage() {
       if (editingLoc) {
         await updateDoc(doc(db, 'accounts', accountId, 'locations', editingLoc.id), data)
       } else {
-        await addDoc(collection(db, 'accounts', accountId, 'locations'), { ...data, createdAt: serverTimestamp() })
+        const newLocRef = await addDoc(collection(db, 'accounts', accountId, 'locations'), { ...data, createdAt: serverTimestamp() })
+        // Seed default item list for this location in the background
+        const shopType = (data.shopType || 'alterations') as 'alterations' | 'dryCleaning'
+        seedItemsForLocation(accountId, newLocRef.id, shopType).catch(console.error)
       }
       setShowLocSheet(false)
       fetchAllLocs()
