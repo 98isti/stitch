@@ -162,7 +162,7 @@ export default function ItemPickerSheet({
                 : filteredItems.map(item => (
                   <button key={item.id} onClick={() => handleSelectItem(item)}
                     className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-navy/5 transition-colors border-b border-gray-50 last:border-0">
-                    <p className="font-medium text-gray-900 text-left">{item.itemName}{item.components?.length ? \` (${item.components.join(' + ')})` : ''}</p>
+                    <p className="font-medium text-gray-900 text-left">{item.itemName}{item.components?.length ? ` (${item.components.join(' + ')})` : ''}</p>
                     <span className="font-bold text-navy ml-3 shrink-0">
                       {item.itemPrice > 0 ? `$${item.itemPrice.toFixed(2)}` : 'Custom'}
                     </span>
@@ -180,7 +180,7 @@ export default function ItemPickerSheet({
                   <button key={item.id} onClick={() => handleSelectItem(item)}
                     className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-navy/5 transition-colors border-b border-gray-50 last:border-0">
                     <div className="text-left">
-                      <p className="font-medium text-gray-900">{item.itemName}{item.components?.length ? \` (${item.components.join(' + ')})` : ''}</p>
+                      <p className="font-medium text-gray-900">{item.itemName}{item.components?.length ? ` (${item.components.join(' + ')})` : ''}</p>
                       {item.itemSubCategoryName && (
                         <p className="text-xs text-gray-400 mt-0.5">{item.itemSubCategoryName}</p>
                       )}
