@@ -47,14 +47,11 @@ function Input({ value, onChange, type = 'text', placeholder }: {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-interface BusinessSettings {
+interface LocationSettings {
+  name: string
   businessName: string
   abn: string
   businessEmail: string
-}
-
-interface LocationSettings {
-  name: string
   shopNumber: string
   shoppingCentre: string
   streetAddress: string
@@ -70,7 +67,8 @@ interface LocationSettings {
 }
 
 const BLANK_LOCATION: LocationSettings = {
-  name: '', shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '',
+  name: '', businessName: '', abn: '', businessEmail: '',
+  shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '',
   state: 'NSW', postCode: '', country: 'Australia',
   phone: '', dailyTarget: 1000, shopType: 'alterations', orderPrefix: '',
   sms: { senderName: '', template: DEFAULT_SMS_TEMPLATE },
@@ -90,7 +88,6 @@ export default function SettingsPage() {
   const [testPhone, setTestPhone] = useState('')
 
   // Account-level settings
-  const [business, setBusiness] = useState<BusinessSettings>({ businessName: '', abn: '', businessEmail: '' })
   const [requirePinAfterLock, setRequirePinAfterLock] = useState(true)
   const [plan, setPlan] = useState('Trial')
 
@@ -103,7 +100,7 @@ export default function SettingsPage() {
   const [allLocations, setAllLocations] = useState<any[]>([])
   const [showLocSheet, setShowLocSheet] = useState(false)
   const [editingLoc, setEditingLoc] = useState<{ id: string; name: string } | null>(null)
-  const [locForm, setLocForm] = useState({ name: '', shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '', state: 'NSW', postCode: '', phone: '', orderPrefix: '', shopType: 'alterations', dailyTarget: '1000' })
+  const [locForm, setLocForm] = useState({ name: '', businessName: '', abn: '', businessEmail: '', shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '', state: 'NSW', postCode: '', phone: '', orderPrefix: '', shopType: 'alterations', dailyTarget: '1000' })
   const [locSaving, setLocSaving] = useState(false)
 
   // ── Load account-level data once ──────────────────────────────────────────
@@ -113,11 +110,6 @@ export default function SettingsPage() {
     getDoc(doc(db, 'accounts', accountId)).then(snap => {
       if (snap.exists()) {
         const d = snap.data()
-        setBusiness({
-          businessName:  d.businessName  ?? '',
-          abn:           d.abn           ?? '',
-          businessEmail: d.businessEmail ?? '',
-        })
         setRequirePinAfterLock(d.requirePinAfterLock !== false)
         setPlan(d.plan ?? 'Trial')
       }
@@ -134,6 +126,9 @@ export default function SettingsPage() {
       const d = snap.data()
       setLocSettings({
         name:           d.name           ?? '',
+        businessName:   d.businessName   ?? '',
+        abn:            d.abn            ?? '',
+        businessEmail:  d.businessEmail  ?? '',
         shopNumber:     d.shopNumber     ?? '',
         shoppingCentre: d.shoppingCentre ?? '',
         streetAddress:  d.streetAddress  ?? '',
@@ -167,6 +162,9 @@ export default function SettingsPage() {
     try {
       const data = {
         name:           locForm.name,
+        businessName:   locForm.businessName,
+        abn:            locForm.abn,
+        businessEmail:  locForm.businessEmail,
         shopNumber:     locForm.shopNumber,
         shoppingCentre: locForm.shoppingCentre,
         streetAddress:  locForm.streetAddress,
@@ -202,17 +200,12 @@ export default function SettingsPage() {
     if (!accountId || !activeLocation) return
     setSaving(true)
     try {
-      // Business info → account doc (account-wide)
-      await updateDoc(doc(db, 'accounts', accountId), {
-        businessName:  business.businessName,
-        abn:           business.abn,
-        businessEmail: business.businessEmail,
-        requirePinAfterLock,
-        updatedAt: serverTimestamp(),
-      })
-      // Location details → location doc (this shop only)
+      // All info → location doc (including business details)
       await updateDoc(doc(db, 'accounts', accountId, 'locations', activeLocation.id), {
         name:           locSettings.name,
+        businessName:   locSettings.businessName,
+        abn:            locSettings.abn,
+        businessEmail:  locSettings.businessEmail,
         shopNumber:     locSettings.shopNumber,
         shoppingCentre: locSettings.shoppingCentre,
         streetAddress:  locSettings.streetAddress,
@@ -226,6 +219,11 @@ export default function SettingsPage() {
         orderPrefix:    locSettings.orderPrefix,
         sms:            locSettings.sms,
         updatedAt:      serverTimestamp(),
+      })
+      // Account doc — security settings only
+      await updateDoc(doc(db, 'accounts', accountId), {
+        requirePinAfterLock,
+        updatedAt: serverTimestamp(),
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
@@ -247,7 +245,7 @@ export default function SettingsPage() {
           template: locSettings.sms.template,
           firstName: 'Test',
           orderNumber: 'TEST-001',
-          businessName: business.businessName || 'Your Business',
+          businessName: locSettings.businessName || 'Your Business',
           stillDueAmount: 0,
         })
       })
@@ -303,28 +301,7 @@ export default function SettingsPage() {
                 </Section>
               )}
 
-              {/* ── Business (account-wide) ── */}
-              <Section title="Business" subtitle="Applies to all locations — appears on receipts and reports">
-                <Field label="Business Name">
-                  <Input value={business.businessName}
-                    onChange={v => setBusiness(b => ({ ...b, businessName: v }))}
-                    placeholder="Sew Smart Alterations" />
-                </Field>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="ABN">
-                    <Input value={business.abn}
-                      onChange={v => setBusiness(b => ({ ...b, abn: v }))}
-                      placeholder="12 345 678 901" />
-                  </Field>
-                  <Field label="Email">
-                    <Input value={business.businessEmail}
-                      onChange={v => setBusiness(b => ({ ...b, businessEmail: v }))}
-                      type="email" placeholder="hello@business.com.au" />
-                  </Field>
-                </div>
-              </Section>
-
-              {/* ── This Location (location-specific) ── */}
+              {/* ── This Location ── */}
               <Section
                 title={`Location — ${activeLocation?.name ?? 'Select a location'}`}
                 subtitle="Details specific to this shop only">
@@ -475,7 +452,7 @@ export default function SettingsPage() {
                       </div>
                       <button onClick={() => {
                         setEditingLoc({ id: l.id, name: l.name })
-                        setLocForm({ name: l.name, shopNumber: l.shopNumber ?? '', shoppingCentre: l.shoppingCentre ?? '', streetAddress: l.streetAddress ?? '', suburb: l.suburb ?? '', state: l.state ?? 'NSW', postCode: l.postCode ?? '', phone: l.phone ?? '', orderPrefix: l.orderPrefix ?? '', shopType: l.shopType ?? 'alterations', dailyTarget: String(l.dailyTarget ?? 1000) })
+                        setLocForm({ name: l.name, businessName: l.businessName ?? '', abn: l.abn ?? '', businessEmail: l.businessEmail ?? '', shopNumber: l.shopNumber ?? '', shoppingCentre: l.shoppingCentre ?? '', streetAddress: l.streetAddress ?? '', suburb: l.suburb ?? '', state: l.state ?? 'NSW', postCode: l.postCode ?? '', phone: l.phone ?? '', orderPrefix: l.orderPrefix ?? '', shopType: l.shopType ?? 'alterations', dailyTarget: String(l.dailyTarget ?? 1000) })
                         setShowLocSheet(true)
                       }} className="p-1.5 text-gray-400 hover:text-navy transition-colors"><Pencil size={14} /></button>
                       <button onClick={() => deleteLoc(l.id, l.name)}
@@ -484,7 +461,7 @@ export default function SettingsPage() {
                   ))}
                   <button onClick={() => {
                     setEditingLoc(null)
-                    setLocForm({ name: '', shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '', state: 'NSW', postCode: '', phone: '', orderPrefix: '', shopType: 'alterations', dailyTarget: '1000' })
+                    setLocForm({ name: '', businessName: locSettings.businessName, abn: locSettings.abn, businessEmail: locSettings.businessEmail, shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '', state: 'NSW', postCode: '', phone: '', orderPrefix: '', shopType: 'alterations', dailyTarget: '1000' })
                     setShowLocSheet(true)
                   }} className="flex items-center gap-1.5 text-navy text-sm font-medium mt-2 hover:opacity-70 transition-opacity">
                     <Plus size={15} /> Add Location
@@ -526,10 +503,30 @@ export default function SettingsPage() {
             <h3 className="text-center font-bold text-gray-900 mb-4 px-4">{editingLoc ? 'Edit Location' : 'Add Location'}</h3>
             <div className="px-6 space-y-3">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Name</label>
+                <label className="block text-xs text-gray-500 mb-1">Location Name</label>
                 <input value={locForm.name} onChange={e => setLocForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="e.g. Chatswood"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Business Name</label>
+                <input value={locForm.businessName} onChange={e => setLocForm(f => ({ ...f, businessName: e.target.value }))}
+                  placeholder="e.g. Acme Alterations"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">ABN</label>
+                  <input value={locForm.abn} onChange={e => setLocForm(f => ({ ...f, abn: e.target.value }))}
+                    placeholder="12 345 678 901"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Email</label>
+                  <input type="email" value={locForm.businessEmail} onChange={e => setLocForm(f => ({ ...f, businessEmail: e.target.value }))}
+                    placeholder="hello@business.com.au"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
