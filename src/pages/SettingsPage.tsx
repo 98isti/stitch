@@ -55,9 +55,12 @@ interface BusinessSettings {
 
 interface LocationSettings {
   name: string
+  shopNumber: string
+  shoppingCentre: string
   streetAddress: string
   suburb: string
   state: string
+  postCode: string
   country: string
   phone: string
   dailyTarget: number
@@ -67,7 +70,8 @@ interface LocationSettings {
 }
 
 const BLANK_LOCATION: LocationSettings = {
-  name: '', streetAddress: '', suburb: '', state: 'NSW', country: 'Australia',
+  name: '', shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '',
+  state: 'NSW', postCode: '', country: 'Australia',
   phone: '', dailyTarget: 1000, shopType: 'alterations', orderPrefix: '',
   sms: { senderName: '', template: DEFAULT_SMS_TEMPLATE },
 }
@@ -99,7 +103,7 @@ export default function SettingsPage() {
   const [allLocations, setAllLocations] = useState<any[]>([])
   const [showLocSheet, setShowLocSheet] = useState(false)
   const [editingLoc, setEditingLoc] = useState<{ id: string; name: string } | null>(null)
-  const [locForm, setLocForm] = useState({ name: '', streetAddress: '', suburb: '', state: 'NSW', phone: '', orderPrefix: '', shopType: 'alterations', dailyTarget: '1000' })
+  const [locForm, setLocForm] = useState({ name: '', shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '', state: 'NSW', postCode: '', phone: '', orderPrefix: '', shopType: 'alterations', dailyTarget: '1000' })
   const [locSaving, setLocSaving] = useState(false)
 
   // ── Load account-level data once ──────────────────────────────────────────
@@ -129,15 +133,18 @@ export default function SettingsPage() {
       if (!snap.exists()) return
       const d = snap.data()
       setLocSettings({
-        name:          d.name          ?? '',
-        streetAddress: d.streetAddress ?? '',
-        suburb:        d.suburb        ?? '',
-        state:         d.state         ?? 'NSW',
-        country:       d.country       ?? 'Australia',
-        phone:         d.phone         ?? '',
-        dailyTarget:   d.dailyTarget   ?? 1000,
-        shopType:      d.shopType      ?? 'alterations',
-        orderPrefix:   d.orderPrefix   ?? '',
+        name:           d.name           ?? '',
+        shopNumber:     d.shopNumber     ?? '',
+        shoppingCentre: d.shoppingCentre ?? '',
+        streetAddress:  d.streetAddress  ?? '',
+        suburb:         d.suburb         ?? '',
+        state:          d.state          ?? 'NSW',
+        postCode:       d.postCode       ?? '',
+        country:        d.country        ?? 'Australia',
+        phone:          d.phone          ?? '',
+        dailyTarget:    d.dailyTarget    ?? 1000,
+        shopType:       d.shopType       ?? 'alterations',
+        orderPrefix:    d.orderPrefix    ?? '',
         sms: {
           senderName: d.sms?.senderName ?? '',
           template:   d.sms?.template   ?? DEFAULT_SMS_TEMPLATE,
@@ -159,10 +166,18 @@ export default function SettingsPage() {
     setLocSaving(true)
     try {
       const data = {
-        ...locForm,
-        dailyTarget: parseFloat(locForm.dailyTarget) || 1000,
-        orderPrefix: locForm.orderPrefix || locForm.name.slice(0, 3).toUpperCase(),
-        updatedAt: serverTimestamp(),
+        name:           locForm.name,
+        shopNumber:     locForm.shopNumber,
+        shoppingCentre: locForm.shoppingCentre,
+        streetAddress:  locForm.streetAddress,
+        suburb:         locForm.suburb,
+        state:          locForm.state,
+        postCode:       locForm.postCode,
+        phone:          locForm.phone,
+        orderPrefix:    locForm.orderPrefix || locForm.name.slice(0, 3).toUpperCase(),
+        shopType:       locForm.shopType,
+        dailyTarget:    parseFloat(locForm.dailyTarget) || 1000,
+        updatedAt:      serverTimestamp(),
       }
       if (editingLoc) {
         await updateDoc(doc(db, 'accounts', accountId, 'locations', editingLoc.id), data)
@@ -197,17 +212,20 @@ export default function SettingsPage() {
       })
       // Location details → location doc (this shop only)
       await updateDoc(doc(db, 'accounts', accountId, 'locations', activeLocation.id), {
-        name:          locSettings.name,
-        streetAddress: locSettings.streetAddress,
-        suburb:        locSettings.suburb,
-        state:         locSettings.state,
-        country:       locSettings.country,
-        phone:         locSettings.phone,
-        dailyTarget:   locSettings.dailyTarget,
-        shopType:      locSettings.shopType,
-        orderPrefix:   locSettings.orderPrefix,
-        sms:           locSettings.sms,
-        updatedAt:     serverTimestamp(),
+        name:           locSettings.name,
+        shopNumber:     locSettings.shopNumber,
+        shoppingCentre: locSettings.shoppingCentre,
+        streetAddress:  locSettings.streetAddress,
+        suburb:         locSettings.suburb,
+        state:          locSettings.state,
+        postCode:       locSettings.postCode,
+        country:        locSettings.country,
+        phone:          locSettings.phone,
+        dailyTarget:    locSettings.dailyTarget,
+        shopType:       locSettings.shopType,
+        orderPrefix:    locSettings.orderPrefix,
+        sms:            locSettings.sms,
+        updatedAt:      serverTimestamp(),
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
@@ -329,12 +347,24 @@ export default function SettingsPage() {
                     ))}
                   </div>
                 </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Shop Number">
+                    <Input value={locSettings.shopNumber}
+                      onChange={v => setLocSettings(s => ({ ...s, shopNumber: v }))}
+                      placeholder="Shop 25B" />
+                  </Field>
+                  <Field label="Shopping Centre">
+                    <Input value={locSettings.shoppingCentre}
+                      onChange={v => setLocSettings(s => ({ ...s, shoppingCentre: v }))}
+                      placeholder="Westfield Carlingford" />
+                  </Field>
+                </div>
                 <Field label="Street Address">
                   <Input value={locSettings.streetAddress}
                     onChange={v => setLocSettings(s => ({ ...s, streetAddress: v }))}
-                    placeholder="1 Smith Street" />
+                    placeholder="166 Mona Vale Rd" />
                 </Field>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <Field label="Suburb">
                     <Input value={locSettings.suburb}
                       onChange={v => setLocSettings(s => ({ ...s, suburb: v }))}
@@ -346,6 +376,11 @@ export default function SettingsPage() {
                       className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-navy bg-white">
                       {['NSW','VIC','QLD','WA','SA','TAS','ACT','NT'].map(s => <option key={s}>{s}</option>)}
                     </select>
+                  </Field>
+                  <Field label="Post Code">
+                    <Input value={locSettings.postCode}
+                      onChange={v => setLocSettings(s => ({ ...s, postCode: v }))}
+                      placeholder="2118" />
                   </Field>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -440,7 +475,7 @@ export default function SettingsPage() {
                       </div>
                       <button onClick={() => {
                         setEditingLoc({ id: l.id, name: l.name })
-                        setLocForm({ name: l.name, streetAddress: l.streetAddress ?? '', suburb: l.suburb ?? '', state: l.state ?? 'NSW', phone: l.phone ?? '', orderPrefix: l.orderPrefix ?? '', shopType: l.shopType ?? 'alterations', dailyTarget: String(l.dailyTarget ?? 1000) })
+                        setLocForm({ name: l.name, shopNumber: l.shopNumber ?? '', shoppingCentre: l.shoppingCentre ?? '', streetAddress: l.streetAddress ?? '', suburb: l.suburb ?? '', state: l.state ?? 'NSW', postCode: l.postCode ?? '', phone: l.phone ?? '', orderPrefix: l.orderPrefix ?? '', shopType: l.shopType ?? 'alterations', dailyTarget: String(l.dailyTarget ?? 1000) })
                         setShowLocSheet(true)
                       }} className="p-1.5 text-gray-400 hover:text-navy transition-colors"><Pencil size={14} /></button>
                       <button onClick={() => deleteLoc(l.id, l.name)}
@@ -449,7 +484,7 @@ export default function SettingsPage() {
                   ))}
                   <button onClick={() => {
                     setEditingLoc(null)
-                    setLocForm({ name: '', streetAddress: '', suburb: '', state: 'NSW', phone: '', orderPrefix: '', shopType: 'alterations', dailyTarget: '1000' })
+                    setLocForm({ name: '', shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '', state: 'NSW', postCode: '', phone: '', orderPrefix: '', shopType: 'alterations', dailyTarget: '1000' })
                     setShowLocSheet(true)
                   }} className="flex items-center gap-1.5 text-navy text-sm font-medium mt-2 hover:opacity-70 transition-opacity">
                     <Plus size={15} /> Add Location
@@ -490,21 +525,63 @@ export default function SettingsPage() {
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
             <h3 className="text-center font-bold text-gray-900 mb-4 px-4">{editingLoc ? 'Edit Location' : 'Add Location'}</h3>
             <div className="px-6 space-y-3">
-              {(['name','streetAddress','suburb','phone','orderPrefix'] as const).map(k => (
-                <div key={k}>
-                  <label className="block text-xs text-gray-500 mb-1">
-                    {k === 'orderPrefix' ? 'Order Prefix' : k === 'streetAddress' ? 'Street Address' : k.charAt(0).toUpperCase() + k.slice(1)}
-                  </label>
-                  <input value={locForm[k]} onChange={e => setLocForm(f => ({ ...f, [k]: e.target.value }))}
-                    placeholder={k === 'orderPrefix' ? 'e.g. CAR' : k === 'name' ? 'e.g. Carlingford' : ''}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Name</label>
+                <input value={locForm.name} onChange={e => setLocForm(f => ({ ...f, name: e.target.value }))}
+                  placeholder="e.g. Carlingford"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Shop Number</label>
+                  <input value={locForm.shopNumber} onChange={e => setLocForm(f => ({ ...f, shopNumber: e.target.value }))}
+                    placeholder="Shop 25B"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
                 </div>
-              ))}
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Shopping Centre</label>
+                  <input value={locForm.shoppingCentre} onChange={e => setLocForm(f => ({ ...f, shoppingCentre: e.target.value }))}
+                    placeholder="Westfield"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
+                </div>
+              </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Daily Target ($)</label>
-                <input type="number" value={locForm.dailyTarget}
-                  onChange={e => setLocForm(f => ({ ...f, dailyTarget: e.target.value }))}
+                <label className="block text-xs text-gray-500 mb-1">Street Address</label>
+                <input value={locForm.streetAddress} onChange={e => setLocForm(f => ({ ...f, streetAddress: e.target.value }))}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Suburb</label>
+                  <input value={locForm.suburb} onChange={e => setLocForm(f => ({ ...f, suburb: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">State</label>
+                  <select value={locForm.state} onChange={e => setLocForm(f => ({ ...f, state: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy bg-white">
+                    {['NSW','VIC','QLD','WA','SA','TAS','ACT','NT'].map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Post Code</label>
+                  <input value={locForm.postCode} onChange={e => setLocForm(f => ({ ...f, postCode: e.target.value }))}
+                    placeholder="2118"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Phone</label>
+                  <input value={locForm.phone} onChange={e => setLocForm(f => ({ ...f, phone: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Order Prefix</label>
+                  <input value={locForm.orderPrefix} onChange={e => setLocForm(f => ({ ...f, orderPrefix: e.target.value.toUpperCase() }))}
+                    placeholder="CAR"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
+                </div>
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Shop Type</label>
