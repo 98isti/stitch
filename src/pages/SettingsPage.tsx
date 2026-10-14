@@ -310,6 +310,23 @@ export default function SettingsPage() {
                     onChange={v => setLocSettings(s => ({ ...s, name: v }))}
                     placeholder="Chatswood" />
                 </Field>
+                <Field label="Business Name">
+                  <Input value={locSettings.businessName}
+                    onChange={v => setLocSettings(s => ({ ...s, businessName: v }))}
+                    placeholder="e.g. Acme Alterations" />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="ABN">
+                    <Input value={locSettings.abn}
+                      onChange={v => setLocSettings(s => ({ ...s, abn: v }))}
+                      placeholder="12 345 678 901" />
+                  </Field>
+                  <Field label="Email">
+                    <Input value={locSettings.businessEmail}
+                      onChange={v => setLocSettings(s => ({ ...s, businessEmail: v }))}
+                      type="email" placeholder="hello@business.com.au" />
+                  </Field>
+                </div>
                 <Field label="Shop Type">
                   <div className="grid grid-cols-2 gap-2">
                     {[['alterations', '✂️ Alterations'], ['dryCleaning', '👔 Dry Cleaning']] .map(([val, label]) => (
