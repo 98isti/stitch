@@ -413,7 +413,10 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                       <div key={i} className="flex items-start justify-between pl-7 pr-4 py-3 border-b border-gray-100 last:border-0">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-gray-900">{item.name}</p>
-                          {item.note && <p className="text-xs text-gray-400 italic mt-0.5">Note: {item.note}</p>}
+                          {item.components?.map((c: string) => (
+                            <p key={c} className="text-xs text-gray-400 mt-0.5">↳ {c}</p>
+                          ))}
+                          {item.note && <p className="text-xs text-amber-500 italic mt-0.5">Note: {item.note}</p>}
                         </div>
                         <div className="flex items-center gap-4 shrink-0 ml-4">
                           <p className="text-sm text-gray-400">x{item.quantity}</p>
@@ -426,7 +429,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
 
                 {/* Totals */}
                 {(() => {
-                  const pieceCount = groups.reduce((sum, g) => sum + (g.items[0]?.quantity ?? 1), 0)
+                  const pieceCount = groups.reduce((sum, g) => sum + g.items.reduce((s, item) => s + item.quantity * Math.max((item.components?.length ?? 1), 1), 0), 0)
                   return (
                     <div className="px-4 py-3 border-t border-gray-200 bg-white flex items-center gap-4">
                       {/* Piece count circle */}

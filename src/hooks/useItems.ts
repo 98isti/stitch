@@ -9,6 +9,7 @@ export interface PriceItem {
   itemSubCategoryName: string | null
   itemPrice: number
   shopType?: string
+  components?: string[]  // physical pieces e.g. ["Jacket","Trousers"]
 }
 
 export function useItems(accountId: string | null, shopType?: string) {

@@ -22,6 +22,7 @@ import { useAuth } from '../context/AuthContext'
 import { useStaff } from '../context/StaffContext'
 
 import type { SaleItem } from '../types/sale'
+import { totalPieceCount } from '../types/sale'
 
 interface Customer {
   id: string
@@ -459,7 +460,8 @@ export default function POSPage() {
     const baseCategoryLabel = categoryLabel.replace(/ \d+$/, '')
     setItems(prev => [...prev, {
       id: crypto.randomUUID(), garmentId,
-      category: baseCategoryLabel, name: item.itemName, quantity: 1, unitPrice: price, note: ''
+      category: baseCategoryLabel, name: item.itemName, quantity: 1, unitPrice: price, note: '',
+      ...(item.components?.length ? { components: item.components } : {})
     }])
     if (item.itemPrice > 0) setAmount('0')
     setShowPicker(false)
@@ -833,17 +835,13 @@ export default function POSPage() {
             <div className="border-t border-gray-200 bg-white px-4 py-2.5 flex items-center gap-3">
               <div className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center shrink-0">
                 <span className="text-sm font-bold text-gray-600">
-                  {(() => {
-                    const groups = [...new Map(items.map(i => [i.garmentId, i])).values()]
-                    return groups.reduce((sum, i) => sum + i.quantity, 0)
-                  })()}
+                  {totalPieceCount(items)}
                 </span>
               </div>
               <span className="text-sm text-gray-400">
               {items.length === 0 ? 'items in current sale' : (() => {
-                  const uGroups = [...new Map(items.map(i => [i.garmentId, i])).values()]
-                  const total = uGroups.reduce((s, i) => s + i.quantity, 0)
-                  return `${total} garment${total !== 1 ? 's' : ''}, ${items.length} service${items.length !== 1 ? 's' : ''}`
+                  const pieces = totalPieceCount(items)
+                  return `${pieces} piece${pieces !== 1 ? 's' : ''}, ${items.length} service${items.length !== 1 ? 's' : ''}`
                 })()}
             </span>
 
@@ -1024,7 +1022,10 @@ export default function POSPage() {
                         className="flex items-center gap-2 py-1.5 px-3 ml-1">
                         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setEditingItem(item)}>
                           <p className="text-sm text-gray-700 truncate">{item.name}</p>
-                          {item.note ? <p className="text-xs text-gray-400 truncate mt-0.5">{item.note}</p> : null}
+                          {item.components?.map(c => (
+                            <p key={c} className="text-xs text-gray-400 mt-0.5">↳ {c}</p>
+                          ))}
+                          {item.note ? <p className="text-xs text-amber-500 truncate mt-0.5">{item.note}</p> : null}
                         </div>
                         <span className="text-sm text-gray-500 shrink-0 cursor-pointer" onClick={() => setEditingItem(item)}>${item.unitPrice.toFixed(2)}</span>
                         <button onClick={() => setItems(prev => { const next = prev.filter(it => it.id !== item.id); if (next.length === 0) { setDiscount(null); setOrderNote('') } return next })}
