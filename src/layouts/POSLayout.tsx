@@ -59,7 +59,7 @@ export default function POSLayout() {
         const { version } = await res.json()
         const current = (window as any).__STITCH_VERSION__
         if (current && version !== current) {
-          window.location.reload()
+          window.location.href = 'https://stitchapp.com.au'
         }
       } catch {}
     }

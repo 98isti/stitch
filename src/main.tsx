@@ -15,7 +15,7 @@ function scheduleNightlyReload() {
   next3am.setHours(3, 0, 0, 0)
   if (next3am <= now) next3am.setDate(next3am.getDate() + 1)
   const ms = next3am.getTime() - now.getTime()
-  setTimeout(() => window.location.reload(), ms)
+  setTimeout(() => { window.location.href = 'https://stitchapp.com.au' }, ms)
 }
 scheduleNightlyReload()
 import { createRoot } from 'react-dom/client'
