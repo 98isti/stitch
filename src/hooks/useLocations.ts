@@ -5,17 +5,22 @@ import { db } from '../lib/firebase'
 export interface Location {
   id: string
   name: string
-  address?: string
+  businessName?: string
+  abn?: string
+  businessEmail?: string
+  businessPhone?: string
+  shopNumber?: string
+  shoppingCentre?: string
   streetAddress?: string
   suburb?: string
   state?: string
+  postCode?: string
   country?: string
   phone?: string
   shopType?: string
   orderPrefix?: string
-  businessName?: string
-  abn?: string
-  businessPhone?: string
+  dailyTarget?: number
+  address?: string
 }
 
 const LS_KEY = 'stitch_active_location'
