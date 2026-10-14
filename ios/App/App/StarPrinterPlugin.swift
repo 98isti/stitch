@@ -342,7 +342,7 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
         let businessName = call.getString("businessName") ?? ""
         let locationName = call.getString("locationName") ?? ""
         let dateLabel    = call.getString("date") ?? ""
-        let footer       = call.getString("footer") ?? "\"We deliver great quality, fair price, and fast service \u{2013} every time\""
+        let footer       = call.getString("footer") ?? ""
 
         guard let data   = ordersJson.data(using: .utf8),
               let orders = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
@@ -463,11 +463,8 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
             p.actionPrintText("----------------------------------------\n\n")
         }
 
-        // ── Footer ────────────────────────────────────────────────────────
-        p.styleAlignment(.center)
-         .actionPrintText("\(footer)\n")
-         .actionFeedLine(3)
-         .actionCut(.partial)
+        // ── Cut ──────────────────────────────────────────────────────────
+        p.actionFeedLine(3).actionCut(.partial)
 
         return StarXpandCommand.StarXpandCommandBuilder()
             .addDocument(doc.addPrinter(p))
