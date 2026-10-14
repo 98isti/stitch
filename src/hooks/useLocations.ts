@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { collection, getDocs, query, orderBy } from 'firebase/firestore'
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 
 export interface Location {
@@ -28,17 +28,18 @@ export function useLocations(accountId: string | null) {
   useEffect(() => {
     if (!accountId) return
     const q = query(collection(db, 'accounts', accountId, 'locations'), orderBy('name'))
-    getDocs(q).then(snap => {
+    const unsub = onSnapshot(q, snap => {
       const locs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Location))
       setLocations(locs)
-      if (locs.length > 0) {
-        // Restore from localStorage
+      setActiveLocationState(prev => {
+        if (prev) return locs.find(l => l.id === prev.id) ?? prev
         const saved = localStorage.getItem(LS_KEY)
         const restored = saved ? locs.find(l => l.id === saved) : null
-        setActiveLocationState(restored ?? locs[0])
-      }
+        return restored ?? locs[0] ?? null
+      })
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }, () => setLoading(false))
+    return unsub
   }, [accountId])
 
   function setActiveLocation(loc: Location) {
