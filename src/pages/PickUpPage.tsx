@@ -6,7 +6,6 @@ import { useLocations } from '../hooks/useLocations'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, Printer, X } from 'lucide-react'
 import { usePrinter } from '../context/PrinterContext'
-import { buildPickupSheet } from '../lib/buildPickupSheet'
 import type { PickupSheetOrder } from '../lib/buildPickupSheet'
 
 interface DayData { count: number; total: number }
@@ -215,7 +214,12 @@ export default function PickUpPage() {
         date: formatDateLabel(selectedDate).replace(/^\w+, /, ''), // "14 October 2026"
         orders: sheetOrders,
       })
-      const ok = await printer.printRawText(text)
+      const ok = await printer.printPickupSheet({
+        businessName: (activeLocation as any).businessName || 'Sew Smart',
+        locationName: activeLocation.name,
+        date: formatDateLabel(selectedDate).replace(/^\w+, /, ''),
+        orders: sheetOrders,
+      })
       setPrintResult(ok ? 'ok' : 'fail')
     } finally {
       setPrinting(false)

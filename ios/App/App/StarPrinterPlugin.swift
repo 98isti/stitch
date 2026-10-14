@@ -10,6 +10,7 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
         CAPPluginMethod(name: "printReceipt",        returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "printLabel",          returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "printLabelsForOrder", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "printPickupSheet",    returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "openDrawer",          returnType: CAPPluginReturnPromise),
     ]
 
@@ -330,6 +331,147 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
                 call.reject("Label failed: \(error)")
             }
         }
+    }
+
+    // ── Print pickup sheet ──────────────────────────────────────────────────
+    @objc func printPickupSheet(_ call: CAPPluginCall) {
+        guard let identifier   = call.getString("identifier"),
+              let ordersJson   = call.getString("ordersJson")
+        else { call.reject("Missing identifier or ordersJson"); return }
+
+        let businessName = call.getString("businessName") ?? ""
+        let locationName = call.getString("locationName") ?? ""
+        let dateLabel    = call.getString("date") ?? ""
+        let footer       = call.getString("footer") ?? "\"We deliver great quality, fair price, and fast service \u2013 every time\""
+
+        guard let data   = ordersJson.data(using: .utf8),
+              let orders = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+        else { call.reject("Invalid ordersJson"); return }
+
+        let printer = StarPrinter(StarConnectionSettings(interfaceType: .lan, identifier: identifier))
+
+        Task {
+            do {
+                try await printer.open()
+                let cmd = self.buildPickupSheet(
+                    businessName: businessName,
+                    locationName: locationName,
+                    dateLabel:    dateLabel,
+                    orders:       orders,
+                    footer:       footer
+                )
+                try await printer.print(command: cmd)
+                await printer.close()
+                call.resolve(["success": true])
+            } catch {
+                await printer.close()
+                call.reject("Pickup sheet print failed: \(error)")
+            }
+        }
+    }
+
+    private func buildPickupSheet(
+        businessName: String,
+        locationName: String,
+        dateLabel:    String,
+        orders:       [[String: Any]],
+        footer:       String
+    ) -> String {
+        let doc = StarXpandCommand.DocumentBuilder()
+        let p   = StarXpandCommand.PrinterBuilder()
+
+        // ── Header ────────────────────────────────────────────────────────
+        p.styleAlignment(.center)
+         .styleBold(true)
+         .actionPrintText("\(businessName)\n")
+         .styleBold(false)
+         .actionPrintText("\(locationName)\n")
+         .actionPrintText("----------------------------------------\n")
+         .styleMagnification(.init(width: 2, height: 2))
+         .actionPrintText("Pick Up Date:\n")
+         .styleBold(true)
+         .actionPrintText("\(dateLabel)\n")
+         .styleBold(false)
+         .styleMagnification(.init(width: 1, height: 1))
+         .actionPrintText("----------------------------------------\n\n")
+
+        // ── Orders ────────────────────────────────────────────────────────
+        for order in orders {
+            let orderNum   = order["orderNumberString"] as? String ?? ""
+            let customer   = order["customerName"]      as? String ?? ""
+            let phone      = order["customerPhone"]     as? String ?? ""
+            let amount     = order["orderAmount"]       as? Double ?? 0
+            let status     = order["status"]            as? String ?? "In progress"
+            let orderNote  = order["orderNote"]         as? String ?? ""
+            let items      = order["items"]             as? [[String: Any]] ?? []
+
+            // Order header
+            p.styleAlignment(.left)
+             .styleBold(true)
+             .actionPrintText("Order# \(orderNum)\n")
+             .styleBold(false)
+             .actionPrintText("Customer: \(customer)\n")
+            if !phone.isEmpty { p.actionPrintText("Phone: \(phone)\n") }
+            p.actionPrintText("\n")
+
+            // Items grouped by category (strip trailing number e.g. "Trouser 1" → "TROUSER")
+            var groups: [String: [[String: Any]]] = [:]
+            var groupOrder: [String] = []
+            for item in items {
+                var cat = item["category"] as? String ?? "Other"
+                // Strip trailing " 1", " 2" etc
+                if let range = cat.range(of: #"\s+\d+$"#, options: .regularExpression) {
+                    cat = String(cat[cat.startIndex..<range.lowerBound])
+                }
+                cat = cat.uppercased()
+                if groups[cat] == nil { groups[cat] = []; groupOrder.append(cat) }
+                groups[cat]!.append(item)
+            }
+
+            var totalQty = 0
+            for cat in groupOrder {
+                guard let catItems = groups[cat] else { continue }
+                p.styleBold(true).actionPrintText("\(cat)\n").styleBold(false)
+                for item in catItems {
+                    let name  = item["name"]      as? String ?? ""
+                    let qty   = item["quantity"]  as? Int    ?? 1
+                    let price = item["unitPrice"] as? Double ?? 0
+                    let note  = item["note"]      as? String ?? ""
+                    let label = "  \(name) x\(qty)"
+                    p.actionPrintText("\(padRow(label, fmt(price)))\n")
+                    if !note.isEmpty { p.actionPrintText("  (\(note))\n") }
+                    totalQty += qty
+                }
+            }
+
+            if !orderNote.isEmpty {
+                p.actionPrintText("Note: \(orderNote)\n")
+            }
+
+            // Subtotal + item count
+            p.actionPrintText("\n")
+             .actionPrintText("\(padRow("Subtotal", fmt(amount)))\n")
+             .actionPrintText("\(totalQty) item\(totalQty != 1 ? "s" : "")\n")
+
+            // Status — inverted if still in progress
+            let isActive = status == "In progress" || status == "Redo"
+            if isActive {
+                p.styleInvert(true).actionPrintText("Status: \(status)").styleInvert(false).actionPrintText("\n")
+            } else {
+                p.actionPrintText("Status: \(status)\n")
+            }
+            p.actionPrintText("----------------------------------------\n\n")
+        }
+
+        // ── Footer ────────────────────────────────────────────────────────
+        p.styleAlignment(.center)
+         .actionPrintText("\(footer)\n")
+         .actionFeedLine(3)
+         .actionCut(.partial)
+
+        return StarXpandCommand.StarXpandCommandBuilder()
+            .addDocument(doc.addPrinter(p))
+            .getCommands()
     }
 
     // ── Open cash drawer ──────────────────────────────────────────────────

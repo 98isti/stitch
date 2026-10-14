@@ -19,6 +19,14 @@ export interface StarPrinterPlugin {
     impactIdentifier: string
     thermalIdentifier: string
   }): Promise<{ success: boolean }>
+  printPickupSheet(options: {
+    identifier: string
+    businessName: string
+    locationName: string
+    date: string
+    ordersJson: string
+    footer?: string
+  }): Promise<{ success: boolean }>
   openDrawer(options: { identifier: string }): Promise<{ success: boolean }>
 }
 

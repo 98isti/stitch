@@ -40,7 +40,7 @@ interface PrinterContextValue {
   printReceipt: (data: ReceiptData, copies?: number) => Promise<boolean>
   printLabel: (data: LabelData) => Promise<boolean>
   printLabelsForOrder: (order: OrderForLabels) => Promise<boolean>
-  printRawText: (text: string) => Promise<boolean>
+  printPickupSheet: (opts: { businessName: string; locationName: string; date: string; orders: any[] }) => Promise<boolean>
   openDrawer: () => Promise<boolean>
 }
 
@@ -168,20 +168,22 @@ export function PrinterProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function printRawText(text: string): Promise<boolean> {
+  async function printPickupSheet(opts: { businessName: string; locationName: string; date: string; orders: any[] }): Promise<boolean> {
     if (!native || !thermalPrinter) {
-      console.warn('printRawText: not native or no thermal printer selected')
+      console.warn('printPickupSheet: not native or no thermal printer selected')
       return false
     }
     try {
-      await StarPrinter.printReceipt({
-        identifier: thermalPrinter,
-        receipt: { rawText: text } as unknown as Record<string, unknown>,
-        copies: 1,
+      await StarPrinter.printPickupSheet({
+        identifier:   thermalPrinter,
+        businessName: opts.businessName,
+        locationName: opts.locationName,
+        date:         opts.date,
+        ordersJson:   JSON.stringify(opts.orders),
       })
       return true
     } catch (e) {
-      console.error('printRawText failed:', e)
+      console.error('printPickupSheet failed:', e)
       return false
     }
   }
@@ -211,7 +213,7 @@ export function PrinterProvider({ children }: { children: ReactNode }) {
       printLabel,
       printLabelsForOrder,
       openDrawer,
-      printRawText,
+      printPickupSheet,
     }}>
       {children}
     </PrinterContext.Provider>
