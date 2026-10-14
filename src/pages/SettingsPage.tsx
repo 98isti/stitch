@@ -376,7 +376,7 @@ export default function SettingsPage() {
                   note="Your business name (max 11 chars, must be registered) or a virtual AU number e.g. +61412345678">
                   <Input value={locSettings.sms.senderName}
                     onChange={v => setLocSettings(s => ({ ...s, sms: { ...s.sms, senderName: v } }))}
-                    placeholder="+61412345678 or SewSmart" />
+                    placeholder="+61412345678 or YourBrand" />
                 </Field>
                 <Field label="Message Template"
                   note="Variables: {firstName} {orderNumber} {businessName} {balance}">
