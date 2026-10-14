@@ -498,9 +498,13 @@ export default function POSPage() {
       const defaultPickup = new Date()
       defaultPickup.setDate(defaultPickup.getDate() + 2)
       await printer.printReceipt({
-        businessName: accountProfile?.businessName || activeLocation?.businessName || '',
+        businessName: (activeLocation as any)?.businessName || accountProfile?.businessName || '',
         locationName: activeLocation?.name ?? '',
-        locationAddress: [activeLocation?.streetAddress, [activeLocation?.suburb, activeLocation?.state].filter(Boolean).join(' ')].filter(Boolean).join('\n'),
+        locationAddress: [
+          [(activeLocation as any)?.shopNumber, (activeLocation as any)?.shoppingCentre].filter(Boolean).join(' '),
+          activeLocation?.streetAddress,
+          [activeLocation?.suburb, activeLocation?.state, (activeLocation as any)?.postCode].filter(Boolean).join(' '),
+        ].filter(Boolean).join('\n'),
         locationPhone: (activeLocation as any)?.phone || (activeLocation as any)?.businessPhone || '',
         abn: (activeLocation as any)?.abn || '',
         orderNumber: params.orderNumber,
@@ -624,7 +628,7 @@ export default function POSPage() {
         day: 'numeric', month: 'long', year: 'numeric'
       })
       await printer.printPickupSheet({
-        businessName: (activeLocation as any).businessName || 'Sew Smart',
+        businessName: (activeLocation as any).businessName || accountProfile?.businessName || activeLocation?.name || '',
         locationName: activeLocation.name,
         date: dateLabel,
         orders,
