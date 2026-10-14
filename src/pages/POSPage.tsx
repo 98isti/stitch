@@ -1027,7 +1027,7 @@ export default function POSPage() {
                           {item.note ? <p className="text-xs text-gray-400 truncate mt-0.5">{item.note}</p> : null}
                         </div>
                         <span className="text-sm text-gray-500 shrink-0 cursor-pointer" onClick={() => setEditingItem(item)}>${item.unitPrice.toFixed(2)}</span>
-                        <button onClick={() => setItems(prev => { const next = prev.filter(it => it.id !== item.id); if (next.length === 0) { setDiscount(null); setOrderNote(null) } return next })}
+                        <button onClick={() => setItems(prev => { const next = prev.filter(it => it.id !== item.id); if (next.length === 0) { setDiscount(null); setOrderNote('') } return next })}
                           className="w-6 h-6 rounded-full flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors shrink-0 ml-1">
                           <X size={13} />
                         </button>
