@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Phone, ChevronDown, Pencil } from 'lucide-react'
+import { Phone, ChevronDown, Pencil, Tag, Receipt } from 'lucide-react'
 import { doc, getDoc, getDocs, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import SplitPaymentSheet from './SplitPaymentSheet'
 import { usePrinter } from '../context/PrinterContext'
@@ -587,7 +587,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                 }}
                 disabled={printer.status !== 'connected' || (!printer.impactPrinter && !printer.thermalPrinter)}
                 className="py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-gray-600 text-sm font-semibold transition-colors">
-                🖨️ Print Labels
+                <Tag size={15} className="inline mr-1.5 -mt-0.5" />Print Labels
               </button>
               <button
                 onClick={!order.isPaid ? () => setShowPaymentPrompt(true) : undefined}
@@ -642,7 +642,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                   if (!ok) alert(`Print failed. Printer status: ${printer.status}, Thermal: ${printer.thermalPrinter ?? 'none selected'}`)
                 }}
                 className="py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold transition-colors">
-                🧾 Print Receipt
+                <Receipt size={15} className="inline mr-1.5 -mt-0.5" />Print Receipt
               </button>
             </div>
             <p className="text-center text-xs text-gray-400">Payment method: {order.paymentMethod}</p>
