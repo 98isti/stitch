@@ -583,6 +583,56 @@ export default function POSPage() {
     }
   }
 
+  async function handleTodaysDue() {
+    if (!accountId || !activeLocation) return
+    const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+    try {
+      const snap = await getDocs(query(
+        collection(db, 'accounts', accountId, 'orders'),
+        where('location', '==', activeLocation.name),
+        where('pickupDate', '==', today),
+        where('status', '==', 'In progress'),
+      ))
+      if (snap.empty) {
+        alert('No In progress orders due today.')
+        return
+      }
+      const orders = snap.docs.map(d => {
+        const o = d.data()
+        let items = []
+        try { items = JSON.parse(o.items || '[]') } catch { items = [] }
+        return {
+          orderNumberString: o.orderNumberString ?? '',
+          customerName:      o.customerName ?? '',
+          customerPhone:     o.customerPhone ?? '',
+          orderAmount:       o.orderAmount ?? 0,
+          items:             items.map((it: any) => ({
+            category:  it.category  ?? '',
+            name:      it.name      ?? '',
+            quantity:  it.quantity  ?? 1,
+            unitPrice: it.unitPrice ?? 0,
+            note:      it.note      ?? '',
+          })),
+          status:    o.status    ?? 'In progress',
+          orderNote: o.orderNote ?? '',
+        }
+      }).sort((a, b) => a.orderNumberString.localeCompare(b.orderNumberString))
+
+      const dateLabel = new Date().toLocaleDateString('en-AU', {
+        day: 'numeric', month: 'long', year: 'numeric'
+      })
+      await printer.printPickupSheet({
+        businessName: (activeLocation as any).businessName || 'Sew Smart',
+        locationName: activeLocation.name,
+        date: dateLabel,
+        orders,
+      })
+    } catch (e) {
+      console.error('Today\'s Due print failed:', e)
+      alert('Print failed — check printer connection.')
+    }
+  }
+
   async function handleSplitPay(cash: number, card: number, stillDue: number) {
     if (!accountId || !activeLocation || items.length === 0) return
     setShowSplit(false)
@@ -803,7 +853,7 @@ export default function POSPage() {
 
         {/* BOTTOM ACTION BAR */}
         <div className="flex shrink-0 bg-white border-t border-gray-200 px-3 py-2 gap-2">
-          <button onClick={() => navigate('/todaysdue')}
+          <button onClick={handleTodaysDue}
             className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 active:scale-95 text-white text-sm font-semibold transition-all">
             Today's Due
           </button>
