@@ -119,7 +119,7 @@ export default function LocationSetupPage() {
         shopType: 'alterations',
         createdAt: serverTimestamp(),
       })
-      setActiveLocation({ id: docRef.id, ...locForm, name: locForm.name.trim() })
+      setActiveLocation({ id: docRef.id, ...locForm, name: locForm.name.trim(), dailyTarget: parseFloat(locForm.dailyTarget) || 1000 })
       navigate('/pin')
     } catch (e) {
       console.error(e)
