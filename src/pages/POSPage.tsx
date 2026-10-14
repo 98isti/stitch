@@ -7,7 +7,7 @@ import OrderDetailSheet from '../components/OrderDetailSheet'
 import SplitPaymentSheet from '../components/SplitPaymentSheet'
 import { usePrinter } from '../context/PrinterContext'
 import {
-  collection, query, getDocs, addDoc, serverTimestamp, orderBy,
+  collection, query, getDocs, addDoc, serverTimestamp, orderBy, where,
   doc, runTransaction
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
