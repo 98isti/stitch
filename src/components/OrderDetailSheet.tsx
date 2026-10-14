@@ -621,7 +621,11 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                   const ok = await printer.printReceipt({
                     businessName: locData.businessName || acctData.businessName || order.location,
                     locationName: order.location,
-                    locationAddress: [locData.streetAddress, [locData.suburb, locData.state].filter(Boolean).join(' ')].filter(Boolean).join('\n'),
+                    locationAddress: [
+                      [locData.shopNumber, locData.shoppingCentre].filter(Boolean).join(' '),
+                      locData.streetAddress,
+                      [locData.suburb, locData.state, locData.postCode].filter(Boolean).join(' '),
+                    ].filter(Boolean).join('\n'),
                     locationPhone: locData.phone || locData.businessPhone || '',
                     abn: locData.abn || '',
                     orderNumber: order.orderNumberString,
