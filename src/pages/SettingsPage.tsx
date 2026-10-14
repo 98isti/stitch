@@ -331,7 +331,7 @@ export default function SettingsPage() {
                 <Field label="Location Name">
                   <Input value={locSettings.name}
                     onChange={v => setLocSettings(s => ({ ...s, name: v }))}
-                    placeholder="Carlingford" />
+                    placeholder="Chatswood" />
                 </Field>
                 <Field label="Shop Type">
                   <div className="grid grid-cols-2 gap-2">
@@ -351,24 +351,24 @@ export default function SettingsPage() {
                   <Field label="Shop Number">
                     <Input value={locSettings.shopNumber}
                       onChange={v => setLocSettings(s => ({ ...s, shopNumber: v }))}
-                      placeholder="Shop 25B" />
+                      placeholder="Shop G04" />
                   </Field>
                   <Field label="Shopping Centre">
                     <Input value={locSettings.shoppingCentre}
                       onChange={v => setLocSettings(s => ({ ...s, shoppingCentre: v }))}
-                      placeholder="Westfield Carlingford" />
+                      placeholder="Westfield Chatswood" />
                   </Field>
                 </div>
                 <Field label="Street Address">
                   <Input value={locSettings.streetAddress}
                     onChange={v => setLocSettings(s => ({ ...s, streetAddress: v }))}
-                    placeholder="166 Mona Vale Rd" />
+                    placeholder="1 Anderson St" />
                 </Field>
                 <div className="grid grid-cols-3 gap-3">
                   <Field label="Suburb">
                     <Input value={locSettings.suburb}
                       onChange={v => setLocSettings(s => ({ ...s, suburb: v }))}
-                      placeholder="Carlingford" />
+                      placeholder="Chatswood" />
                   </Field>
                   <Field label="State">
                     <select value={locSettings.state}
@@ -380,19 +380,19 @@ export default function SettingsPage() {
                   <Field label="Post Code">
                     <Input value={locSettings.postCode}
                       onChange={v => setLocSettings(s => ({ ...s, postCode: v }))}
-                      placeholder="2118" />
+                      placeholder="2067" />
                   </Field>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Phone">
                     <Input value={locSettings.phone}
                       onChange={v => setLocSettings(s => ({ ...s, phone: v }))}
-                      placeholder="02 9876 5432" />
+                      placeholder="02 9413 1600" />
                   </Field>
                   <Field label="Order Prefix">
                     <Input value={locSettings.orderPrefix}
                       onChange={v => setLocSettings(s => ({ ...s, orderPrefix: v.toUpperCase() }))}
-                      placeholder="CAR" />
+                      placeholder="CHA" />
                   </Field>
                 </div>
                 <Field label="Daily Sales Target ($)" note="Used for the revenue progress bar on the POS screen">
@@ -528,14 +528,14 @@ export default function SettingsPage() {
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Name</label>
                 <input value={locForm.name} onChange={e => setLocForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="e.g. Carlingford"
+                  placeholder="e.g. Chatswood"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Shop Number</label>
                   <input value={locForm.shopNumber} onChange={e => setLocForm(f => ({ ...f, shopNumber: e.target.value }))}
-                    placeholder="Shop 25B"
+                    placeholder="Shop G04"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
                 </div>
                 <div>
@@ -566,7 +566,7 @@ export default function SettingsPage() {
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Post Code</label>
                   <input value={locForm.postCode} onChange={e => setLocForm(f => ({ ...f, postCode: e.target.value }))}
-                    placeholder="2118"
+                    placeholder="2067"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
                 </div>
               </div>
@@ -579,7 +579,7 @@ export default function SettingsPage() {
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Order Prefix</label>
                   <input value={locForm.orderPrefix} onChange={e => setLocForm(f => ({ ...f, orderPrefix: e.target.value.toUpperCase() }))}
-                    placeholder="CAR"
+                    placeholder="CHA"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
                 </div>
               </div>
