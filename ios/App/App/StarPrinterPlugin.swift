@@ -509,6 +509,11 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
     private func items(_ d: [String: Any]) -> [[String: Any]] { d["items"] as? [[String: Any]] ?? [] }
 
     private func padRow(_ left: String, _ right: String, _ width: Int = 40) -> String {
+        if left.count + right.count + 1 > width {
+            // Name too long — print price right-aligned on next line
+            let padding = max(0, width - right.count)
+            return left + "\n" + String(repeating: " ", count: padding) + right
+        }
         let space = max(1, width - left.count - right.count)
         return left + String(repeating: " ", count: space) + right
     }
