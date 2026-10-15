@@ -4,6 +4,7 @@ import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { ChevronLeft, Trash2 } from 'lucide-react'
+import RefundSheet from '../components/RefundSheet'
 
 interface OrderItem {
   id: string; category: string; name: string; quantity: number; unitPrice: number; note: string
@@ -27,6 +28,7 @@ export default function EditOrderPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { accountId } = useAuth()
+  const [showRefundSheet, setShowRefundSheet] = useState(false)
 
   const [order, setOrder] = useState<OrderDoc | null>(null)
   const [loading, setLoading] = useState(true)
@@ -58,6 +60,17 @@ export default function EditOrderPage() {
 
   function removeItem(idx: number) {
     setItems(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  async function handleRefundConfirm(amount: number, reason: string) {
+    if (!accountId || !id) return
+    await updateDoc(doc(db, 'accounts', accountId, 'orders', id), {
+      refundAmount: amount,
+      refundReason: reason || null,
+      refundedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+    navigate(`/orders/${id}`)
   }
 
   async function handleSave() {
@@ -172,7 +185,21 @@ export default function EditOrderPage() {
           className="w-full py-4 rounded-2xl bg-navy text-white font-bold text-base disabled:opacity-50 active:scale-95">
           {saving ? 'Saving…' : 'Save Changes'}
         </button>
+        <button
+          onClick={() => setShowRefundSheet(true)}
+          className="w-full py-3 rounded-2xl border-2 border-red-200 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors mt-2">
+          Record Refund
+        </button>
       </div>
+
+      {showRefundSheet && order && (
+        <RefundSheet
+          orderNumber={order.orderNumberString}
+          orderAmount={order.orderAmount}
+          onConfirm={handleRefundConfirm}
+          onCancel={() => setShowRefundSheet(false)}
+        />
+      )}
     </div>
   )
 }

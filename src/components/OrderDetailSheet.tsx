@@ -5,7 +5,6 @@ import SplitPaymentSheet from './SplitPaymentSheet'
 import ConfirmDialog from './ConfirmDialog'
 import RedoSheet from './RedoSheet'
 import CancelOrderSheet from './CancelOrderSheet'
-import RefundSheet from './RefundSheet'
 import { usePrinter } from '../context/PrinterContext'
 
 import { db } from '../lib/firebase'
@@ -93,7 +92,6 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
   const [showSplit, setShowSplit] = useState(false)
   const [showRedoSheet, setShowRedoSheet] = useState(false)
   const [showCancelSheet, setShowCancelSheet] = useState(false)
-  const [showRefundSheet, setShowRefundSheet] = useState(false)
   const printer = usePrinter()
   const [showPaymentPrompt, setShowPaymentPrompt] = useState(false)
   const [showCompletedByPopup, setShowCompletedByPopup] = useState(false)
@@ -755,13 +753,6 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
         {order && (
           <div className="shrink-0 border-t border-gray-100 px-5 py-4">
             <div className="grid grid-cols-3 gap-3 mb-3">
-              {/* Refund button */}
-              <button
-                onClick={() => setShowRefundSheet(true)}
-                className="col-span-3 py-2.5 rounded-2xl border-2 border-red-200 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors mb-1">
-                Record Refund
-              </button>
-
               <button
                 onClick={async () => {
                   if (!order) return
@@ -864,15 +855,6 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
           orderNumber={order.orderNumberString}
           onConfirm={handleCancelConfirm}
           onCancel={() => setShowCancelSheet(false)}
-        />
-      )}
-
-      {showRefundSheet && order && (
-        <RefundSheet
-          orderNumber={order.orderNumberString}
-          orderAmount={order.orderAmount}
-          onConfirm={handleRefundConfirm}
-          onCancel={() => setShowRefundSheet(false)}
         />
       )}
 
