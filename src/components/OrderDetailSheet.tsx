@@ -493,13 +493,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
         style={{ maxHeight: '82vh' }}>
 
         {/* ── Dark header ── */}
-        <div className={`px-5 pt-5 pb-4 shrink-0 transition-colors ${
-          order?.status === 'Ready for Pick Up' ? 'bg-green-700' :
-          order?.status === 'Picked Up'         ? 'bg-gray-500' :
-          order?.status === 'Redo'              ? 'bg-orange-600' :
-          order?.status === 'Cancelled'         ? 'bg-red-700' :
-          'bg-navy'
-        }`}>
+        <div className="bg-navy px-5 pt-5 pb-4 shrink-0">
           <div className="flex items-start justify-between mb-3">
             {/* LEFT — all info */}
             <div className="flex-1 min-w-0 pr-4">
