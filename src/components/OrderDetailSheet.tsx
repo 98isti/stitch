@@ -30,9 +30,11 @@ interface OrderDoc {
   redoReceivedDate?: string
   redoPickupDate?: string
   cancelReason?: string
+  cancelledBy?: string
   cancelledAt?: any
   refundAmount?: number
   refundReason?: string
+  refundedBy?: string
   refundedAt?: any
   orderAmount: number
   paidAmount: number
@@ -344,10 +346,11 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
       await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), {
         status: 'Cancelled',
         cancelReason: reason || null,
+        cancelledBy: staff?.name || 'Unknown',
         cancelledAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
-      setOrder(o => o ? { ...o, status: 'Cancelled', cancelReason: reason } : o)
+      setOrder(o => o ? { ...o, status: 'Cancelled', cancelReason: reason, cancelledBy: staff?.name || 'Unknown' } : o)
     } finally { setSaving(false) }
   }
 
@@ -544,6 +547,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
               {order.status === 'Cancelled' && (
                 <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
                   <p className="text-xs font-bold text-red-500 uppercase tracking-wide mb-1">⛔ Order Cancelled</p>
+                  {order.cancelledBy && <p className="text-xs text-gray-400 mb-1">By {order.cancelledBy}</p>}
                   {order.cancelReason && <p className="text-sm text-gray-700">{order.cancelReason}</p>}
                 </div>
               )}
@@ -553,6 +557,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                 <div className="bg-orange-50 border border-orange-200 rounded-2xl px-4 py-3 flex items-center justify-between">
                   <div>
                     <p className="text-xs font-bold text-orange-500 uppercase tracking-wide mb-0.5">Refunded</p>
+                    {order.refundedBy && <p className="text-xs text-gray-400 mb-0.5">By {order.refundedBy}</p>}
                     {order.refundReason && <p className="text-sm text-gray-600">{order.refundReason}</p>}
                   </div>
                   <p className="text-lg font-bold text-orange-500">${order.refundAmount.toFixed(2)}</p>

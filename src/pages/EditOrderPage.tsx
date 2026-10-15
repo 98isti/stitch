@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
+import { useStaff } from '../context/StaffContext'
 import { ChevronLeft, Trash2 } from 'lucide-react'
 import RefundSheet from '../components/RefundSheet'
 
@@ -28,6 +29,7 @@ export default function EditOrderPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { accountId } = useAuth()
+  const staff = useStaff()
   const [showRefundSheet, setShowRefundSheet] = useState(false)
 
   const [order, setOrder] = useState<OrderDoc | null>(null)
@@ -67,6 +69,7 @@ export default function EditOrderPage() {
     await updateDoc(doc(db, 'accounts', accountId, 'orders', id), {
       refundAmount: amount,
       refundReason: reason || null,
+      refundedBy: staff?.name || 'Unknown',
       refundedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
