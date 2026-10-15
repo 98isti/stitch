@@ -1,7 +1,6 @@
 import { useState } from 'react'
 
 interface Props {
-  currentPickupDate: string  // ISO date string
   onConfirm: (reason: string, newPickupDate: string) => void
   onCancel: () => void
 }
@@ -12,7 +11,7 @@ function addDays(dateStr: string, days: number): string {
   return d.toISOString().split('T')[0]
 }
 
-export default function RedoSheet({ currentPickupDate, onConfirm, onCancel }: Props) {
+export default function RedoSheet({ onConfirm, onCancel }: Props) {
   const [reason, setReason] = useState('')
   const [pickupDate, setPickupDate] = useState(() => {
     const today = new Date().toISOString().split('T')[0]

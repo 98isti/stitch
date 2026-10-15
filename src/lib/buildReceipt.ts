@@ -61,6 +61,9 @@ export interface ReceiptData {
   paymentMethod: string
   barcode?: string
   orderNote?: string
+  isRedo?: boolean
+  redoReason?: string
+  originalPickupDate?: string
 }
 
 export function buildReceipt(d: ReceiptData): string {

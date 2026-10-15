@@ -313,7 +313,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
         pickupDay: newPickupDateObj.toLocaleDateString('en-AU', { weekday:'long' }),
         pickupDateFull: newPickupDateObj.toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }),
         items: items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, unitPrice: i.unitPrice + (i.extras ?? []).reduce((s: number, e: any) => s + e.price, 0), note: i.note, extras: i.extras ?? [], components: i.components ?? [] })),
-        subtotal, discount: order.discountApplied > 0 ? order.discountApplied : undefined,
+        subtotal, discount: (order.discountApplied ?? 0) > 0 ? order.discountApplied : undefined,
         total: order.orderAmount, paidAmount: order.paidAmount, stillDue: order.stillDueAmount,
         paymentMethod: order.paymentMethod, orderNote: order.orderNote || undefined,
         barcode: order.barcode,
@@ -791,7 +791,6 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
     )}
       {showRedoSheet && order && (
         <RedoSheet
-          currentPickupDate={order.pickupDate ?? ''}
           onConfirm={handleRedoConfirm}
           onCancel={() => setShowRedoSheet(false)}
         />

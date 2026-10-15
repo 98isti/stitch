@@ -18,6 +18,8 @@ export interface StarPrinterPlugin {
     shopType: string
     impactIdentifier: string
     thermalIdentifier: string
+    isRedo?: string
+    redoReason?: string
   }): Promise<{ success: boolean }>
   printPickupSheet(options: {
     identifier: string
