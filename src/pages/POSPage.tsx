@@ -517,7 +517,7 @@ export default function POSPage() {
         customerPhone,
         pickupDay: pickupDate.toLocaleDateString('en-AU', { weekday:'long' }),
         pickupDateFull: pickupDate.toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }),
-        items: params.items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, unitPrice: i.unitPrice, note: i.note })),
+        items: params.items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, unitPrice: i.unitPrice + (i.extras ?? []).reduce((s: number, e: any) => s + e.price, 0), note: i.note, extras: i.extras ?? [], components: i.components ?? [] })),
         subtotal: params.subtotal,
         discount: (params.discount ?? 0) > 0 ? params.discount : undefined,
         total: params.total,

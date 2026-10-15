@@ -9,7 +9,7 @@ import { useStaff } from '../context/StaffContext'
 import { useAccountProfile } from '../hooks/useAccountProfile'
 
 interface OrderItem {
-  id: string; garmentId?: string; category: string; name: string; quantity: number; unitPrice: number; note: string; components?: string[]
+  id: string; garmentId?: string; category: string; name: string; quantity: number; unitPrice: number; note: string; components?: string[]; extras?: { name: string; price: number }[]
 }
 
 interface OrderDoc {
@@ -416,11 +416,14 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                           {item.components?.map((c: string) => (
                             <p key={c} className="text-xs text-gray-400 mt-0.5">↳ {c}</p>
                           ))}
+                          {item.extras?.map((e: any) => (
+                            <p key={e.name} className="text-xs text-navy/60 mt-0.5">+ {e.name} ${e.price.toFixed(0)}</p>
+                          ))}
                           {item.note && <p className="text-xs text-amber-500 italic mt-0.5">Note: {item.note}</p>}
                         </div>
                         <div className="flex items-center gap-4 shrink-0 ml-4">
                           <p className="text-sm text-gray-400">x{item.quantity}</p>
-                          <p className="text-sm font-semibold text-gray-900">${(item.unitPrice * item.quantity).toFixed(2)}</p>
+                          <p className="text-sm font-semibold text-gray-900">${((item.unitPrice + (item.extras ?? []).reduce((s: number, e: any) => s + e.price, 0)) * item.quantity).toFixed(2)}</p>
                         </div>
                       </div>
                     ))}
@@ -636,7 +639,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                     customerPhone: order.customerPhone ?? '',
                     pickupDay: pickupDateObj ? pickupDateObj.toLocaleDateString('en-AU', { weekday:'long' }) : '',
                     pickupDateFull: pickupDateObj ? pickupDateObj.toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }) : (order.pickupDate ?? ''),
-                    items: items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, unitPrice: i.unitPrice, note: i.note })),
+                    items: items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, unitPrice: i.unitPrice + (i.extras ?? []).reduce((s: number, e: any) => s + e.price, 0), note: i.note, extras: i.extras ?? [], components: i.components ?? [] })),
                     subtotal,
                     discount: (order.discountApplied ?? 0) > 0 ? order.discountApplied : undefined,
                     total: order.orderAmount,
