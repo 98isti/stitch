@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import RefundSheet from './RefundSheet'
+import { useStaff } from '../context/StaffContext'
 import { X, Trash2, ChevronLeft, Plus } from 'lucide-react'
 import ItemPickerSheet from './ItemPickerSheet'
 import { useCategories } from '../hooks/useCategories'
@@ -33,6 +35,8 @@ interface Props {
 }
 
 export default function EditOrderSheet({ orderId, accountId, onClose, onBack }: Props) {
+  const { staff } = useStaff()
+  const [showRefundSheet, setShowRefundSheet] = useState(false)
   const [order, setOrder] = useState<OrderDoc | null>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -90,6 +94,19 @@ export default function EditOrderSheet({ orderId, accountId, onClose, onBack }: 
 
   function removeItem(idx: number) {
     setItems(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  async function handleRefundConfirm(amount: number, reason: string) {
+    if (!accountId || !orderId || !order) return
+    setShowRefundSheet(false)
+    await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), {
+      refundAmount: amount,
+      refundReason: reason || null,
+      refundedBy: staff?.name || 'Unknown',
+      refundedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+    onBack()
   }
 
   async function handleSave() {
@@ -226,6 +243,21 @@ export default function EditOrderSheet({ orderId, accountId, onClose, onBack }: 
           )}
         </div>
       </div>
+      <button
+        onClick={() => setShowRefundSheet(true)}
+        className="shrink-0 mx-4 mb-3 py-3 rounded-2xl border-2 border-red-200 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors">
+        Record Refund
+      </button>
+
+      {showRefundSheet && order && (
+        <RefundSheet
+          orderNumber={order.orderNumberString}
+          orderAmount={order.orderAmount}
+          onConfirm={handleRefundConfirm}
+          onCancel={() => setShowRefundSheet(false)}
+        />
+      )}
+
       <ItemPickerSheet
         isOpen={showPicker}
         onClose={() => setShowPicker(false)}
