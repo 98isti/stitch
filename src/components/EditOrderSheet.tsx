@@ -239,15 +239,17 @@ export default function EditOrderSheet({ orderId, accountId, onClose, onBack }: 
                 <span className="font-semibold">New Total</span>
                 <span className="text-xl font-bold">${total.toFixed(2)}</span>
               </div>
+
+              {/* Refund */}
+              <button
+                onClick={() => setShowRefundSheet(true)}
+                className="w-full py-3 rounded-2xl border-2 border-red-200 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors">
+                Record Refund
+              </button>
             </>
           )}
         </div>
       </div>
-      <button
-        onClick={() => setShowRefundSheet(true)}
-        className="shrink-0 mx-4 mb-3 py-3 rounded-2xl border-2 border-red-200 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors">
-        Record Refund
-      </button>
 
       {showRefundSheet && order && (
         <RefundSheet
