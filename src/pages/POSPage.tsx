@@ -539,7 +539,8 @@ export default function POSPage() {
         pickupDate: pickupDate.toISOString().split('T')[0],
         items: JSON.stringify(items.map(i => ({
           id: i.id, garmentId: i.garmentId, category: i.category,
-          name: i.name, quantity: i.quantity, unitPrice: i.unitPrice, note: i.note
+          name: i.name, quantity: i.quantity, unitPrice: i.unitPrice, note: i.note,
+          ...(i.components?.length ? { components: i.components } : {})
         }))),
         shopType: activeLocation?.shopType,
       })
