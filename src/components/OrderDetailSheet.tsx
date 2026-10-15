@@ -688,7 +688,6 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
         onClose={() => setShowSplit(false)}
       />
     )}
-    </>
       {confirmDialog && (
         <ConfirmDialog
           message={confirmDialog.message}
@@ -698,5 +697,6 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
           onCancel={() => setConfirmDialog(null)}
         />
       )}
+    </>
   )
 }
