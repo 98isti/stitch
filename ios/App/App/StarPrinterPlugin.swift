@@ -50,6 +50,27 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
     }
 
     // ── Print receipt ─────────────────────────────────────────────────────
+    // ── Auto-reconnect retry helper ─────────────────────────────────────────
+    // Retries up to maxAttempts times with a delay between each attempt.
+    // Handles the common case of a printer dropping when paper roll is changed.
+    private func withRetry(maxAttempts: Int = 3, delaySeconds: Double = 3.0,
+                           job: @escaping () async throws -> Void) async throws {
+        var lastError: Error? = nil
+        for attempt in 1...maxAttempts {
+            do {
+                try await job()
+                return  // success
+            } catch {
+                lastError = error
+                if attempt < maxAttempts {
+                    print("Printer attempt \(attempt) failed: \(error). Retrying in \(delaySeconds)s...")
+                    try await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
+                }
+            }
+        }
+        throw lastError!
+    }
+
     @objc func printReceipt(_ call: CAPPluginCall) {
         guard let identifier = call.getString("identifier") else { call.reject("Missing identifier"); return }
         let d      = call.getObject("receipt") ?? [:]
@@ -136,13 +157,15 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
             if !dcLabelNames.isEmpty {
                 let printer = StarPrinter(StarConnectionSettings(interfaceType: .lan, identifier: impactId))
                 do {
-                    try await printer.open()
-                    let cmd = self.buildCompactLabels(
-                        orderNumber: orderNumber, customerName: customerName,
-                        pickupDate: pickupDate, labelNames: dcLabelNames, isDryCleaning: true,
-                        isRedo: isRedo, redoReason: redoReason)
-                    try await printer.print(command: cmd)
-                    await printer.close()
+                    try await self.withRetry { [self] in
+                        try await printer.open()
+                        let cmd = self.buildCompactLabels(
+                            orderNumber: orderNumber, customerName: customerName,
+                            pickupDate: pickupDate, labelNames: dcLabelNames, isDryCleaning: true,
+                            isRedo: isRedo, redoReason: redoReason)
+                        try await printer.print(command: cmd)
+                        await printer.close()
+                    }
                     anyPrinted = true
                 } catch {
                     await printer.close()
@@ -154,13 +177,15 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
             if !altLabelNames.isEmpty {
                 let printer = StarPrinter(StarConnectionSettings(interfaceType: .lan, identifier: thermalId))
                 do {
-                    try await printer.open()
-                    let cmd = self.buildCompactLabels(
-                        orderNumber: orderNumber, customerName: customerName,
-                        pickupDate: pickupDate, labelNames: altLabelNames, isDryCleaning: false,
-                        isRedo: isRedo, redoReason: redoReason)
-                    try await printer.print(command: cmd)
-                    await printer.close()
+                    try await self.withRetry { [self] in
+                        try await printer.open()
+                        let cmd = self.buildCompactLabels(
+                            orderNumber: orderNumber, customerName: customerName,
+                            pickupDate: pickupDate, labelNames: altLabelNames, isDryCleaning: false,
+                            isRedo: isRedo, redoReason: redoReason)
+                        try await printer.print(command: cmd)
+                        await printer.close()
+                    }
                     anyPrinted = true
                 } catch {
                     await printer.close()
