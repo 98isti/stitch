@@ -4,6 +4,8 @@ import { doc, getDoc, getDocs, updateDoc, addDoc, collection, serverTimestamp } 
 import SplitPaymentSheet from './SplitPaymentSheet'
 import ConfirmDialog from './ConfirmDialog'
 import RedoSheet from './RedoSheet'
+import CancelOrderSheet from './CancelOrderSheet'
+import RefundSheet from './RefundSheet'
 import { usePrinter } from '../context/PrinterContext'
 
 import { db } from '../lib/firebase'
@@ -28,6 +30,11 @@ interface OrderDoc {
   redoReason?: string
   redoReceivedDate?: string
   redoPickupDate?: string
+  cancelReason?: string
+  cancelledAt?: any
+  refundAmount?: number
+  refundReason?: string
+  refundedAt?: any
   orderAmount: number
   paidAmount: number
   stillDueAmount: number
@@ -45,7 +52,7 @@ interface OrderDoc {
   conveyorAssignedAt?: { seconds: number } | null
 }
 
-const STATUS_OPTIONS = ['In progress', 'Ready for Pick Up', 'Picked Up', 'Redo']
+const STATUS_OPTIONS = ['In progress', 'Ready for Pick Up', 'Picked Up', 'Redo', 'Cancelled']
 
 function formatDate(str: string) {
   if (!str) return '—'
@@ -85,6 +92,8 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
   const [showStatusMenu, setShowStatusMenu] = useState(false)
   const [showSplit, setShowSplit] = useState(false)
   const [showRedoSheet, setShowRedoSheet] = useState(false)
+  const [showCancelSheet, setShowCancelSheet] = useState(false)
+  const [showRefundSheet, setShowRefundSheet] = useState(false)
   const printer = usePrinter()
   const [showPaymentPrompt, setShowPaymentPrompt] = useState(false)
   const [showCompletedByPopup, setShowCompletedByPopup] = useState(false)
@@ -154,6 +163,11 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
     // Redo — open RedoSheet for reason + new pickup date
     if (status === 'Redo') {
       setShowRedoSheet(true)
+      return
+    }
+    // Cancel — open CancelSheet
+    if (status === 'Cancelled') {
+      setShowCancelSheet(true)
       return
     }
     // Warn if marking Picked Up with outstanding balance
@@ -324,6 +338,36 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
     } finally { setSaving(false) }
   }
 
+  async function handleCancelConfirm(reason: string) {
+    if (!accountId || !orderId || !order) return
+    setShowCancelSheet(false)
+    setSaving(true)
+    try {
+      await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), {
+        status: 'Cancelled',
+        cancelReason: reason || null,
+        cancelledAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+      setOrder(o => o ? { ...o, status: 'Cancelled', cancelReason: reason } : o)
+    } finally { setSaving(false) }
+  }
+
+  async function handleRefundConfirm(amount: number, reason: string) {
+    if (!accountId || !orderId || !order) return
+    setShowRefundSheet(false)
+    setSaving(true)
+    try {
+      await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), {
+        refundAmount: amount,
+        refundReason: reason || null,
+        refundedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+      setOrder(o => o ? { ...o, refundAmount: amount, refundReason: reason } : o)
+    } finally { setSaving(false) }
+  }
+
   async function markSplitPay(cash: number, card: number, stillDue: number) {
     if (!order || !accountId) return
     setShowSplit(false)
@@ -441,7 +485,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setShowStatusMenu(false)} />
                       <div className="absolute right-0 top-full mt-1 z-20 bg-white rounded-xl shadow-xl overflow-hidden w-44 border border-gray-100">
-                        {STATUS_OPTIONS.map(s => (
+                        {STATUS_OPTIONS.filter(s => order?.status !== 'Cancelled' || s === order.status).map(s => (
                           <button key={s} onClick={() => updateStatus(s)}
                             className={`w-full text-left px-4 py-3 text-sm transition-colors hover:bg-gray-50 ${
                               order?.status === s ? 'font-semibold text-navy' : 'text-gray-700'
@@ -511,6 +555,25 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                   )}
                 </div>
               </div>
+
+              {/* Cancelled banner */}
+              {order.status === 'Cancelled' && (
+                <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
+                  <p className="text-xs font-bold text-red-500 uppercase tracking-wide mb-1">⛔ Order Cancelled</p>
+                  {order.cancelReason && <p className="text-sm text-gray-700">{order.cancelReason}</p>}
+                </div>
+              )}
+
+              {/* Refund badge */}
+              {order.refundAmount != null && order.refundAmount > 0 && (
+                <div className="bg-orange-50 border border-orange-200 rounded-2xl px-4 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-orange-500 uppercase tracking-wide mb-0.5">Refunded</p>
+                    {order.refundReason && <p className="text-sm text-gray-600">{order.refundReason}</p>}
+                  </div>
+                  <p className="text-lg font-bold text-orange-500">${order.refundAmount.toFixed(2)}</p>
+                </div>
+              )}
 
               {/* Redo reason */}
               {order.redoReason && (
@@ -692,6 +755,13 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
         {order && (
           <div className="shrink-0 border-t border-gray-100 px-5 py-4">
             <div className="grid grid-cols-3 gap-3 mb-3">
+              {/* Refund button */}
+              <button
+                onClick={() => setShowRefundSheet(true)}
+                className="col-span-3 py-2.5 rounded-2xl border-2 border-red-200 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors mb-1">
+                Record Refund
+              </button>
+
               <button
                 onClick={async () => {
                   if (!order) return
@@ -789,6 +859,23 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
         onClose={() => setShowSplit(false)}
       />
     )}
+      {showCancelSheet && order && (
+        <CancelOrderSheet
+          orderNumber={order.orderNumberString}
+          onConfirm={handleCancelConfirm}
+          onCancel={() => setShowCancelSheet(false)}
+        />
+      )}
+
+      {showRefundSheet && order && (
+        <RefundSheet
+          orderNumber={order.orderNumberString}
+          orderAmount={order.orderAmount}
+          onConfirm={handleRefundConfirm}
+          onCancel={() => setShowRefundSheet(false)}
+        />
+      )}
+
       {showRedoSheet && order && (
         <RedoSheet
           onConfirm={handleRedoConfirm}
