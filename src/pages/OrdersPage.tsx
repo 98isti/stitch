@@ -202,10 +202,13 @@ export default function OrdersPage() {
                   <tr key={order.id}
                     onClick={() => setSelectedOrderId(order.id)}
                     className={`border-b border-gray-100 cursor-pointer transition-colors ${
+                      order.status === 'Cancelled' ? 'opacity-50 bg-gray-50 hover:bg-gray-100' :
                       isNewest ? 'bg-blue-50/60 hover:bg-blue-50' : 'hover:bg-gray-50'
                     }`}>
                     <td className="px-5 py-4">
-                      <span className="font-bold text-navy text-sm">{order.orderNumberString}</span>
+                      <span className={`font-bold text-sm ${order.status === 'Cancelled' ? 'text-gray-400 line-through' : 'text-navy'}`}>
+                        {order.orderNumberString}
+                      </span>
                     </td>
                     <td className="px-3 py-4 text-gray-600 whitespace-nowrap">{formatDate(order.orderDate)}</td>
                     <td className="px-3 py-4">
@@ -224,6 +227,8 @@ export default function OrdersPage() {
                         order.status === 'In progress' ? 'bg-blue-50 text-blue-600' :
                         order.status === 'Ready for Pick Up' ? 'bg-green-100 text-green-700' :
                         order.status === 'Picked Up' ? 'bg-gray-100 text-gray-500' :
+                        order.status === 'Cancelled' ? 'bg-red-100 text-red-500' :
+                        order.status === 'Redo' ? 'bg-orange-100 text-orange-500' :
                         'bg-gray-100 text-gray-500'
                       }`}>{order.status}</span>
                     </td>
