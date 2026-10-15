@@ -144,6 +144,13 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
       } finally { setSaving(false) }
       return
     }
+    // Warn if marking Picked Up with outstanding balance
+    if (status === 'Picked Up' && order.stillDueAmount > 0) {
+      const confirmed = window.confirm(
+        `This order has $${order.stillDueAmount.toFixed(2)} still due.\n\nMark as Picked Up anyway?`
+      )
+      if (!confirmed) return
+    }
     setSaving(true)
     try {
       await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), { status, updatedAt: serverTimestamp() })
