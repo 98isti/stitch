@@ -64,6 +64,8 @@ export interface ReceiptData {
   isRedo?: boolean
   redoReason?: string
   originalPickupDate?: string
+  refundAmount?: number
+  refundReason?: string
 }
 
 export function buildReceipt(d: ReceiptData): string {

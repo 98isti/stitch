@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import RefundSheet from './RefundSheet'
 import { useStaff } from '../context/StaffContext'
+import { usePrinter } from '../context/PrinterContext'
 import { X, Trash2, ChevronLeft, Plus } from 'lucide-react'
 import ItemPickerSheet from './ItemPickerSheet'
 import { useCategories } from '../hooks/useCategories'
@@ -17,9 +18,19 @@ interface OrderDoc {
   id: string
   orderNumberString: string
   customerName: string
-  customerPhone: string
+  customerPhone?: string
   pickupDate: string
   orderAmount: number
+  paidAmount: number
+  stillDueAmount: number
+  discountApplied?: number
+  subTotalAmount?: number
+  paymentMethod: string
+  orderNote?: string
+  barcode?: string
+  locationId?: string
+  location: string
+  createdAt?: any
   items: string
   isPaid: boolean
   status: string
@@ -36,6 +47,7 @@ interface Props {
 
 export default function EditOrderSheet({ orderId, accountId, onClose, onBack }: Props) {
   const { staff } = useStaff()
+  const printer = usePrinter()
   const [showRefundSheet, setShowRefundSheet] = useState(false)
   const [order, setOrder] = useState<OrderDoc | null>(null)
   const [loading, setLoading] = useState(false)
@@ -106,6 +118,50 @@ export default function EditOrderSheet({ orderId, accountId, onClose, onBack }: 
       refundedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
+
+    // Auto-reprint receipt with refund reflected
+    try {
+      const items = JSON.parse(order.items || '[]')
+      const subtotal = order.subTotalAmount ?? order.orderAmount
+      const pickupDateObj = order.pickupDate ? new Date(order.pickupDate) : null
+      const createdDate = order.createdAt ? new Date(order.createdAt.seconds * 1000) : new Date()
+      let locData: any = {}
+      let acctData: any = {}
+      try {
+        const [acctSnap, locSnap] = await Promise.all([
+          getDoc(doc(db, `accounts/${accountId}`)),
+          order.locationId ? getDoc(doc(db, `accounts/${accountId}/locations/${order.locationId}`)) : Promise.resolve(null),
+        ])
+        if (acctSnap.exists()) acctData = acctSnap.data()
+        if (locSnap?.exists()) locData = locSnap.data()
+      } catch {}
+      await printer.printReceipt({
+        businessName: locData.businessName || acctData.businessName || order.location,
+        locationName: order.location,
+        locationAddress: [
+          [locData.shopNumber, locData.shoppingCentre].filter(Boolean).join(' '),
+          locData.streetAddress,
+          [locData.suburb, locData.state, locData.postCode].filter(Boolean).join(' '),
+        ].filter(Boolean).join('\n'),
+        locationPhone: locData.phone || locData.businessPhone || '',
+        abn: locData.abn || '',
+        orderNumber: order.orderNumberString,
+        orderDate: createdDate.toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' }),
+        orderTime: createdDate.toLocaleTimeString('en-AU', { hour:'numeric', minute:'2-digit', hour12:true }),
+        servedBy: staff?.name ?? '',
+        customerName: order.customerName,
+        customerPhone: order.customerPhone ?? '',
+        pickupDay: pickupDateObj ? pickupDateObj.toLocaleDateString('en-AU', { weekday:'long' }) : '',
+        pickupDateFull: pickupDateObj ? pickupDateObj.toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }) : '',
+        items: items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, unitPrice: i.unitPrice + (i.extras ?? []).reduce((s: number, e: any) => s + e.price, 0), note: i.note, extras: i.extras ?? [], components: i.components ?? [] })),
+        subtotal, discount: (order.discountApplied ?? 0) > 0 ? order.discountApplied : undefined,
+        total: order.orderAmount, paidAmount: order.paidAmount, stillDue: order.stillDueAmount,
+        paymentMethod: order.paymentMethod, orderNote: order.orderNote || undefined,
+        barcode: order.barcode,
+        refundAmount: amount,
+        refundReason: reason || undefined,
+      })
+    } catch {}
     onBack()
   }
 

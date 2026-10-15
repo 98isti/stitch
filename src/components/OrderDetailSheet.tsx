@@ -769,9 +769,15 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                 onClick={!order.isPaid ? () => setShowPaymentPrompt(true) : undefined}
                 disabled={saving}
                 className={`py-3 rounded-2xl text-white text-sm font-bold transition-colors ${
+                  order.refundAmount && order.refundAmount >= order.paidAmount ? 'bg-orange-400' :
+                  order.refundAmount && order.refundAmount > 0 ? 'bg-orange-400' :
                   order.isPaid ? 'bg-green-500' : 'bg-red-400 hover:bg-red-500'
                 }`}>
-                {order.isPaid ? '✓ Paid' : `Due $${order.stillDueAmount.toFixed(2)}`}
+                {order.refundAmount && order.refundAmount >= order.paidAmount
+                  ? '↩ Fully Refunded'
+                  : order.refundAmount && order.refundAmount > 0
+                  ? `↩ Partial Refund $${order.refundAmount.toFixed(2)}`
+                  : order.isPaid ? '✓ Paid' : `Due $${order.stillDueAmount.toFixed(2)}`}
               </button>
               <button
                 onClick={async () => {
@@ -818,6 +824,8 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                     paymentMethod: order.paymentMethod ?? '',
                     orderNote: order.orderNote ?? undefined,
                     barcode: order.barcode,
+                    refundAmount: order.refundAmount,
+                    refundReason: order.refundReason,
                   }, 1)
                   if (!ok) alert(`Print failed. Printer status: ${printer.status}, Thermal: ${printer.thermalPrinter ?? 'none selected'}`)
                 }}

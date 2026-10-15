@@ -640,12 +640,21 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
          .styleMagnification(.init(width: 1, height: 1)).styleBold(false)
          .actionPrintText("----------------------------------------\n")
 
-        // Payment status
-        // due > 0 && paid > 0  → PARTIALLY PAID (some money collected, still owing)
-        // due > 0 && paid == 0 → NOT PAID (Pay Later / nothing collected yet)
-        // due == 0             → PAID
+        // Payment status — with refund handling
+        let refundAmt = dbl(d, "refundAmount")
         p.styleAlignment(.center)
-        if due > 0 && paid > 0 {
+        if refundAmt > 0 {
+            // Always show PAID first (money was collected), then refund label
+            p.styleMagnification(.init(width: 4, height: 4)).styleBold(true)
+             .actionPrintText("PAID\n").styleBold(false)
+             .styleMagnification(.init(width: 2, height: 2))
+            if refundAmt >= paid {
+                p.actionPrintText("(Fully Refunded)\n")
+            } else {
+                p.actionPrintText("(Partially Refunded)\n")
+            }
+            p.styleMagnification(.init(width: 1, height: 1))
+        } else if due > 0 && paid > 0 {
             p.styleMagnification(.init(width: 3, height: 3)).styleInvert(true).styleBold(true)
              .actionPrintText("PARTIALLY PAID\n").styleBold(false).styleInvert(false)
              .styleMagnification(.init(width: 1, height: 1))
