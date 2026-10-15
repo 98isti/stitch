@@ -478,7 +478,9 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
             // Subtotal + item count
             p.actionPrintText("\n")
              .actionPrintText("\(padRow("Subtotal", fmt(amount)))\n")
+             .styleBold(true).styleMagnification(.init(width: 2, height: 2))
              .actionPrintText("\(totalQty) item\(totalQty != 1 ? "s" : "")\n")
+             .styleMagnification(.init(width: 1, height: 1)).styleBold(false)
 
             // Status — inverted if still in progress
             let isActive = status == "In progress" || status == "Redo"
@@ -633,10 +635,9 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
         }
 
         // Item count
-        p.styleBold(true).styleInvert(true)
-         .actionPrintText(" \(totalItems) ")
-         .styleInvert(false).styleBold(false)
-         .actionPrintText(" item\(totalItems != 1 ? "s" : "")\n")
+        p.styleBold(true).styleMagnification(.init(width: 2, height: 2))
+         .actionPrintText("\(totalItems) item\(totalItems != 1 ? "s" : "")\n")
+         .styleMagnification(.init(width: 1, height: 1)).styleBold(false)
          .actionPrintText("----------------------------------------\n")
 
         // Payment status
