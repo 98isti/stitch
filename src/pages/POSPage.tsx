@@ -130,7 +130,9 @@ async function saveOrder({
       pickupDate: isoDate(pickupDate),
       items: JSON.stringify(items.map(i => ({
         id: i.id, garmentId: i.garmentId, category: i.category, name: i.name,
-        quantity: i.quantity, unitPrice: i.unitPrice, note: i.note
+        quantity: i.quantity, unitPrice: i.unitPrice, note: i.note,
+        ...(i.components?.length ? { components: i.components } : {}),
+        ...(i.extras?.length ? { extras: i.extras } : {}),
       }))),
       subTotalAmount: Math.round(subTotalAmount * 100) / 100,
       discountApplied: discountAmount,          // actual amount, not boolean
@@ -414,7 +416,7 @@ export default function POSPage() {
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState<{ orderNumber: string; total: number; method: string } | null>(null)
 
-  const rawTotal = items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0)
+  const rawTotal = items.reduce((sum, i) => sum + (i.unitPrice + (i.extras ?? []).reduce((s, e) => s + e.price, 0)) * i.quantity, 0)
   const discountAmount = discount
     ? discount.type === 'percent' ? rawTotal * discount.value / 100 : Math.min(discount.value, rawTotal)
     : 0
@@ -1029,9 +1031,12 @@ export default function POSPage() {
                           {item.components?.map(c => (
                             <p key={c} className="text-xs text-gray-400 mt-0.5">↳ {c}</p>
                           ))}
+                          {item.extras?.map(e => (
+                            <p key={e.name} className="text-xs text-navy/60 mt-0.5">+ {e.name} ${e.price.toFixed(0)}</p>
+                          ))}
                           {item.note ? <p className="text-xs text-amber-500 truncate mt-0.5">{item.note}</p> : null}
                         </div>
-                        <span className="text-sm text-gray-500 shrink-0 cursor-pointer" onClick={() => setEditingItem(item)}>${item.unitPrice.toFixed(2)}</span>
+                        <span className="text-sm text-gray-500 shrink-0 cursor-pointer" onClick={() => setEditingItem(item)}>${(item.unitPrice + (item.extras ?? []).reduce((s, e) => s + e.price, 0)).toFixed(2)}</span>
                         <button onClick={() => setItems(prev => { const next = prev.filter(it => it.id !== item.id); if (next.length === 0) { setDiscount(null); setOrderNote('') } return next })}
                           className="w-6 h-6 rounded-full flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors shrink-0 ml-1">
                           <X size={13} />
@@ -1110,6 +1115,7 @@ export default function POSPage() {
       {/* Edit Sale Item Sheet */}
       <EditSaleItemSheet
         item={editingItem}
+        accountId={accountId}
         onClose={() => setEditingItem(null)}
         onSave={updateItem}
       />
