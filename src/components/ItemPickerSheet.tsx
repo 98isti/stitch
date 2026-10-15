@@ -42,10 +42,13 @@ export default function ItemPickerSheet({
 
   const subCategories = selectedCategory ? getSubCategories(selectedCategory.categoryName) : []
 
+  // Auto-skip sub-category screen when there's only one — go straight to items
+  const effectiveSubCategory = subCategories.length === 1 ? subCategories[0] : selectedSubCategory
+
   const categoryItems = selectedCategory ? getItemsForCategory(selectedCategory.categoryName) : []
 
   const filteredItems = categoryItems.filter(i => {
-    const matchSub = !selectedSubCategory || i.itemSubCategoryName === selectedSubCategory
+    const matchSub = !effectiveSubCategory || i.itemSubCategoryName === effectiveSubCategory
     const matchSearch = !search || i.itemName.toLowerCase().includes(search.toLowerCase())
     return matchSub && matchSearch
   })
@@ -79,8 +82,8 @@ export default function ItemPickerSheet({
 
   // Title
   let title = 'Select Category'
-  if (selectedCategory && !selectedSubCategory) title = selectedCategory.categoryName
-  if (selectedCategory && selectedSubCategory) title = `${selectedCategory.categoryName} › ${selectedSubCategory}`
+  if (selectedCategory && !effectiveSubCategory) title = selectedCategory.categoryName
+  if (selectedCategory && effectiveSubCategory) title = `${selectedCategory.categoryName} › ${effectiveSubCategory}`
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
@@ -141,7 +144,7 @@ export default function ItemPickerSheet({
           )}
 
           {/* Subcategory list */}
-          {!loading && selectedCategory && !selectedSubCategory && !search && (
+          {!loading && selectedCategory && !effectiveSubCategory && !search && (
             <div className="py-1">
               {subCategories.length > 0
                 ? subCategories.map(sub => (
@@ -173,7 +176,7 @@ export default function ItemPickerSheet({
           )}
 
           {/* Items list */}
-          {!loading && selectedCategory && (selectedSubCategory || search) && (
+          {!loading && selectedCategory && (effectiveSubCategory || search) && (
             <div className="py-1">
               {filteredItems.length > 0
                 ? filteredItems.map(item => (
