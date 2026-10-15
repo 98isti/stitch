@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Phone, ChevronDown, Pencil, Tag, Receipt } from 'lucide-react'
 import { doc, getDoc, getDocs, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import SplitPaymentSheet from './SplitPaymentSheet'
+import ConfirmDialog from './ConfirmDialog'
 import { usePrinter } from '../context/PrinterContext'
 
 import { db } from '../lib/firebase'
