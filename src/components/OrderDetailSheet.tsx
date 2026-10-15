@@ -355,7 +355,56 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
   }
 
 
-  async function markSplitPay(cash: number, card: number, stillDue: number) {
+  async function printOrderReceipt(overrides: { paidAmount?: number; stillDue?: number; paymentMethod?: string } = {}) {
+    if (!order || !accountId) return
+    try {
+      const items = JSON.parse(order.items || '[]')
+      const subtotal = order.subTotalAmount ?? order.orderAmount
+      const createdDate = order.createdAt ? new Date(order.createdAt.seconds * 1000) : new Date()
+      const pickupDateObj = order.pickupDate ? new Date(order.pickupDate) : null
+      let locData: any = {}; let acctData: any = {}
+      try {
+        const [acctSnap, locSnap] = await Promise.all([
+          getDoc(doc(db, `accounts/${accountId}`)),
+          order.locationId ? getDoc(doc(db, `accounts/${accountId}/locations/${order.locationId}`)) : Promise.resolve(null),
+        ])
+        if (acctSnap.exists()) acctData = acctSnap.data()
+        if (locSnap?.exists()) locData = locSnap.data()
+      } catch {}
+      await printer.printReceipt({
+        businessName: locData.businessName || acctData.businessName || order.location,
+        locationName: order.location,
+        locationAddress: [
+          [locData.shopNumber, locData.shoppingCentre].filter(Boolean).join(' '),
+          locData.streetAddress,
+          [locData.suburb, locData.state, locData.postCode].filter(Boolean).join(' '),
+        ].filter(Boolean).join('\n'),
+        locationPhone: locData.phone || locData.businessPhone || '',
+        abn: locData.abn || '',
+        orderNumber: order.orderNumberString,
+        orderDate: createdDate.toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' }),
+        orderTime: createdDate.toLocaleTimeString('en-AU', { hour:'numeric', minute:'2-digit', hour12:true }),
+        servedBy: staff?.name ?? '',
+        customerName: order.customerName,
+        customerPhone: order.customerPhone ?? '',
+        pickupDay: pickupDateObj ? pickupDateObj.toLocaleDateString('en-AU', { weekday:'long' }) : '',
+        pickupDateFull: pickupDateObj ? pickupDateObj.toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }) : '',
+        items: items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, unitPrice: i.unitPrice + (i.extras ?? []).reduce((s: number, e: any) => s + e.price, 0), note: i.note, extras: i.extras ?? [], components: i.components ?? [] })),
+        subtotal,
+        discount: (order.discountApplied ?? 0) > 0 ? order.discountApplied : undefined,
+        total: order.orderAmount,
+        paidAmount: overrides.paidAmount ?? order.paidAmount,
+        stillDue: overrides.stillDue ?? order.stillDueAmount,
+        paymentMethod: overrides.paymentMethod ?? order.paymentMethod ?? '',
+        orderNote: order.orderNote || undefined,
+        barcode: order.barcode,
+        refundAmount: order.refundAmount,
+        refundReason: order.refundReason,
+      })
+    } catch {}
+  }
+
+    async function markSplitPay(cash: number, card: number, stillDue: number) {
     if (!order || !accountId) return
     setShowSplit(false)
     const paidAmount = Math.round((cash + card) * 100) / 100
@@ -382,6 +431,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
       })
     }
     setOrder(o => o ? { ...o, isPaid, paidAmount, stillDueAmount: stillDue, paymentMethod: method } : o)
+    await printOrderReceipt({ paidAmount, stillDue, paymentMethod: method })
   }
 
   async function markPaid(method: string) {
@@ -408,6 +458,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
         paidDate,
       })
       setOrder(o => o ? { ...o, isPaid: true, paidAmount: o.orderAmount, stillDueAmount: 0, paymentMethod: method } : o)
+      await printOrderReceipt({ paidAmount: order.orderAmount, stillDue: 0, paymentMethod: method })
     } finally { setSaving(false) }
   }
 
