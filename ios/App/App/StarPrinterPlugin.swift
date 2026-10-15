@@ -433,12 +433,20 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
                 guard let catItems = groups[cat] else { continue }
                 p.styleBold(true).actionPrintText("\(cat)\n").styleBold(false)
                 for item in catItems {
-                    let name  = item["name"]      as? String ?? ""
-                    let qty   = item["quantity"]  as? Int    ?? 1
-                    let price = item["unitPrice"] as? Double ?? 0
-                    let note  = item["note"]      as? String ?? ""
+                    let name       = item["name"]       as? String   ?? ""
+                    let qty        = item["quantity"]   as? Int      ?? 1
+                    let price      = item["unitPrice"]  as? Double   ?? 0
+                    let note       = item["note"]       as? String   ?? ""
+                    let components = item["components"] as? [String] ?? []
+                    let extras     = item["extras"]     as? [[String: Any]] ?? []
                     let label = "  \(name) x\(qty)"
                     p.actionPrintText("\(padRow(label, fmt(price)))\n")
+                    for c in components { p.actionPrintText("    \u{2514} \(c)\n") }
+                    for e in extras {
+                        let eName = e["name"] as? String ?? ""
+                        let ePrice = e["price"] as? Double ?? 0
+                        p.actionPrintText("    + \(eName) $\(fmt(ePrice))\n")
+                    }
                     if !note.isEmpty { p.actionPrintText("  (\(note))\n") }
                     totalQty += qty
                 }
@@ -554,13 +562,21 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
         for (cat, catItems) in groups {
             p.styleBold(true).actionPrintText("\(cat.uppercased())\n").styleBold(false)
             for item in catItems {
-                let name  = item["name"]      as? String ?? ""
-                let qty   = item["qty"]       as? Int    ?? 1
-                let price = item["unitPrice"] as? Double ?? 0
-                let note  = item["note"]      as? String ?? ""
+                let name       = item["name"]       as? String   ?? ""
+                let qty        = item["qty"]        as? Int      ?? 1
+                let price      = item["unitPrice"]  as? Double   ?? 0
+                let note       = item["note"]       as? String   ?? ""
+                let components = item["components"] as? [String] ?? []
+                let extras     = item["extras"]     as? [[String: Any]] ?? []
                 let priceStr = fmt(price * Double(qty))
                 let label = "  \(name)\(qty > 1 ? " x\(qty)" : "")"
                 p.actionPrintText("\(padRow(label, priceStr))\n")
+                for c in components { p.actionPrintText("    \u{2514} \(c)\n") }
+                for e in extras {
+                    let eName = e["name"] as? String ?? ""
+                    let ePrice = e["price"] as? Double ?? 0
+                    p.actionPrintText("    + \(eName) $\(fmt(ePrice))\n")
+                }
                 if !note.isEmpty { p.actionPrintText("  (\(note))\n") }
                 totalItems += qty
             }
