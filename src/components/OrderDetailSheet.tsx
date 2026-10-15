@@ -351,20 +351,6 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
     } finally { setSaving(false) }
   }
 
-  async function handleRefundConfirm(amount: number, reason: string) {
-    if (!accountId || !orderId || !order) return
-    setShowRefundSheet(false)
-    setSaving(true)
-    try {
-      await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), {
-        refundAmount: amount,
-        refundReason: reason || null,
-        refundedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      })
-      setOrder(o => o ? { ...o, refundAmount: amount, refundReason: reason } : o)
-    } finally { setSaving(false) }
-  }
 
   async function markSplitPay(cash: number, card: number, stillDue: number) {
     if (!order || !accountId) return
