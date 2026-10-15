@@ -76,6 +76,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
   const isDryCleaning = order?.shopType === 'dryCleaning'
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; subMessage?: string; onConfirm: () => void } | null>(null)
   const [showStatusMenu, setShowStatusMenu] = useState(false)
   const [showSplit, setShowSplit] = useState(false)
   const printer = usePrinter()
@@ -146,10 +147,19 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
     }
     // Warn if marking Picked Up with outstanding balance
     if (status === 'Picked Up' && order.stillDueAmount > 0) {
-      const confirmed = window.confirm(
-        `This order has $${order.stillDueAmount.toFixed(2)} still due.\n\nMark as Picked Up anyway?`
-      )
-      if (!confirmed) return
+      setConfirmDialog({
+        message: 'Outstanding Balance',
+        subMessage: `This order has $${order.stillDueAmount.toFixed(2)} still due. Mark as Picked Up anyway?`,
+        onConfirm: async () => {
+          setConfirmDialog(null)
+          setSaving(true)
+          try {
+            await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), { status, updatedAt: serverTimestamp() })
+            setOrder(o => o ? { ...o, status } : o)
+          } finally { setSaving(false) }
+        },
+      })
+      return
     }
     setSaving(true)
     try {
@@ -679,5 +689,14 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
       />
     )}
     </>
+      {confirmDialog && (
+        <ConfirmDialog
+          message={confirmDialog.message}
+          subMessage={confirmDialog.subMessage}
+          confirmLabel="Yes, Pick Up"
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
   )
 }
