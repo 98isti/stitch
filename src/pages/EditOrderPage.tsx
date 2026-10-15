@@ -29,7 +29,7 @@ export default function EditOrderPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { accountId } = useAuth()
-  const staff = useStaff()
+  const { staff } = useStaff()
   const [showRefundSheet, setShowRefundSheet] = useState(false)
 
   const [order, setOrder] = useState<OrderDoc | null>(null)
