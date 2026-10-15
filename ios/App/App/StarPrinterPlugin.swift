@@ -87,6 +87,8 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
               let items = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
         else { call.reject("Invalid items JSON"); return }
 
+        let isRedo     = call.getString("isRedo") == "true"
+        let redoReason  = call.getString("redoReason") ?? ""
         let isDCShop = shopType == "dryCleaning"
 
         // Split items into dry-cleaning vs alterations
@@ -137,7 +139,8 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
                     try await printer.open()
                     let cmd = self.buildCompactLabels(
                         orderNumber: orderNumber, customerName: customerName,
-                        pickupDate: pickupDate, labelNames: dcLabelNames, isDryCleaning: true)
+                        pickupDate: pickupDate, labelNames: dcLabelNames, isDryCleaning: true,
+                        isRedo: isRedo, redoReason: redoReason)
                     try await printer.print(command: cmd)
                     await printer.close()
                     anyPrinted = true
@@ -154,7 +157,8 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
                     try await printer.open()
                     let cmd = self.buildCompactLabels(
                         orderNumber: orderNumber, customerName: customerName,
-                        pickupDate: pickupDate, labelNames: altLabelNames, isDryCleaning: false)
+                        pickupDate: pickupDate, labelNames: altLabelNames, isDryCleaning: false,
+                        isRedo: isRedo, redoReason: redoReason)
                     try await printer.print(command: cmd)
                     await printer.close()
                     anyPrinted = true
@@ -182,7 +186,9 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
         customerName: String,
         pickupDate:   String,
         labelNames:   [String],
-        isDryCleaning: Bool
+        isDryCleaning: Bool,
+        isRedo: Bool = false,
+        redoReason: String = ""
     ) -> String {
         let total = labelNames.count
         let WIDTH = 42
@@ -236,6 +242,19 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
                 doc.addPrinter(StarXpandCommand.PrinterBuilder()
                     .styleMagnification(.init(width: 1, height: 1)).actionFeedLine(1))
 
+                // REDO banner
+                if isRedo {
+                    doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                        .styleAlignment(.center).styleBold(true)
+                        .styleMagnification(.init(width: 2, height: 2))
+                        .actionPrintText("*** REDO ***").actionFeedLine(1))
+                    if !redoReason.isEmpty {
+                        doc.addPrinter(StarXpandCommand.PrinterBuilder()
+                            .styleAlignment(.left).styleBold(false)
+                            .styleMagnification(.init(width: 1, height: 1))
+                            .actionPrintText(redoReason).actionFeedLine(1))
+                    }
+                }
                 // Row 1 LEFT: order number large bold (2×2)
                 doc.addPrinter(StarXpandCommand.PrinterBuilder()
                     .styleAlignment(.left).styleBold(true)

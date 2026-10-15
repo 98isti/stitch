@@ -3,6 +3,7 @@ import { Phone, ChevronDown, Pencil, Tag, Receipt } from 'lucide-react'
 import { doc, getDoc, getDocs, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import SplitPaymentSheet from './SplitPaymentSheet'
 import ConfirmDialog from './ConfirmDialog'
+import RedoSheet from './RedoSheet'
 import { usePrinter } from '../context/PrinterContext'
 
 import { db } from '../lib/firebase'
@@ -24,6 +25,9 @@ interface OrderDoc {
   orderNote?: string
   barcode?: string
   pickupDate: string
+  redoReason?: string
+  redoReceivedDate?: string
+  redoPickupDate?: string
   orderAmount: number
   paidAmount: number
   stillDueAmount: number
@@ -80,6 +84,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; subMessage?: string; onConfirm: () => void } | null>(null)
   const [showStatusMenu, setShowStatusMenu] = useState(false)
   const [showSplit, setShowSplit] = useState(false)
+  const [showRedoSheet, setShowRedoSheet] = useState(false)
   const printer = usePrinter()
   const [showPaymentPrompt, setShowPaymentPrompt] = useState(false)
   const [showCompletedByPopup, setShowCompletedByPopup] = useState(false)
@@ -144,6 +149,11 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
         setSelectedEmployee('Select Your Name')
         setShowCompletedByPopup(true)
       } finally { setSaving(false) }
+      return
+    }
+    // Redo — open RedoSheet for reason + new pickup date
+    if (status === 'Redo') {
+      setShowRedoSheet(true)
       return
     }
     // Warn if marking Picked Up with outstanding balance
@@ -241,6 +251,77 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
         }).then(r => r.json()).then(d => console.log('[SMS]', d)).catch(e => console.error('[SMS]', e))
       }
     } finally { setSaving(false);  }
+  }
+
+  async function handleRedoConfirm(reason: string, newPickupDate: string) {
+    if (!accountId || !orderId || !order) return
+    setShowRedoSheet(false)
+    setSaving(true)
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), {
+        status: 'Redo',
+        redoReason: reason,
+        redoReceivedDate: today,
+        redoPickupDate: newPickupDate,
+        updatedAt: serverTimestamp(),
+      })
+      setOrder(o => o ? { ...o, status: 'Redo', redoReason: reason, redoReceivedDate: today, redoPickupDate: newPickupDate } : o)
+
+      // Reprint labels with REDO flag
+      await printer.printLabelsForOrder({
+        orderNumberString: order.orderNumberString,
+        customerName: order.customerName,
+        pickupDate: newPickupDate,
+        items: order.items,
+        shopType: order.shopType,
+        isRedo: true,
+        redoReason: reason,
+      })
+
+      // Reprint receipt with REDO info
+      const items = JSON.parse(order.items || '[]')
+      const subtotal = order.subTotalAmount ?? order.orderAmount
+      const createdDate = order.createdAt ? new Date(order.createdAt.seconds * 1000) : new Date()
+      const newPickupDateObj = new Date(newPickupDate)
+      let locData: any = {}
+      let acctData: any = {}
+      try {
+        const [acctSnap, locSnap] = await Promise.all([
+          getDoc(doc(db, `accounts/${accountId}`)),
+          order.locationId ? getDoc(doc(db, `accounts/${accountId}/locations/${order.locationId}`)) : Promise.resolve(null),
+        ])
+        if (acctSnap.exists()) acctData = acctSnap.data()
+        if (locSnap?.exists()) locData = locSnap.data()
+      } catch {}
+      await printer.printReceipt({
+        businessName: locData.businessName || acctData.businessName || order.location,
+        locationName: order.location,
+        locationAddress: [
+          [locData.shopNumber, locData.shoppingCentre].filter(Boolean).join(' '),
+          locData.streetAddress,
+          [locData.suburb, locData.state, locData.postCode].filter(Boolean).join(' '),
+        ].filter(Boolean).join('\n'),
+        locationPhone: locData.phone || locData.businessPhone || '',
+        abn: locData.abn || '',
+        orderNumber: order.orderNumberString,
+        orderDate: createdDate.toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' }),
+        orderTime: createdDate.toLocaleTimeString('en-AU', { hour:'numeric', minute:'2-digit', hour12:true }),
+        servedBy: staff?.name ?? '',
+        customerName: order.customerName,
+        customerPhone: order.customerPhone ?? '',
+        pickupDay: newPickupDateObj.toLocaleDateString('en-AU', { weekday:'long' }),
+        pickupDateFull: newPickupDateObj.toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }),
+        items: items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, unitPrice: i.unitPrice + (i.extras ?? []).reduce((s: number, e: any) => s + e.price, 0), note: i.note, extras: i.extras ?? [], components: i.components ?? [] })),
+        subtotal, discount: order.discountApplied > 0 ? order.discountApplied : undefined,
+        total: order.orderAmount, paidAmount: order.paidAmount, stillDue: order.stillDueAmount,
+        paymentMethod: order.paymentMethod, orderNote: order.orderNote || undefined,
+        barcode: order.barcode,
+        isRedo: true,
+        redoReason: reason,
+        originalPickupDate: order.pickupDate ?? '',
+      })
+    } finally { setSaving(false) }
   }
 
   async function markSplitPay(cash: number, card: number, stillDue: number) {
@@ -415,10 +496,29 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-gray-400 mb-0.5">Pick up:</p>
-                  <p className="text-sm font-semibold text-red-500">{formatDate(order.pickupDate)}</p>
+                  {order.redoPickupDate ? (
+                    <>
+                      <p className="text-xs text-gray-400 mb-0.5">Original pick up:</p>
+                      <p className="text-sm text-gray-400 line-through">{formatDate(order.pickupDate)}</p>
+                      <p className="text-xs text-orange-500 font-bold mt-1">REDO pick up:</p>
+                      <p className="text-sm font-semibold text-orange-500">{formatDate(order.redoPickupDate)}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-gray-400 mb-0.5">Pick up:</p>
+                      <p className="text-sm font-semibold text-red-500">{formatDate(order.pickupDate)}</p>
+                    </>
+                  )}
                 </div>
               </div>
+
+              {/* Redo reason */}
+              {order.redoReason && (
+                <div className="bg-orange-50 border border-orange-200 rounded-2xl px-4 py-3">
+                  <p className="text-xs font-bold text-orange-500 uppercase tracking-wide mb-1">Redo Reason</p>
+                  <p className="text-sm text-gray-700">{order.redoReason}</p>
+                </div>
+              )}
 
               {/* Items — each garment group is its own card */}
               <div className="flex flex-col gap-2">
@@ -689,6 +789,14 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
         onClose={() => setShowSplit(false)}
       />
     )}
+      {showRedoSheet && order && (
+        <RedoSheet
+          currentPickupDate={order.pickupDate ?? ''}
+          onConfirm={handleRedoConfirm}
+          onCancel={() => setShowRedoSheet(false)}
+        />
+      )}
+
       {confirmDialog && (
         <ConfirmDialog
           message={confirmDialog.message}

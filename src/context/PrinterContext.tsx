@@ -26,6 +26,8 @@ export interface OrderForLabels {
   pickupDate: string
   items: string        // raw JSON string from Firestore
   shopType?: string
+  isRedo?: boolean
+  redoReason?: string
 }
 
 interface PrinterContextValue {
@@ -158,6 +160,8 @@ export function PrinterProvider({ children }: { children: ReactNode }) {
         pickupDate:        formatLabelDate(order.pickupDate || ''),
         itemsJson:         order.items,
         shopType:          order.shopType ?? 'alterations',
+        isRedo:            order.isRedo ? 'true' : 'false',
+        redoReason:        order.redoReason ?? '',
         impactIdentifier:  impactPrinter ?? '',
         thermalIdentifier: thermalPrinter ?? '',
       })
