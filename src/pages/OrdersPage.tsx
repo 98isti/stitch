@@ -204,7 +204,13 @@ export default function OrdersPage() {
                     className={`border-b border-gray-100 cursor-pointer transition-colors ${
                       order.status === 'Cancelled' ? 'opacity-50 bg-gray-50 hover:bg-gray-100' :
                       isNewest ? 'bg-blue-50/60 hover:bg-blue-50' : 'hover:bg-gray-50'
-                    }`}>
+                    }`}
+                    style={order.status === 'Cancelled' ? {
+                      backgroundImage: 'linear-gradient(to right, #9ca3af, #9ca3af)',
+                      backgroundSize: '100% 1px',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                    } : undefined}>
                     <td className="px-5 py-4">
                       <span className={`font-bold text-sm ${order.status === 'Cancelled' ? 'text-gray-400 line-through' : 'text-navy'}`}>
                         {order.orderNumberString}
