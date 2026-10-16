@@ -5,6 +5,8 @@ import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useStaff } from '../context/StaffContext'
 import { useNavigate } from 'react-router-dom'
+import { signOut } from 'firebase/auth'
+import { auth } from '../lib/firebase'
 
 
 async function hashPin(pin: string): Promise<string> {
@@ -97,7 +99,7 @@ export default function StaffPinPage() {
       </div>
 
       <p className="text-white/30 text-xs mt-8">
-        Business owner? <a href="/login" className="text-tan hover:underline">Sign in here</a>
+        Business owner? <button onClick={() => signOut(auth).then(() => navigate('/login'))} className="text-tan hover:underline">Sign in here</button>
       </p>
     </div>
   )
