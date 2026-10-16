@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { collection, getDocs, query, orderBy, where } from 'firebase/firestore'
+import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 
 export interface Category {
@@ -15,11 +15,14 @@ export function useCategories(accountId: string | null, shopType?: string, locat
   useEffect(() => {
     if (!accountId) return
     setLoading(true)
-    const constraints: any[] = [orderBy('categoryName')]
-    if (locationId) constraints.unshift(where('locationId', '==', locationId))
-    const q = query(collection(db, 'accounts', accountId, 'categories'), ...constraints)
+    const q = locationId
+      ? query(collection(db, 'accounts', accountId, 'categories'), where('locationId', '==', locationId))
+      : query(collection(db, 'accounts', accountId, 'categories'))
     getDocs(q).then(snap => {
-      setAllCategories(snap.docs.map(d => ({ id: d.id, ...d.data() } as Category)))
+      const sorted = snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as Category))
+        .sort((a, b) => a.categoryName.localeCompare(b.categoryName))
+      setAllCategories(sorted)
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [accountId, locationId])
