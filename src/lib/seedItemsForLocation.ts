@@ -7,8 +7,8 @@
  */
 
 import {
-  collection, getDocs, addDoc, query, where, limit,
-  serverTimestamp
+  collection, getDocs, query, where, limit,
+  serverTimestamp, writeBatch, doc
 } from 'firebase/firestore'
 import { db } from './firebase'
 
@@ -38,16 +38,18 @@ export async function seedItemsForLocation(
     return { seeded: 0, skipped: false }
   }
 
-  // Write items for this location in batches
-  const BATCH_SIZE = 400
+  // Write items for this location using batched writes (max 500 per batch)
+  const BATCH_SIZE = 500
   const docs = templateSnap.docs
   let seeded = 0
 
   for (let i = 0; i < docs.length; i += BATCH_SIZE) {
     const chunk = docs.slice(i, i + BATCH_SIZE)
-    await Promise.all(chunk.map(d => {
+    const batch = writeBatch(db)
+    chunk.forEach(d => {
       const data = d.data()
-      return addDoc(collection(db, 'accounts', accountId, 'items'), {
+      const newRef = doc(collection(db, 'accounts', accountId, 'items'))
+      batch.set(newRef, {
         ...data,
         locationId,
         ...(locationName ? { locationName } : {}),
@@ -55,7 +57,8 @@ export async function seedItemsForLocation(
         createdAt: serverTimestamp(),
         source: 'template',
       })
-    }))
+    })
+    await batch.commit()
     seeded += chunk.length
   }
 
@@ -80,13 +83,16 @@ async function seedCategoriesForLocation(
   const templateCats = await getDocs(
     collection(db, 'itemTemplates', shopType, 'categories')
   )
-  await Promise.all(templateCats.docs.map(d =>
-    addDoc(collection(db, 'accounts', accountId, 'categories'), {
+  const catBatch = writeBatch(db)
+  templateCats.docs.forEach(d => {
+    const newRef = doc(collection(db, 'accounts', accountId, 'categories'))
+    catBatch.set(newRef, {
       ...d.data(),
       locationId,
       shopType,
       createdAt: serverTimestamp(),
       source: 'template',
     })
-  ))
+  })
+  await catBatch.commit()
 }
