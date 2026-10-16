@@ -17,6 +17,7 @@ const MORE_ITEMS = [
   { label: 'Items',        icon: '🏷️', path: '/items' },
   { label: 'Extras',       icon: '✨', path: '/extras' },
   { label: 'Leave',        icon: '🌴', path: '/leave' },
+  { label: 'Quick Items',  icon: '⚡', path: '/quick-items' },
   { label: 'Vouchers',     icon: '🎟️', path: '/vouchers' },
   { label: 'Settings',     icon: '⚙️', path: '/settings' },
 ]

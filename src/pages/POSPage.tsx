@@ -351,6 +351,10 @@ export default function POSPage() {
   const accountProfile = useAccountProfile(accountId)
   const loading = catsLoading || itemsLoading || locsLoading
 
+  // Quick items — loaded from location doc
+  const quickItems: { itemId: string; name: string; price: number; category: string }[] =
+    (activeLocation as any)?.quickItems ?? []
+
   const {
     items, setItems,
     amount, setAmount,
@@ -828,6 +832,26 @@ export default function POSPage() {
                   </div>
                 </div>
               ) : (
+                <>
+                {/* Quick Items strip */}
+                {quickItems.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto pb-2 mb-2 scrollbar-hide">
+                    {quickItems.map(qi => (
+                      <button key={qi.itemId}
+                        onClick={() => {
+                          setItems(prev => [...prev, {
+                            id: crypto.randomUUID(), garmentId: crypto.randomUUID(),
+                            category: qi.category, name: qi.name,
+                            quantity: 1, unitPrice: qi.price, note: ''
+                          }])
+                        }}
+                        className="shrink-0 flex flex-col items-center justify-center bg-navy/5 border border-navy/20 rounded-xl px-3 py-2 hover:bg-navy hover:text-white hover:border-navy active:scale-95 transition-all">
+                        <span className="text-xs font-semibold whitespace-nowrap text-navy group-hover:text-white">{qi.name}</span>
+                        <span className="text-xs text-gray-500 mt-0.5">${qi.price.toFixed(2)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="grid grid-cols-3 gap-2">
                   {categories.map(cat => (
                     <button key={cat.id}
@@ -837,6 +861,7 @@ export default function POSPage() {
                     </button>
                   ))}
                 </div>
+                </>
               )}
             </div>
             <div className="border-t border-gray-200 bg-white px-4 py-2.5 flex items-center gap-3">
