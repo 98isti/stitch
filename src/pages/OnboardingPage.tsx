@@ -18,6 +18,8 @@ interface FormData {
   abn:           string
   shopType:      'alterations' | 'dryCleaning' | ''
   phone:         string
+  shopNumber:    string
+  shoppingCentre: string
   streetAddress: string
   suburb:        string
   postCode:      string
@@ -34,6 +36,8 @@ const INITIAL: FormData = {
   abn:           '',
   shopType:      '',
   phone:         '',
+  shopNumber:    '',
+  shoppingCentre: '',
   streetAddress: '',
   suburb:        '',
   postCode:      '',
@@ -107,15 +111,17 @@ export default function OnboardingPage() {
       // 3. First location
       const locationName = form.locationName.trim()
       const newLocRef = await addDoc(collection(db, 'accounts', accountId, 'locations'), {
-        businessName:  form.companyName.trim(),
-        name:          locationName,
-        abn:           form.abn.trim(),
-        shopType:      form.shopType,
-        phone:         form.phone.trim(),
-        streetAddress: form.streetAddress.trim(),
-        suburb:        form.suburb.trim(),
-        postCode:      form.postCode.trim(),
-        state:         form.state,
+        businessName:   form.companyName.trim(),
+        name:           locationName,
+        abn:            form.abn.trim(),
+        shopType:       form.shopType,
+        phone:          form.phone.trim(),
+        shopNumber:     form.shopNumber.trim(),
+        shoppingCentre: form.shoppingCentre.trim(),
+        streetAddress:  form.streetAddress.trim(),
+        suburb:         form.suburb.trim(),
+        postCode:       form.postCode.trim(),
+        state:          form.state,
         country:       'Australia',
         dailyTarget:   parseFloat(form.dailyTarget) || 1000,
         orderPrefix:   locationName.slice(0, 3).toUpperCase(),
@@ -279,12 +285,30 @@ export default function OnboardingPage() {
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
                 </div>
 
-                {/* Address */}
+                {/* Shop Number + Shopping Centre */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Shop Number</label>
+                    <input type="text" value={form.shopNumber}
+                      onChange={e => set('shopNumber', e.target.value)}
+                      placeholder="e.g. Shop G04"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Shopping Centre</label>
+                    <input type="text" value={form.shoppingCentre}
+                      onChange={e => set('shoppingCentre', e.target.value)}
+                      placeholder="e.g. Westfield"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
+                  </div>
+                </div>
+
+                {/* Street Address */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Address</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Street Address</label>
                   <input type="text" value={form.streetAddress}
                     onChange={e => set('streetAddress', e.target.value)}
-                    placeholder="e.g. Shop 12, Westfield Eastgardens"
+                    placeholder="e.g. 1 Anderson St"
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
                 </div>
 
