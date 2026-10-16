@@ -30,7 +30,7 @@ export default function PrinterSettings() {
     const now    = new Date()
     const pickup = new Date(now.getTime() + 2 * 86400000)
     const ok = await printReceipt({
-      businessName:  'Sew Smart Alterations',
+      businessName:  'Your Business',
       locationName:  'Test Location',
       locationAddress: '123 Test Street, Sydney NSW',
       locationPhone:   '02 1234 5678',

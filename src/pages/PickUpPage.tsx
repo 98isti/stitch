@@ -209,7 +209,7 @@ export default function PickUpPage() {
     setPrintResult(null)
     try {
       const ok = await printer.printPickupSheet({
-        businessName: (activeLocation as any).businessName || 'Sew Smart',
+        businessName: (activeLocation as any).businessName || '',
         locationName: activeLocation.name,
         date: formatDateLabel(selectedDate).replace(/^\w+, /, ''),
         orders: sheetOrders,
