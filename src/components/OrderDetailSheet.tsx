@@ -765,7 +765,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                         updated[idx] = e.target.value.replace(/\D/g, '')
                         setConveyorSlots(updated)
                       }}
-                      placeholder={`Slot ${idx + 1} — e.g. ${42 + idx}`}
+                      placeholder={`Slot ${idx + 1}`}
                       className="flex-1 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl py-3 focus:outline-none focus:border-navy"
                       autoFocus={idx === 0}
                     />
