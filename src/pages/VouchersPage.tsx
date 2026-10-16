@@ -152,22 +152,6 @@ export default function VouchersPage() {
 
       <div className="max-w-lg mx-auto p-4 space-y-3">
 
-        {/* Stats row */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="bg-white rounded-2xl p-3 text-center shadow-sm">
-            <p className="text-2xl font-bold text-navy">{activeCount}</p>
-            <p className="text-xs text-gray-400">Active</p>
-          </div>
-          <div className="bg-white rounded-2xl p-3 text-center shadow-sm">
-            <p className="text-2xl font-bold text-gray-400">{redeemedCount}</p>
-            <p className="text-xs text-gray-400">Redeemed</p>
-          </div>
-          <div className="bg-white rounded-2xl p-3 text-center shadow-sm">
-            <p className="text-2xl font-bold text-gray-700">{vouchers.length}</p>
-            <p className="text-xs text-gray-400">Total</p>
-          </div>
-        </div>
-
         {/* Search */}
         <div className="bg-white rounded-xl shadow-sm px-4 py-2.5">
           <input value={search} onChange={e => setSearch(e.target.value)}
@@ -198,52 +182,42 @@ export default function VouchersPage() {
           const redeemed = v.isRedeemed
 
           return (
-            <div key={v.id} className={`bg-white rounded-2xl shadow-sm overflow-hidden border ${redeemed ? 'border-gray-100' : expired ? 'border-orange-100' : 'border-green-100'}`}>
+            <div key={v.id} className={`bg-white rounded-xl shadow-sm overflow-hidden border-l-4 ${redeemed ? 'border-l-gray-200' : expired ? 'border-l-orange-300' : 'border-l-green-400'}`}>
+              <div className="px-3 py-2.5">
+                {/* Row 1: code + amount + status */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-base text-navy tracking-wider">{v.code}</span>
+                    {redeemed
+                      ? <span className="text-xs bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full">Redeemed</span>
+                      : expired
+                        ? <span className="text-xs bg-orange-100 text-orange-500 px-1.5 py-0.5 rounded-full">Expired</span>
+                        : <span className="text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full">Active</span>
+                    }
+                  </div>
+                  <span className="font-bold text-base text-gray-900">${v.amount.toFixed(2)}</span>
+                </div>
 
-              {/* Status bar */}
-              <div className={`h-1 ${redeemed ? 'bg-gray-200' : expired ? 'bg-orange-300' : 'bg-green-400'}`} />
-
-              <div className="p-4">
-                {/* Top row: code + amount */}
-                <div className="flex items-start justify-between mb-3">
+                {/* Row 2: customer + location + dates */}
+                <div className="flex items-center justify-between mt-1">
                   <div>
-                    <p className="font-mono font-bold text-2xl text-navy tracking-wider">{v.code}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {redeemed
-                        ? <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">Redeemed</span>
-                        : expired
-                          ? <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full font-medium">Expired</span>
-                          : <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Active</span>
-                      }
-                    </div>
+                    {v.customerName && <span className="text-xs text-gray-700 font-medium">{v.customerName}</span>}
+                    {v.customerPhone && <span className="text-xs text-gray-400"> · {v.customerPhone}</span>}
+                    {v.locationName && <span className="text-xs text-gray-400"> · {v.locationName}</span>}
                   </div>
-                  <p className="text-2xl font-bold text-gray-900">${v.amount.toFixed(2)}</p>
+                  <span className="text-xs text-gray-400">{fmtDate(v.issueDate)} → {fmtDate(v.expiryDate)}</span>
                 </div>
 
-                {/* Customer */}
-                {(v.customerName || v.customerPhone) && (
-                  <div className="mb-2">
-                    {v.customerName && <p className="text-sm font-medium text-gray-700">{v.customerName}</p>}
-                    {v.customerPhone && <p className="text-xs text-gray-400">{v.customerPhone}</p>}
-                  </div>
-                )}
-
-                {/* Location + dates */}
-                <div className="text-xs text-gray-400 space-y-0.5">
-                  {v.locationName && <p>📍 {v.locationName}</p>}
-                  <p>Issued: {fmtDate(v.issueDate)} · Expires: {fmtDate(v.expiryDate)}</p>
-                </div>
-
-                {/* Actions */}
+                {/* Actions — only if not redeemed */}
                 {!redeemed && (
-                  <div className="flex gap-2 mt-3">
+                  <div className="flex gap-2 mt-2">
                     <button onClick={() => doPrintVoucher(v)}
-                      className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors">
-                      <Printer size={12} /> Reprint
+                      className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 px-2.5 py-1 rounded-lg hover:bg-gray-50 transition-colors">
+                      <Printer size={11} /> Reprint
                     </button>
                     {!expired && (
                       <button onClick={() => markRedeemed(v)} disabled={redeeming === v.id}
-                        className="flex-1 text-xs bg-navy text-white font-semibold py-1.5 rounded-xl hover:bg-navy/90 transition-colors disabled:opacity-50">
+                        className="flex-1 text-xs bg-navy text-white font-semibold py-1 rounded-lg hover:bg-navy/90 transition-colors disabled:opacity-50">
                         {redeeming === v.id ? 'Saving…' : 'Mark as Redeemed'}
                       </button>
                     )}
