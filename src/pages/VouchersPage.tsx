@@ -5,8 +5,8 @@ import { useAuth } from '../context/AuthContext'
 import { Plus, ChevronLeft, Gift } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
-interface Voucher { id: string; code: string; amount: number; customerName: string; issueDate: string; expiryDate: string; isRedeemed: boolean }
-interface FormState { code: string; amount: string; customerName: string; expiryDate: string }
+interface Voucher { id: string; code: string; amount: number; customerName: string; customerPhone: string; issueDate: string; expiryDate: string; isRedeemed: boolean }
+interface FormState { code: string; amount: string; customerName: string; customerPhone: string; expiryDate: string }
 
 function randomCode() { return 'STI-' + Math.random().toString(36).slice(2,8).toUpperCase() }
 
@@ -16,7 +16,11 @@ export default function VouchersPage() {
   const [vouchers, setVouchers] = useState<Voucher[]>([])
   const [loading, setLoading] = useState(true)
   const [showSheet, setShowSheet] = useState(false)
-  const [form, setForm] = useState<FormState>({ code: randomCode(), amount: '', customerName: '', expiryDate: '' })
+  function defaultExpiry() {
+    const d = new Date(); d.setMonth(d.getMonth() + 3)
+    return d.toISOString().split('T')[0]
+  }
+  const [form, setForm] = useState<FormState>({ code: randomCode(), amount: '', customerName: '', customerPhone: '', expiryDate: defaultExpiry() })
   const [saving, setSaving] = useState(false)
   const [redeeming, setRedeeming] = useState<string | null>(null)
 
@@ -37,6 +41,7 @@ export default function VouchersPage() {
         code: form.code,
         amount: parseFloat(form.amount),
         customerName: form.customerName,
+        customerPhone: form.customerPhone,
         issueDate: new Date().toISOString().split('T')[0],
         expiryDate: form.expiryDate,
         isRedeemed: false,
@@ -61,7 +66,7 @@ export default function VouchersPage() {
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shrink-0">
         <button onClick={() => navigate('/pos')} className="flex items-center gap-1 text-navy text-sm font-medium"><ChevronLeft size={18} /> Back</button>
         <h1 className="font-bold text-gray-900">Gift Vouchers</h1>
-        <button onClick={() => { setForm({ code: randomCode(), amount: '', customerName: '', expiryDate: '' }); setShowSheet(true) }}
+        <button onClick={() => { setForm({ code: randomCode(), amount: '', customerName: '', customerPhone: '', expiryDate: defaultExpiry() }); setShowSheet(true) }}
           className="flex items-center gap-1 text-navy text-sm font-medium"><Plus size={16} /> Issue</button>
       </div>
 
@@ -77,7 +82,7 @@ export default function VouchersPage() {
                 <Gift size={20} className={v.isRedeemed ? 'text-gray-300' : 'text-tan'} />
                 <div>
                   <p className="font-mono font-bold text-gray-900">{v.code}</p>
-                  <p className="text-xs text-gray-400">{v.customerName || 'No customer'}</p>
+                  <p className="text-xs text-gray-400">{v.customerName || 'No customer'}{v.customerPhone ? ` · ${v.customerPhone}` : ''}</p>
                 </div>
               </div>
               <div className="text-right">
@@ -123,6 +128,9 @@ export default function VouchersPage() {
               </div>
               <input value={form.customerName} onChange={e => setForm(f => ({ ...f, customerName: e.target.value }))}
                 placeholder="Customer name"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-navy" />
+              <input type="tel" value={form.customerPhone} onChange={e => setForm(f => ({ ...f, customerPhone: e.target.value }))}
+                placeholder="Customer phone (optional)"
                 className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-navy" />
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Expiry date</label>
