@@ -16,7 +16,7 @@ interface FormData {
   shopName:     string   // saved as businessName on location doc
   shopNickname: string   // saved as name on location doc (defaults to shopName)
   abn:          string
-  shopType:     'alterations' | 'dryCleaning'
+  shopType:     'alterations' | 'dryCleaning' | ''
   phone:        string
   streetAddress: string
   suburb:       string
@@ -31,7 +31,7 @@ const INITIAL: FormData = {
   shopName:       '',
   shopNickname:   '',
   abn:            '',
-  shopType:       'alterations',
+  shopType:       '',
   phone:          '',
   streetAddress:  '',
   suburb:         '',
@@ -55,7 +55,7 @@ export default function OnboardingPage() {
       return form.ownerFirstName.trim().length > 0 && form.ownerPin.length === 4
     }
     if (step === 1) {
-      return form.shopName.trim().length > 0 && form.phone.trim().length > 0
+      return form.shopName.trim().length > 0 && form.phone.trim().length > 0 && form.shopType !== ''
     }
     return true
   }
@@ -108,7 +108,7 @@ export default function OnboardingPage() {
       })
 
       // 4. Seed categories + items from Firestore template for this location
-      await seedItemsForLocation(accountId, newLocRef.id, form.shopType, locationName)
+      await seedItemsForLocation(accountId, newLocRef.id, form.shopType as 'alterations' | 'dryCleaning', locationName)
 
       // 5. Mark user as onboarded
       await setDoc(doc(db, 'users', accountId), {
@@ -198,7 +198,7 @@ export default function OnboardingPage() {
               <div className="space-y-4">
                 {/* Shop type — pick first, affects everything */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Shop type</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Shop type <span className="text-red-400">*</span></label>
                   <div className="grid grid-cols-2 gap-2">
                     {(['alterations', 'dryCleaning'] as const).map(type => (
                       <button key={type} type="button"
@@ -206,12 +206,15 @@ export default function OnboardingPage() {
                         className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
                           form.shopType === type
                             ? 'border-navy bg-navy text-white'
-                            : 'border-gray-200 text-gray-600 hover:border-navy/30'
+                            : form.shopType === ''
+                              ? 'border-red-300 text-gray-600 hover:border-navy/30'
+                              : 'border-gray-200 text-gray-600 hover:border-navy/30'
                         }`}>
                         {type === 'alterations' ? '✂️  Alterations' : '👔  Dry Cleaning'}
                       </button>
                     ))}
                   </div>
+                  {form.shopType === '' && <p className="text-xs text-red-400 mt-1">Please select a shop type</p>}
                 </div>
 
                 {/* Shop name */}
@@ -221,7 +224,7 @@ export default function OnboardingPage() {
                   </label>
                   <input type="text" value={form.shopName}
                     onChange={e => set('shopName', e.target.value)}
-                    placeholder="e.g. Sew Smart Alterations"
+                    placeholder="e.g. Your Business Name"
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
                 </div>
 
