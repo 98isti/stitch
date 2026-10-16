@@ -631,7 +631,11 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
 
         // ── Code + Issue Date ─────────────────────────────────────────────
         p.actionPrintText("----------------------------------------\n")
-         .actionPrintText("Voucher Code: \(voucherCode)\n")
+         .styleBold(true)
+         .styleMagnification(.init(width: 2, height: 2))
+         .actionPrintText("\(voucherCode)\n")
+         .styleBold(false)
+         .styleMagnification(.init(width: 1, height: 1))
          .actionPrintText("Issue Date: \(formatReceiptDate(issueDate))\n")
 
         // ── Expiry Date (large) ───────────────────────────────────────────
