@@ -429,11 +429,23 @@ export default function SettingsPage() {
 
               {/* ── SMS Notifications (location-level) ── */}
               <Section title="SMS Notifications" subtitle={`For ${activeLocation?.name ?? 'this location'}`}>
-                <Field label="Sender Name / Number"
-                  note="Your business name (max 11 chars, must be registered) or a virtual AU number e.g. +61412345678">
-                  <Input value={locSettings.sms.senderName}
-                    onChange={v => setLocSettings(s => ({ ...s, sms: { ...s.sms, senderName: v } }))}
-                    placeholder="+61412345678 or YourBrand" />
+                <Field label="SMS Number"
+                  note="Assigned by Stitch. Contact support to set up SMS for this location.">
+                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl">
+                    {locSettings.sms.senderName ? (
+                      <>
+                        <span className="text-green-500 text-lg">✓</span>
+                        <span className="text-sm font-medium text-gray-800">{locSettings.sms.senderName}</span>
+                        <span className="ml-auto text-xs text-green-600 font-medium">SMS active</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-gray-300 text-lg">○</span>
+                        <span className="text-sm text-gray-400 italic">Not configured</span>
+                        <span className="ml-auto text-xs text-gray-400">SMS inactive</span>
+                      </>
+                    )}
+                  </div>
                 </Field>
                 <Field label="Message Template"
                   note="Variables: {firstName} {orderNumber} {businessName} {balance}">
