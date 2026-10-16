@@ -70,7 +70,7 @@ const BLANK_LOCATION: LocationSettings = {
   name: '', businessName: '', abn: '', businessEmail: '',
   shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '',
   state: 'NSW', postCode: '', country: 'Australia',
-  phone: '', dailyTarget: 1000, shopType: 'alterations', orderPrefix: '',
+  phone: '', dailyTarget: 1000, shopType: '', orderPrefix: '',
   sms: { senderName: '', template: DEFAULT_SMS_TEMPLATE },
 }
 
@@ -105,7 +105,7 @@ export default function SettingsPage() {
   const [allLocations, setAllLocations] = useState<any[]>([])
   const [showLocSheet, setShowLocSheet] = useState(false)
   const [editingLoc, setEditingLoc] = useState<{ id: string; name: string } | null>(null)
-  const [locForm, setLocForm] = useState({ name: '', businessName: '', abn: '', businessEmail: '', shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '', state: 'NSW', postCode: '', phone: '', orderPrefix: '', shopType: 'alterations', dailyTarget: '1000' })
+  const [locForm, setLocForm] = useState({ name: '', businessName: '', abn: '', businessEmail: '', shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '', state: 'NSW', postCode: '', phone: '', orderPrefix: '', shopType: '', dailyTarget: '1000' })
   const [locSaving, setLocSaving] = useState(false)
 
   // ── Load account-level data once ──────────────────────────────────────────
@@ -509,7 +509,7 @@ export default function SettingsPage() {
                   ))}
                   <button onClick={() => {
                     setEditingLoc(null)
-                    setLocForm({ name: '', businessName: locSettings.businessName, abn: locSettings.abn, businessEmail: locSettings.businessEmail, shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '', state: 'NSW', postCode: '', phone: '', orderPrefix: '', shopType: 'alterations', dailyTarget: '1000' })
+                    setLocForm({ name: '', businessName: locSettings.businessName, abn: locSettings.abn, businessEmail: locSettings.businessEmail, shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '', state: 'NSW', postCode: '', phone: '', orderPrefix: '', shopType: '', dailyTarget: '1000' })
                     setShowLocSheet(true)
                   }} className="flex items-center gap-1.5 text-navy text-sm font-medium mt-2 hover:opacity-70 transition-opacity">
                     <Plus size={15} /> Add Location
