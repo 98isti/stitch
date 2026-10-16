@@ -11,6 +11,7 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
         CAPPluginMethod(name: "printLabel",          returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "printLabelsForOrder", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "printPickupSheet",    returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "printVoucher",         returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "openDrawer",          returnType: CAPPluginReturnPromise),
     ]
 
@@ -519,6 +520,136 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
 
         // ── Cut ──────────────────────────────────────────────────────────
         p.actionFeedLine(3).actionCut(.partial)
+
+        return StarXpandCommand.StarXpandCommandBuilder()
+            .addDocument(doc.addPrinter(p))
+            .getCommands()
+    }
+
+    // ── Print voucher ─────────────────────────────────────────────────────
+    @objc func printVoucher(_ call: CAPPluginCall) {
+        guard let identifier = call.getString("identifier") else { call.reject("Missing identifier"); return }
+        let printer = StarPrinter(StarConnectionSettings(interfaceType: .lan, identifier: identifier))
+
+        let businessName    = call.getString("businessName")    ?? ""
+        let locationName    = call.getString("locationName")    ?? ""
+        let locationAddress = call.getString("locationAddress") ?? ""
+        let locationPhone   = call.getString("locationPhone")   ?? ""
+        let abn             = call.getString("abn")             ?? ""
+        let voucherCode     = call.getString("voucherCode")     ?? ""
+        let amount          = call.getDouble("amount")          ?? 0
+        let customerName    = call.getString("customerName")    ?? ""
+        let customerPhone   = call.getString("customerPhone")   ?? ""
+        let issueDate       = call.getString("issueDate")       ?? ""
+        let expiryDate      = call.getString("expiryDate")      ?? ""
+
+        Task {
+            do {
+                try await printer.open()
+                let cmd = self.buildVoucherReceipt(
+                    businessName:    businessName,
+                    locationName:    locationName,
+                    locationAddress: locationAddress,
+                    locationPhone:   locationPhone,
+                    abn:             abn,
+                    voucherCode:     voucherCode,
+                    amount:          amount,
+                    customerName:    customerName,
+                    customerPhone:   customerPhone,
+                    issueDate:       issueDate,
+                    expiryDate:      expiryDate
+                )
+                try await printer.print(command: cmd)
+                await printer.close()
+                call.resolve(["success": true])
+            } catch {
+                await printer.close()
+                call.reject("Voucher print failed: \(error)")
+            }
+        }
+    }
+
+    private func formatReceiptDate(_ iso: String) -> String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        guard let date = fmt.date(from: iso) else { return iso }
+        let out = DateFormatter()
+        out.dateFormat = "d MMMM yyyy"
+        return out.string(from: date)
+    }
+
+    private func buildVoucherReceipt(
+        businessName:    String,
+        locationName:    String,
+        locationAddress: String,
+        locationPhone:   String,
+        abn:             String,
+        voucherCode:     String,
+        amount:          Double,
+        customerName:    String,
+        customerPhone:   String,
+        issueDate:       String,
+        expiryDate:      String
+    ) -> String {
+        let doc = StarXpandCommand.DocumentBuilder()
+        let p   = StarXpandCommand.PrinterBuilder()
+
+        // ── Header: business details ──────────────────────────────────────
+        p.styleAlignment(.center)
+         .styleBold(true)
+         .actionPrintText("\(businessName)\n")
+         .styleBold(false)
+
+        p.styleAlignment(.left)
+        if !locationName.isEmpty    { p.actionPrintText("\(businessName) - \(locationName)\n") }
+        if !locationAddress.isEmpty { p.actionPrintText("\(locationAddress)\n") }
+        if !locationPhone.isEmpty   { p.actionPrintText("Phone: \(locationPhone)\n") }
+        if !abn.isEmpty             { p.actionPrintText("ABN: \(abn)\n") }
+
+        // ── VOUCHER title ─────────────────────────────────────────────────
+        p.styleAlignment(.center)
+         .actionPrintText("----------------------------------------\n")
+         .styleBold(true)
+         .styleMagnification(.init(width: 2, height: 2))
+         .actionPrintText("VOUCHER\n")
+         .styleBold(false)
+         .styleMagnification(.init(width: 1, height: 1))
+         .actionPrintText("----------------------------------------\n")
+
+        // ── Amount (large) ────────────────────────────────────────────────
+        p.styleBold(true)
+         .styleMagnification(.init(width: 3, height: 3))
+         .actionPrintText(String(format: "$%.2f\n", amount))
+         .styleBold(false)
+         .styleMagnification(.init(width: 1, height: 1))
+
+        // ── Customer details ──────────────────────────────────────────────
+        p.styleAlignment(.left)
+         .actionPrintText("----------------------------------------\n")
+        if !customerName.isEmpty  { p.actionPrintText("Name:  \(customerName)\n") }
+        if !customerPhone.isEmpty { p.actionPrintText("Phone: \(customerPhone)\n") }
+
+        // ── Code + Issue Date ─────────────────────────────────────────────
+        p.actionPrintText("----------------------------------------\n")
+         .actionPrintText("Voucher Code: \(voucherCode)\n")
+         .actionPrintText("Issue Date: \(formatReceiptDate(issueDate))\n")
+
+        // ── Expiry Date (large) ───────────────────────────────────────────
+        p.actionPrintText("----------------------------------------\n")
+         .styleAlignment(.left)
+         .styleMagnification(.init(width: 2, height: 2))
+         .styleBold(true)
+         .actionPrintText("Expiry Date:\n")
+         .actionPrintText("\(formatReceiptDate(expiryDate))\n")
+         .styleBold(false)
+         .styleMagnification(.init(width: 1, height: 1))
+
+        // ── Footer ────────────────────────────────────────────────────────
+        p.actionPrintText("----------------------------------------\n")
+         .styleAlignment(.center)
+         .actionPrintText("Redeem this voucher at any \(businessName)\nlocation before the expiry date.\nThank you!\n")
+         .actionFeedLine(3)
+         .actionCut(.partial)
 
         return StarXpandCommand.StarXpandCommandBuilder()
             .addDocument(doc.addPrinter(p))
