@@ -96,11 +96,6 @@ export default function SettingsPage() {
 
   const { locations, activeLocation, setActiveLocation } = useLocations(unlocked ? accountId : null)
 
-  // Extras management
-  const [extras, setExtras] = useState<{ name: string; price: number }[]>([])
-  const [newExtraName, setNewExtraName] = useState('')
-  const [newExtraPrice, setNewExtraPrice] = useState('')
-
   // Location management
   const [allLocations, setAllLocations] = useState<any[]>([])
   const [showLocSheet, setShowLocSheet] = useState(false)
@@ -116,7 +111,6 @@ export default function SettingsPage() {
       if (snap.exists()) {
         const d = snap.data()
         setRequirePinAfterLock(d.requirePinAfterLock !== false)
-        setExtras(d.extras ?? [])
         setPlan(d.plan ?? 'Trial')
       }
       setLoading(false)
@@ -247,10 +241,9 @@ export default function SettingsPage() {
         sms:            locSettings.sms,
         updatedAt:      serverTimestamp(),
       })
-      // Account doc — security + extras
+      // Account doc — security
       await updateDoc(doc(db, 'accounts', accountId), {
         requirePinAfterLock,
-        extras,
         updatedAt: serverTimestamp(),
       })
       setSaved(true)
@@ -529,38 +522,7 @@ export default function SettingsPage() {
                 </div>
               </Section>
 
-              {/* ── Extras ── */}
-              <Section title="Extras" subtitle="Add-ons shown in the item editor — e.g. Deluxe, Express">
-                <div className="space-y-2">
-                  {extras.map((e, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <span className="flex-1 text-sm font-medium text-gray-900">{e.name}</span>
-                      <span className="text-sm text-gray-500">+${e.price.toFixed(2)}</span>
-                      <button onClick={() => setExtras(prev => prev.filter((_, j) => j !== i))}
-                        className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
-                    </div>
-                  ))}
-                  <div className="flex gap-2 pt-1">
-                    <input value={newExtraName} onChange={e => setNewExtraName(e.target.value)}
-                      placeholder="Name (e.g. Starch)"
-                      className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-navy" />
-                    <div className="flex items-center border border-gray-200 rounded-xl px-3 py-2 focus-within:border-navy w-24">
-                      <span className="text-gray-400 text-sm mr-1">$</span>
-                      <input type="number" value={newExtraPrice} onChange={e => setNewExtraPrice(e.target.value)}
-                        placeholder="0"
-                        className="w-full text-sm focus:outline-none bg-transparent" />
-                    </div>
-                    <button onClick={() => {
-                      if (!newExtraName.trim()) return
-                      setExtras(prev => [...prev, { name: newExtraName.trim(), price: parseFloat(newExtraPrice) || 0 }])
-                      setNewExtraName('')
-                      setNewExtraPrice('')
-                    }} className="px-3 py-2 bg-navy text-white rounded-xl text-sm font-semibold hover:bg-navy-light transition-colors">
-                      <Plus size={16} />
-                    </button>
-                  </div>
-                </div>
-              </Section>
+
 
               {/* ── Plan & Billing ── */}
               <Section title="Plan & Billing">

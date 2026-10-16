@@ -4,6 +4,7 @@ import { PrinterProvider } from './context/PrinterContext'
 import { StaffProvider } from './context/StaffContext'
 import LoginPage from './pages/LoginPage'
 import SignUpPage from './pages/SignUpPage'
+import ExtrasPage from './pages/ExtrasPage'
 import StaffPinPage from './pages/StaffPinPage'
 import OnboardingPage from './pages/OnboardingPage'
 import LocationSetupPage from './pages/LocationSetupPage'
@@ -73,6 +74,7 @@ function AppRoutes() {
         <Route path="/customers"         element={<CustomersPage />} />
         <Route path="/locations"         element={<LocationsPage />} />
         <Route path="/vouchers"          element={<VouchersPage />} />
+        <Route path="/extras"             element={<ExtrasPage />} />
         <Route path="/pickup"            element={<PickUpPage />} />
         <Route path="/roster"            element={<PlaceholderPage title="Roster" />} />
         <Route path="/reports"           element={<ReportsPage />} />

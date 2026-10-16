@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { doc, setDoc, collection, addDoc } from 'firebase/firestore'
+import { doc, setDoc, collection, addDoc, getDoc } from 'firebase/firestore'
 import { serverTimestamp } from 'firebase/firestore'
 import { seedItemsForLocation } from '../lib/seedItemsForLocation'
 import { db } from '../lib/firebase'
@@ -82,12 +82,15 @@ export default function OnboardingPage() {
     try {
       const accountId = user.uid
 
-      // 1. Account doc — plan + company name
+      // 1. Account doc — plan + company name + extras from template
+      const extrasSnap = await getDoc(doc(db, 'itemTemplates', 'extras'))
+      const defaultExtras = extrasSnap.exists() ? (extrasSnap.data().items ?? []) : []
       await setDoc(doc(db, 'accounts', accountId), {
         plan:         'trial',
         trialEndsAt:  new Date(Date.now() + 14 * 86400000),
         email:        user.email,
         businessName: form.companyName.trim(),
+        extras:       defaultExtras,
         createdAt:    serverTimestamp(),
       })
 

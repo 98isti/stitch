@@ -15,6 +15,7 @@ const MORE_ITEMS = [
   { label: 'Customers',    icon: '👥', path: '/customers' },
   { label: 'Categories',   icon: '📂', path: '/categories' },
   { label: 'Items',        icon: '🏷️', path: '/items' },
+  { label: 'Extras',       icon: '✨', path: '/extras' },
   { label: 'Vouchers',     icon: '🎟️', path: '/vouchers' },
   { label: 'Settings',     icon: '⚙️', path: '/settings' },
 ]
