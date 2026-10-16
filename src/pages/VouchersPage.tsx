@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom'
 interface Voucher { id: string; code: string; amount: number; customerName: string; customerPhone: string; issueDate: string; expiryDate: string; isRedeemed: boolean }
 interface FormState { code: string; amount: string; customerName: string; customerPhone: string; expiryDate: string }
 
-function randomCode() { return 'STI-' + Math.random().toString(36).slice(2,8).toUpperCase() }
+function randomCode() { return Math.random().toString(36).slice(2,6).toUpperCase() }
 
 export default function VouchersPage() {
   const { accountId } = useAuth()
@@ -107,10 +107,10 @@ export default function VouchersPage() {
       {showSheet && (
         <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowSheet(false)}>
           <div className="absolute inset-0 bg-black/30" />
-          <div className="relative z-10 bg-white rounded-t-3xl w-full max-w-sm pb-10 pt-4 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+          <div className="relative z-10 bg-white rounded-t-3xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-4 mb-3" />
             <h3 className="text-center font-bold text-gray-900 mb-4 px-4">Issue Gift Voucher</h3>
-            <div className="px-6 space-y-3">
+            <div className="px-6 space-y-3 overflow-y-auto max-h-[70vh] pb-10">
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Code</label>
                 <div className="flex gap-2">
