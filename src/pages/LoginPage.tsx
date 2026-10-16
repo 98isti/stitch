@@ -73,7 +73,7 @@ export default function LoginPage() {
 
           <p className="text-center text-xs text-gray-400 mt-6">
             Need an account?{' '}
-            <button onClick={() => navigate('/onboarding')} className="text-navy font-semibold hover:underline">Start free trial</button>
+            <button onClick={() => navigate('/signup')} className="text-navy font-semibold hover:underline">Start free trial</button>
           </p>
         </div>
 

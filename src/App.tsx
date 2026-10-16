@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { PrinterProvider } from './context/PrinterContext'
 import { StaffProvider } from './context/StaffContext'
 import LoginPage from './pages/LoginPage'
+import SignUpPage from './pages/SignUpPage'
 import StaffPinPage from './pages/StaffPinPage'
 import OnboardingPage from './pages/OnboardingPage'
 import LocationSetupPage from './pages/LocationSetupPage'
@@ -40,6 +41,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
+      <Route path="/signup" element={user ? <Navigate to="/" /> : <SignUpPage />} />
       <Route path="/pin" element={<StaffPinPage />} />
       <Route path="/location-setup" element={
         !user ? <Navigate to="/login" /> :

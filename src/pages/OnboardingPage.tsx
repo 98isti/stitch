@@ -43,8 +43,16 @@ export default function OnboardingPage() {
   const { user } = useAuth()
   const [step, setStep]     = useState(0)
   const [form, setForm]     = useState<FormData>(INITIAL)
-  const [saving, setSaving] = useState(false)
-  const [error, setError]   = useState('')
+  const [saving, setSaving]       = useState(false)
+  const [error, setError]         = useState('')
+  const [setupStep, setSetupStep] = useState(0)  // 0=idle, 1-4=in progress
+
+  const SETUP_STEPS = [
+    'Creating your account…',
+    'Setting up your owner PIN…',
+    'Creating your location…',
+    'Loading your price list…',
+  ]
 
   function set(field: keyof FormData, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -64,6 +72,7 @@ export default function OnboardingPage() {
     if (!user) return
     setSaving(true)
     setError('')
+    setSetupStep(1)
     try {
       const accountId = user.uid
 
@@ -75,6 +84,7 @@ export default function OnboardingPage() {
         createdAt:  serverTimestamp(),
       })
 
+      setSetupStep(2)
       // 2. Owner staff record
       const ownerPinHash = await (async () => {
         const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(form.ownerPin))
@@ -90,6 +100,7 @@ export default function OnboardingPage() {
         createdAt:  serverTimestamp(),
       })
 
+      setSetupStep(3)
       // 3. First location — ALL business data lives here
       const locationName = form.shopNickname.trim() || form.shopName.trim()
       const newLocRef = await addDoc(collection(db, 'accounts', accountId, 'locations'), {
@@ -107,6 +118,7 @@ export default function OnboardingPage() {
         createdAt:     serverTimestamp(),
       })
 
+      setSetupStep(4)
       // 4. Seed categories + items from Firestore template for this location
       await seedItemsForLocation(accountId, newLocRef.id, form.shopType as 'alterations' | 'dryCleaning', locationName)
 
@@ -316,8 +328,25 @@ export default function OnboardingPage() {
               {error && (
                 <p className="text-red-500 text-xs text-center">{error}</p>
               )}
+
+              {/* Progress bar — shown during setup */}
+              {saving && (
+                <div className="py-2">
+                  <div className="flex justify-between text-xs text-gray-500 mb-2">
+                    <span>{SETUP_STEPS[setupStep - 1]}</span>
+                    <span>{setupStep} of {SETUP_STEPS.length}</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div
+                      className="bg-navy h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${(setupStep / SETUP_STEPS.length) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-3">
-                {step > 0 && (
+                {step > 0 && !saving && (
                   <button onClick={() => setStep(s => s - 1)}
                     className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
                     ← Back
