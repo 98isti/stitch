@@ -87,7 +87,11 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
   const accountProfile = useAccountProfile(accountId)
   const [order, setOrder] = useState<OrderDoc | null>(null)
   const [locationData, setLocationData] = useState<any>(null)
-  const isDryCleaning = order?.shopType === 'dryCleaning'
+  // If order has shopType set → trust it (immutable snapshot)
+  // If missing (old order / data gap) → fall back to current location's shopType
+  const isDryCleaning = order?.shopType
+    ? order.shopType === 'dryCleaning'
+    : locationData?.shopType === 'dryCleaning'
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; subMessage?: string; onConfirm: () => void } | null>(null)
