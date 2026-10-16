@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { doc, getDoc, getDocs, updateDoc, addDoc, deleteDoc, collection, query, orderBy, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, getDocs, updateDoc, addDoc, deleteDoc, collection, query, orderBy, where, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, Save, Check, Plus, Pencil, Trash2 } from 'lucide-react'
+import { ChevronLeft, Save, Check, Plus, Pencil, Trash2, RefreshCw } from 'lucide-react'
 import SettingsPinGate from '../components/SettingsPinGate'
 import PrinterSettings from '../components/PrinterSettings'
 import { useLocations } from '../hooks/useLocations'
@@ -188,7 +188,7 @@ export default function SettingsPage() {
       } else {
         const newLocRef = await addDoc(collection(db, 'accounts', accountId, 'locations'), { ...data, createdAt: serverTimestamp() })
         const shopType = (data.shopType || 'alterations') as 'alterations' | 'dryCleaning'
-        seedItemsForLocation(accountId, newLocRef.id, shopType).catch(console.error)
+        await seedItemsForLocation(accountId, newLocRef.id, shopType)
       }
       setShowLocSheet(false)
       fetchAllLocs()
@@ -199,6 +199,27 @@ export default function SettingsPage() {
     if (!accountId || !confirm(`Delete "${name}"?`)) return
     await deleteDoc(doc(db, 'accounts', accountId, 'locations', id))
     setAllLocations(prev => prev.filter(l => l.id !== id))
+  }
+
+  async function reseedLoc(id: string, shopType: string, name: string) {
+    if (!accountId || !confirm(`Reseed items for "${name}" from template? This will delete existing items and reload from the template.`)) return
+    setLocSaving(true)
+    try {
+      // Delete existing items + categories for this location
+      const [itemsSnap, catsSnap] = await Promise.all([
+        getDocs(query(collection(db, 'accounts', accountId, 'items'), where('locationId', '==', id))),
+        getDocs(query(collection(db, 'accounts', accountId, 'categories'), where('locationId', '==', id))),
+      ])
+      await Promise.all([
+        ...itemsSnap.docs.map(d => deleteDoc(d.ref)),
+        ...catsSnap.docs.map(d => deleteDoc(d.ref)),
+      ])
+      // Reseed from template
+      await seedItemsForLocation(accountId, id, shopType as 'alterations' | 'dryCleaning')
+      alert(`✅ Reseeded ${name} successfully`)
+    } catch (e) {
+      alert('Reseed failed: ' + (e as Error).message)
+    } finally { setLocSaving(false) }
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────
@@ -479,6 +500,9 @@ export default function SettingsPage() {
                         setLocForm({ name: l.name, businessName: l.businessName ?? '', abn: l.abn ?? '', businessEmail: l.businessEmail ?? '', shopNumber: l.shopNumber ?? '', shoppingCentre: l.shoppingCentre ?? '', streetAddress: l.streetAddress ?? '', suburb: l.suburb ?? '', state: l.state ?? 'NSW', postCode: l.postCode ?? '', phone: l.phone ?? '', orderPrefix: l.orderPrefix ?? '', shopType: l.shopType ?? 'alterations', dailyTarget: String(l.dailyTarget ?? 1000) })
                         setShowLocSheet(true)
                       }} className="p-1.5 text-gray-400 hover:text-navy transition-colors"><Pencil size={14} /></button>
+                      <button onClick={() => reseedLoc(l.id, l.shopType ?? 'alterations', l.name)}
+                        title="Reseed items from template"
+                        className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors"><RefreshCw size={14} /></button>
                       <button onClick={() => deleteLoc(l.id, l.name)}
                         className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
                     </div>

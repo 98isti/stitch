@@ -108,7 +108,7 @@ export default function OnboardingPage() {
       })
 
       // 4. Seed categories + items from Firestore template for this location
-      seedItemsForLocation(accountId, newLocRef.id, form.shopType).catch(console.error)
+      await seedItemsForLocation(accountId, newLocRef.id, form.shopType)
 
       // 5. Mark user as onboarded
       await setDoc(doc(db, 'users', accountId), {
