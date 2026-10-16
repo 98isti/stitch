@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { collection, getDocsFromServer, query, orderBy, where } from 'firebase/firestore'
+import { collection, getDocsFromServer, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 
 export interface PriceItem {
@@ -27,11 +27,9 @@ export function useItems(accountId: string | null, locationId?: string | null, s
       ? query(
           collection(db, 'accounts', accountId, 'items'),
           where('locationId', '==', locationId),
-          orderBy('itemCategoryName'),
         )
       : query(
           collection(db, 'accounts', accountId, 'items'),
-          orderBy('itemCategoryName'),
         )
 
     getDocsFromServer(q).then(snap => {
