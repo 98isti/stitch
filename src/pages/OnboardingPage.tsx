@@ -80,6 +80,8 @@ export default function OnboardingPage() {
     setError('')
     setSetupStep(1)
     try {
+      // Force token refresh — ensures Firestore has a valid auth token immediately after sign-up
+      await user.getIdToken(true)
       const accountId = user.uid
 
       // 1. Account doc — plan + company name + extras from template
@@ -385,7 +387,14 @@ export default function OnboardingPage() {
           {step < 2 && (
             <div className="px-7 pb-7 flex flex-col gap-3">
               {error && (
-                <p className="text-red-500 text-xs text-center">{error}</p>
+                <div className="text-center">
+                  <p className="text-red-500 text-xs mb-2">{error}</p>
+                  <button
+                    onClick={() => import('firebase/auth').then(({ getAuth, signOut }) => signOut(getAuth()).then(() => window.location.href = '/signup'))}
+                    className="text-xs text-gray-400 underline hover:text-gray-600">
+                    Start over with a different account
+                  </button>
+                </div>
               )}
 
               {/* Progress bar — shown during setup */}
