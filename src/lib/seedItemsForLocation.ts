@@ -15,7 +15,8 @@ import { db } from './firebase'
 export async function seedItemsForLocation(
   accountId: string,
   locationId: string,
-  shopType: 'alterations' | 'dryCleaning'
+  shopType: 'alterations' | 'dryCleaning',
+  locationName?: string
 ): Promise<{ seeded: number; skipped: boolean }> {
 
   // Check if items already exist for this location
