@@ -346,7 +346,7 @@ export default function POSPage() {
   const [showStaffMenu, setShowStaffMenu] = useState(false)
   const { loading: locsLoading, activeLocation } = useLocations(accountId)
   const locationShopType = activeLocation?.shopType || 'alterations'
-  const { categories, loading: catsLoading } = useCategories(accountId, locationShopType)
+  const { categories, loading: catsLoading } = useCategories(accountId, locationShopType, activeLocation?.id)
   const { loading: itemsLoading, getItemsForCategory, getSubCategories } = useItems(accountId, activeLocation?.id ?? null, locationShopType)
   const accountProfile = useAccountProfile(accountId)
   const loading = catsLoading || itemsLoading || locsLoading
