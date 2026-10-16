@@ -13,18 +13,27 @@ export function useCategories(accountId: string | null, shopType?: string, locat
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!accountId) return
+    // Wait for locationId to resolve — don't fetch with null (would load all locations)
+    if (!accountId || locationId === null) return
     setLoading(true)
+
     const q = locationId
       ? query(collection(db, 'accounts', accountId, 'categories'), where('locationId', '==', locationId))
       : query(collection(db, 'accounts', accountId, 'categories'))
+
+    // Timeout fallback — if Firestore hangs, unblock the UI after 10s
+    const timeout = setTimeout(() => setLoading(false), 10_000)
+
     getDocs(q).then(snap => {
+      clearTimeout(timeout)
       const sorted = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as Category))
         .sort((a, b) => a.categoryName.localeCompare(b.categoryName))
       setAllCategories(sorted)
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { clearTimeout(timeout); setLoading(false) })
+
+    return () => clearTimeout(timeout)
   }, [accountId, locationId])
 
   const categories = shopType

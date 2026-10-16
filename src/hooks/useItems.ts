@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { collection, getDocsFromServer, query, where } from 'firebase/firestore'
+import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 
 export interface PriceItem {
@@ -18,29 +18,29 @@ export function useItems(accountId: string | null, locationId?: string | null, s
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!accountId) return
+    // Wait for locationId to resolve — don't fetch with null (loads all locations)
+    if (!accountId || locationId === null) return
     setLoading(true)
 
-    // If locationId is set, filter by it (location-specific items)
-    // Otherwise fall back to shopType filter (backward compat for existing items)
     const q = locationId
-      ? query(
-          collection(db, 'accounts', accountId, 'items'),
-          where('locationId', '==', locationId),
-        )
-      : query(
-          collection(db, 'accounts', accountId, 'items'),
-        )
+      ? query(collection(db, 'accounts', accountId, 'items'), where('locationId', '==', locationId))
+      : query(collection(db, 'accounts', accountId, 'items'))
 
-    getDocsFromServer(q).then(snap => {
+    // Timeout fallback — unblock UI if Firestore hangs
+    const timeout = setTimeout(() => setLoading(false), 10_000)
+
+    // getDocs uses Firestore cache first — faster than getDocsFromServer on repeat views
+    getDocs(q).then(snap => {
+      clearTimeout(timeout)
       let items = snap.docs.map(d => ({ id: d.id, ...d.data() } as PriceItem))
-      // When using shopType fallback, filter client-side
       if (!locationId && shopType) {
         items = items.filter(i => !i.shopType || i.shopType === shopType)
       }
       setAllItems(items)
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { clearTimeout(timeout); setLoading(false) })
+
+    return () => clearTimeout(timeout)
   }, [accountId, locationId])
 
   function getItemsForCategory(categoryName: string) {
