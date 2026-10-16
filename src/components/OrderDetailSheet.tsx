@@ -218,22 +218,24 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
       setShowConveyorSlotPopup(false)
       if (order.customerPhone && accountProfile) {
         const smsSettings = locationData?.sms || (accountProfile as any).sms
-        const senderName = smsSettings?.senderName || (locationData?.businessName || accountProfile.businessName || 'Stitch').slice(0, 11) || 'Stitch'
-        const template = smsSettings?.template ||
-          'Hi {firstName}, your order at {businessName} is ready for pick-up! Order: {orderNumber}. {balance}'
-        fetch(SMS_WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: order.customerPhone,
-            senderName,
-            template,
-            firstName: order.customerName || 'there',
-            orderNumber: order.orderNumberString,
-            businessName: locationData?.businessName || accountProfile.businessName || 'Us',
-            stillDueAmount: order.stillDueAmount,
-          })
-        }).then(r => r.json()).then(d => console.log('[SMS]', d)).catch(e => console.error('[SMS]', e))
+        const senderName = smsSettings?.senderName || ''
+        if (senderName) {
+          const template = smsSettings?.template ||
+            'Hi {firstName}, your order at {businessName} is ready for pick-up! Order: {orderNumber}. {balance}'
+          fetch(SMS_WORKER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: order.customerPhone,
+              senderName,
+              template,
+              firstName: order.customerName || 'there',
+              orderNumber: order.orderNumberString,
+              businessName: locationData?.businessName || accountProfile.businessName || 'Us',
+              stillDueAmount: order.stillDueAmount,
+            })
+          }).then(r => r.json()).then(d => console.log('[SMS]', d)).catch(e => console.error('[SMS]', e))
+        }
       }
     } finally { setSaving(false) }
   }
@@ -253,22 +255,24 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
       // Send SMS if customer has a phone number
       if (order.customerPhone && accountProfile) {
         const smsSettings = locationData?.sms || (accountProfile as any).sms
-        const senderName = smsSettings?.senderName || (locationData?.businessName || accountProfile.businessName || 'Stitch').slice(0, 11) || 'Stitch'
-        const template = smsSettings?.template ||
-          'Hi {firstName}, your order at {businessName} is ready for pick-up! Order: {orderNumber}. {balance}'
-        fetch(SMS_WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: order.customerPhone,
-            senderName,
-            template,
-            firstName: order.customerName || 'there',
-            orderNumber: order.orderNumberString,
-            businessName: locationData?.businessName || accountProfile.businessName || 'Us',
-            stillDueAmount: order.stillDueAmount,
-          })
-        }).then(r => r.json()).then(d => console.log('[SMS]', d)).catch(e => console.error('[SMS]', e))
+        const senderName = smsSettings?.senderName || ''
+        if (senderName) {
+          const template = smsSettings?.template ||
+            'Hi {firstName}, your order at {businessName} is ready for pick-up! Order: {orderNumber}. {balance}'
+          fetch(SMS_WORKER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: order.customerPhone,
+              senderName,
+              template,
+              firstName: order.customerName || 'there',
+              orderNumber: order.orderNumberString,
+              businessName: locationData?.businessName || accountProfile.businessName || 'Us',
+              stillDueAmount: order.stillDueAmount,
+            })
+          }).then(r => r.json()).then(d => console.log('[SMS]', d)).catch(e => console.error('[SMS]', e))
+        }
       }
     } finally { setSaving(false);  }
   }
