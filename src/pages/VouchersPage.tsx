@@ -133,9 +133,6 @@ export default function VouchersPage() {
     return true
   })
 
-  const activeCount   = vouchers.filter(v => !v.isRedeemed && !isExpired(v.expiryDate)).length
-  const redeemedCount = vouchers.filter(v => v.isRedeemed).length
-
   return (
     <div className="min-h-screen bg-gray-50">
 
