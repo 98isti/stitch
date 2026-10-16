@@ -43,6 +43,7 @@ interface PrinterContextValue {
   printLabel: (data: LabelData) => Promise<boolean>
   printLabelsForOrder: (order: OrderForLabels) => Promise<boolean>
   printPickupSheet: (opts: { businessName: string; locationName: string; date: string; orders: any[] }) => Promise<boolean>
+  printVoucher: (opts: { businessName: string; locationName: string; locationAddress?: string; locationPhone?: string; abn?: string; voucherCode: string; amount: number; customerName?: string; customerPhone?: string; issueDate: string; expiryDate: string }) => Promise<boolean>
   openDrawer: () => Promise<boolean>
 }
 
@@ -192,6 +193,20 @@ export function PrinterProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function printVoucher(opts: { businessName: string; locationName: string; locationAddress?: string; locationPhone?: string; abn?: string; voucherCode: string; amount: number; customerName?: string; customerPhone?: string; issueDate: string; expiryDate: string }): Promise<boolean> {
+    if (!native || !thermalPrinter) {
+      console.warn('printVoucher: not native or no thermal printer selected')
+      return false
+    }
+    try {
+      await StarPrinter.printVoucher({ identifier: thermalPrinter, ...opts })
+      return true
+    } catch (e) {
+      console.error('printVoucher failed:', e)
+      return false
+    }
+  }
+
   async function openDrawer(): Promise<boolean> {
     if (!native || !thermalPrinter) return false
     try {
@@ -218,6 +233,7 @@ export function PrinterProvider({ children }: { children: ReactNode }) {
       printLabelsForOrder,
       openDrawer,
       printPickupSheet,
+      printVoucher,
     }}>
       {children}
     </PrinterContext.Provider>

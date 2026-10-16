@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { collection, getDocs, addDoc, updateDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
+import { usePrinter } from '../context/PrinterContext'
+import { useLocations } from '../hooks/useLocations'
+import { useAccountProfile } from '../hooks/useAccountProfile'
 import { Plus, ChevronLeft, Gift } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
@@ -13,6 +16,9 @@ function randomCode() { return Math.random().toString(36).slice(2,6).toUpperCase
 export default function VouchersPage() {
   const { accountId } = useAuth()
   const navigate = useNavigate()
+  const { printVoucher } = usePrinter()
+  const { activeLocation } = useLocations(accountId)
+  const accountProfile = useAccountProfile(accountId)
   const [vouchers, setVouchers] = useState<Voucher[]>([])
   const [loading, setLoading] = useState(true)
   const [showSheet, setShowSheet] = useState(false)
@@ -37,15 +43,30 @@ export default function VouchersPage() {
     if (!accountId || !form.amount) return
     setSaving(true)
     try {
+      const issueDate = new Date().toISOString().split('T')[0]
       await addDoc(collection(db, 'accounts', accountId, 'vouchers'), {
         code: form.code,
         amount: parseFloat(form.amount),
         customerName: form.customerName,
         customerPhone: form.customerPhone,
-        issueDate: new Date().toISOString().split('T')[0],
+        issueDate,
         expiryDate: form.expiryDate,
         isRedeemed: false,
         createdAt: serverTimestamp(),
+      })
+      // Print voucher — no-op until Swift printVoucher is added in Xcode
+      printVoucher({
+        businessName:    activeLocation?.businessName || accountProfile?.businessName || '',
+        locationName:    activeLocation?.name || '',
+        locationAddress: [activeLocation?.shopNumber, activeLocation?.shoppingCentre, activeLocation?.streetAddress, activeLocation?.suburb, activeLocation?.state].filter(Boolean).join(', '),
+        locationPhone:   activeLocation?.phone || '',
+        abn:             activeLocation?.abn || (accountProfile as any)?.abn || '',
+        voucherCode:     form.code,
+        amount:          parseFloat(form.amount),
+        customerName:    form.customerName,
+        customerPhone:   form.customerPhone,
+        issueDate,
+        expiryDate:      form.expiryDate,
       })
       setShowSheet(false)
       fetchVouchers()

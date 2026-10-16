@@ -29,6 +29,20 @@ export interface StarPrinterPlugin {
     ordersJson: string
     footer?: string
   }): Promise<{ success: boolean }>
+  printVoucher(options: {
+    identifier: string
+    businessName: string
+    locationName: string
+    locationAddress?: string
+    locationPhone?: string
+    abn?: string
+    voucherCode: string
+    amount: number
+    customerName?: string
+    customerPhone?: string
+    issueDate: string
+    expiryDate: string
+  }): Promise<{ success: boolean }>
   openDrawer(options: { identifier: string }): Promise<{ success: boolean }>
 }
 
