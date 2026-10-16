@@ -5,6 +5,7 @@ import { StaffProvider } from './context/StaffContext'
 import LoginPage from './pages/LoginPage'
 import SignUpPage from './pages/SignUpPage'
 import ExtrasPage from './pages/ExtrasPage'
+import LeavePage from './pages/LeavePage'
 import StaffPinPage from './pages/StaffPinPage'
 import OnboardingPage from './pages/OnboardingPage'
 import LocationSetupPage from './pages/LocationSetupPage'
@@ -79,7 +80,7 @@ function AppRoutes() {
         <Route path="/roster"            element={<PlaceholderPage title="Roster" />} />
         <Route path="/reports"           element={<ReportsPage />} />
         <Route path="/timesheet"         element={<PlaceholderPage title="My Timesheet" />} />
-        <Route path="/leave"             element={<PlaceholderPage title="Leave" />} />
+        <Route path="/leave"             element={<LeavePage />} />
         <Route path="/billing"           element={<BillingPage />} />
         <Route path="/admin"             element={<AdminPage />} />
       </Route>
