@@ -49,6 +49,7 @@ export async function seedItemsForLocation(
       return addDoc(collection(db, 'accounts', accountId, 'items'), {
         ...data,
         locationId,
+        ...(locationName ? { locationName } : {}),
         shopType,
         createdAt: serverTimestamp(),
         source: 'template',

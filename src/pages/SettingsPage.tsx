@@ -188,7 +188,7 @@ export default function SettingsPage() {
       } else {
         const newLocRef = await addDoc(collection(db, 'accounts', accountId, 'locations'), { ...data, createdAt: serverTimestamp() })
         const shopType = (data.shopType || 'alterations') as 'alterations' | 'dryCleaning'
-        await seedItemsForLocation(accountId, newLocRef.id, shopType)
+        await seedItemsForLocation(accountId, newLocRef.id, shopType, data.name)
       }
       setShowLocSheet(false)
       fetchAllLocs()
