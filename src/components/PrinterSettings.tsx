@@ -38,7 +38,7 @@ export default function PrinterSettings() {
       orderNumber:     'CAR 0001',
       orderDate:    now.toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' }),
       orderTime:    now.toLocaleTimeString('en-AU', { hour:'numeric', minute:'2-digit', hour12:true }),
-      servedBy:     'Isti',
+      servedBy:     'John Smith',
       customerName: 'Test Customer',
       customerPhone:'0412 345 678',
       pickupDay:    pickup.toLocaleDateString('en-AU', { weekday:'long' }),

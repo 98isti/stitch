@@ -174,14 +174,14 @@ export default function OnboardingPage() {
                     </label>
                     <input type="text" value={form.ownerFirstName}
                       onChange={e => set('ownerFirstName', e.target.value)}
-                      placeholder="Isti"
+                      placeholder="John"
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Last Name</label>
                     <input type="text" value={form.ownerLastName}
                       onChange={e => set('ownerLastName', e.target.value)}
-                      placeholder="Islam"
+                      placeholder="Smith"
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
                   </div>
                 </div>
