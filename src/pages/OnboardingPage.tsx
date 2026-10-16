@@ -83,8 +83,14 @@ export default function OnboardingPage() {
       const accountId = user.uid
 
       // 1. Account doc — plan + company name + extras from template
-      const extrasSnap = await getDoc(doc(db, 'itemTemplates', 'extras'))
-      const defaultExtras = extrasSnap.exists() ? (extrasSnap.data().items ?? []) : []
+      // Extras read is best-effort — if it fails, proceed with empty extras
+      let defaultExtras: { name: string; price: number }[] = []
+      try {
+        const extrasSnap = await getDoc(doc(db, 'itemTemplates', 'extras'))
+        defaultExtras = extrasSnap.exists() ? (extrasSnap.data().items ?? []) : []
+      } catch (e) {
+        console.warn('[Onboarding] Could not load extras template:', e)
+      }
       await setDoc(doc(db, 'accounts', accountId), {
         plan:         'trial',
         trialEndsAt:  new Date(Date.now() + 14 * 86400000),
