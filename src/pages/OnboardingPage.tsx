@@ -13,30 +13,32 @@ interface FormData {
   ownerLastName:  string
   ownerPin:       string
   // Step 1 — shop / location
-  shopName:     string   // saved as businessName on location doc
-  shopNickname: string   // saved as name on location doc (defaults to shopName)
-  abn:          string
-  shopType:     'alterations' | 'dryCleaning' | ''
-  phone:        string
+  companyName:   string   // saved as businessName on account doc + location doc
+  locationName:  string   // saved as name on location doc
+  abn:           string
+  shopType:      'alterations' | 'dryCleaning' | ''
+  phone:         string
   streetAddress: string
-  suburb:       string
-  state:        string
-  dailyTarget:  string
+  suburb:        string
+  postCode:      string
+  state:         string
+  dailyTarget:   string
 }
 
 const INITIAL: FormData = {
   ownerFirstName: '',
   ownerLastName:  '',
   ownerPin:       '',
-  shopName:       '',
-  shopNickname:   '',
-  abn:            '',
-  shopType:       '',
-  phone:          '',
-  streetAddress:  '',
-  suburb:         '',
-  state:          'NSW',
-  dailyTarget:    '1000',
+  companyName:   '',
+  locationName:  '',
+  abn:           '',
+  shopType:      '',
+  phone:         '',
+  streetAddress: '',
+  suburb:        '',
+  postCode:      '',
+  state:         'NSW',
+  dailyTarget:   '1000',
 }
 
 export default function OnboardingPage() {
@@ -63,7 +65,7 @@ export default function OnboardingPage() {
       return form.ownerFirstName.trim().length > 0 && form.ownerPin.length === 4
     }
     if (step === 1) {
-      return form.shopName.trim().length > 0 && form.phone.trim().length > 0 && form.shopType !== ''
+      return form.companyName.trim().length > 0 && form.locationName.trim().length > 0 && form.phone.trim().length > 0 && form.shopType !== ''
     }
     return true
   }
@@ -76,12 +78,13 @@ export default function OnboardingPage() {
     try {
       const accountId = user.uid
 
-      // 1. Account doc — auth / plan layer only, no business data
+      // 1. Account doc — plan + company name
       await setDoc(doc(db, 'accounts', accountId), {
-        plan:       'trial',
-        trialEndsAt: new Date(Date.now() + 14 * 86400000),
-        email:      user.email,
-        createdAt:  serverTimestamp(),
+        plan:         'trial',
+        trialEndsAt:  new Date(Date.now() + 14 * 86400000),
+        email:        user.email,
+        businessName: form.companyName.trim(),
+        createdAt:    serverTimestamp(),
       })
 
       setSetupStep(2)
@@ -101,16 +104,17 @@ export default function OnboardingPage() {
       })
 
       setSetupStep(3)
-      // 3. First location — ALL business data lives here
-      const locationName = form.shopNickname.trim() || form.shopName.trim()
+      // 3. First location
+      const locationName = form.locationName.trim()
       const newLocRef = await addDoc(collection(db, 'accounts', accountId, 'locations'), {
-        businessName:  form.shopName.trim(),
+        businessName:  form.companyName.trim(),
         name:          locationName,
         abn:           form.abn.trim(),
         shopType:      form.shopType,
         phone:         form.phone.trim(),
         streetAddress: form.streetAddress.trim(),
         suburb:        form.suburb.trim(),
+        postCode:      form.postCode.trim(),
         state:         form.state,
         country:       'Australia',
         dailyTarget:   parseFloat(form.dailyTarget) || 1000,
@@ -120,7 +124,7 @@ export default function OnboardingPage() {
 
       setSetupStep(4)
       // 4. Seed categories + items from Firestore template for this location
-      await seedItemsForLocation(accountId, newLocRef.id, form.shopType as 'alterations' | 'dryCleaning', locationName)
+      await seedItemsForLocation(accountId, newLocRef.id, form.shopType as 'alterations' | 'dryCleaning', form.locationName.trim())
 
       // 5. Mark user as onboarded
       await setDoc(doc(db, 'users', accountId), {
@@ -229,15 +233,28 @@ export default function OnboardingPage() {
                   {form.shopType === '' && <p className="text-xs text-red-400 mt-1">Please select a shop type</p>}
                 </div>
 
-                {/* Shop name */}
+                {/* Company Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Shop name <span className="text-red-400">*</span>
+                    Company Name <span className="text-red-400">*</span>
                   </label>
-                  <input type="text" value={form.shopName}
-                    onChange={e => set('shopName', e.target.value)}
-                    placeholder="e.g. Your Business Name"
+                  <input type="text" value={form.companyName}
+                    onChange={e => set('companyName', e.target.value)}
+                    placeholder="e.g. City Alterations"
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
+                  <p className="text-xs text-gray-400 mt-1">Appears on receipts and the top of the app</p>
+                </div>
+
+                {/* Location Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Location Name <span className="text-red-400">*</span>
+                  </label>
+                  <input type="text" value={form.locationName}
+                    onChange={e => set('locationName', e.target.value)}
+                    placeholder="e.g. Eastgardens"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
+                  <p className="text-xs text-gray-400 mt-1">Short name for this specific shop</p>
                 </div>
 
                 {/* ABN */}
@@ -276,16 +293,24 @@ export default function OnboardingPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Suburb</label>
                     <input type="text" value={form.suburb}
                       onChange={e => set('suburb', e.target.value)}
-                      placeholder="Eastgardens"
+                      placeholder="e.g. Eastgardens"
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">State</label>
-                    <select value={form.state} onChange={e => set('state', e.target.value)}
-                      className="w-full px-3 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy bg-white">
-                      {STATES.map(s => <option key={s}>{s}</option>)}
-                    </select>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Post Code</label>
+                    <input type="text" value={form.postCode}
+                      onChange={e => set('postCode', e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      placeholder="2036"
+                      inputMode="numeric"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy" />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">State</label>
+                  <select value={form.state} onChange={e => set('state', e.target.value)}
+                    className="w-full px-3 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy bg-white">
+                    {STATES.map(s => <option key={s}>{s}</option>)}
+                  </select>
                 </div>
 
                 {/* Daily target */}
