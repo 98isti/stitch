@@ -640,12 +640,16 @@ export default function SettingsPage() {
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Shop Type</label>
                 <select value={locForm.shopType} onChange={e => setLocForm(f => ({ ...f, shopType: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy bg-white">
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy bg-white ${
+                    !locForm.shopType ? 'border-red-300 text-gray-400' : 'border-gray-200'
+                  }`}>
+                  <option value="" disabled>— Select shop type (required) —</option>
                   <option value="alterations">✂️ Alterations</option>
                   <option value="dryCleaning">👔 Dry Cleaning</option>
                 </select>
+                {!locForm.shopType && <p className="text-xs text-red-400 mt-1">Shop type is required</p>}
               </div>
-              <button onClick={saveLocForm} disabled={!locForm.name.trim() || locSaving}
+              <button onClick={saveLocForm} disabled={!locForm.name.trim() || !locForm.shopType || locSaving}
                 className="w-full py-3.5 rounded-xl bg-navy text-white font-semibold text-sm disabled:opacity-50 mt-2">
                 {locSaving ? 'Saving…' : editingLoc ? 'Save Changes' : 'Add Location'}
               </button>

@@ -28,37 +28,43 @@ export async function seedItemsForLocation(
     return { seeded: 0, skipped: true }
   }
 
-  // Read template items
-  const templateSnap = await getDocs(
-    collection(db, 'itemTemplates', shopType, 'items')
-  )
-  if (templateSnap.empty) {
-    console.warn(`seedItemsForLocation: no template found for shopType=${shopType}`)
+  // Read template items from bundled JSON (not Firestore — ensures subCategory is always present)
+  const templateFile = shopType === 'dryCleaning' ? '/templates/dry-cleaning.json' : '/templates/alterations.json'
+  let templateData: { categories: string[]; items: any[] }
+  try {
+    const res = await fetch(templateFile)
+    templateData = await res.json()
+  } catch (e) {
+    console.warn(`seedItemsForLocation: failed to load template JSON for shopType=${shopType}`, e)
+    return { seeded: 0, skipped: false }
+  }
+
+  const templateItems = templateData.items ?? []
+  if (!templateItems.length) {
+    console.warn(`seedItemsForLocation: empty template for shopType=${shopType}`)
     return { seeded: 0, skipped: false }
   }
 
   // Write items for this location in batches
   const BATCH_SIZE = 400
-  const docs = templateSnap.docs
   let seeded = 0
 
-  for (let i = 0; i < docs.length; i += BATCH_SIZE) {
-    const chunk = docs.slice(i, i + BATCH_SIZE)
-    await Promise.all(chunk.map(d => {
-      const data = d.data()
-      return addDoc(collection(db, 'accounts', accountId, 'items'), {
-        ...data,
+  for (let i = 0; i < templateItems.length; i += BATCH_SIZE) {
+    const chunk = templateItems.slice(i, i + BATCH_SIZE)
+    await Promise.all(chunk.map((item: any) =>
+      addDoc(collection(db, 'accounts', accountId, 'items'), {
+        ...item,
         locationId,
         shopType,
         createdAt: serverTimestamp(),
         source: 'template',
       })
-    }))
+    ))
     seeded += chunk.length
   }
 
-  // Also seed categories if not already present
-  await seedCategoriesForLocation(accountId, locationId, shopType)
+  // Also seed categories from JSON
+  await seedCategoriesForLocation(accountId, locationId, shopType, templateData.categories ?? [])
 
   return { seeded, skipped: false }
 }
@@ -66,7 +72,8 @@ export async function seedItemsForLocation(
 async function seedCategoriesForLocation(
   accountId: string,
   locationId: string,
-  shopType: string
+  shopType: string,
+  categories: string[] = []
 ) {
   const existing = await getDocs(query(
     collection(db, 'accounts', accountId, 'categories'),
@@ -75,12 +82,11 @@ async function seedCategoriesForLocation(
   ))
   if (!existing.empty) return
 
-  const templateCats = await getDocs(
-    collection(db, 'itemTemplates', shopType, 'categories')
-  )
-  await Promise.all(templateCats.docs.map(d =>
+  if (!categories.length) return
+
+  await Promise.all(categories.map((name: string) =>
     addDoc(collection(db, 'accounts', accountId, 'categories'), {
-      ...d.data(),
+      name,
       locationId,
       shopType,
       createdAt: serverTimestamp(),
