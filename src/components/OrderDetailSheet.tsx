@@ -87,7 +87,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
   const accountProfile = useAccountProfile(accountId)
   const [order, setOrder] = useState<OrderDoc | null>(null)
   const [locationData, setLocationData] = useState<any>(null)
-  const isDryCleaning = order?.shopType === 'dryCleaning' || locationData?.shopType === 'dryCleaning'
+  const isDryCleaning = order?.shopType === 'dryCleaning'
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; subMessage?: string; onConfirm: () => void } | null>(null)
