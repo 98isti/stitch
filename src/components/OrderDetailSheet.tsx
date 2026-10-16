@@ -48,7 +48,8 @@ interface OrderDoc {
   discountApplied?: number
   locationId?: string
   shopType?: string
-  conveyorSlotNumber?: string
+  conveyorSlotNumber?: string          // legacy single slot
+  conveyorSlotNumbers?: string[]       // multi-slot array (new)
   conveyorAssignedBy?: string
   conveyorAssignedAt?: { seconds: number } | null
 }
@@ -100,7 +101,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
   const [staffList, setStaffList] = useState<string[]>([])
   const [selectedEmployee, setSelectedEmployee] = useState('Select Your Name')
   const [showConveyorSlotPopup, setShowConveyorSlotPopup] = useState(false)
-  const [conveyorSlotInput, setConveyorSlotInput] = useState('')
+  const [conveyorSlots, setConveyorSlots] = useState<string[]>([''])
 
   useEffect(() => {
     setOrder(null)
@@ -108,7 +109,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
     setShowPaymentPrompt(false)
     setShowCompletedByPopup(false)
     setShowConveyorSlotPopup(false)
-    setConveyorSlotInput('')
+    setConveyorSlots([''])
     setSelectedEmployee('Select Your Name')
     setShowSplit(false)
     if (!orderId || !accountId) { return }
@@ -143,7 +144,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
     // "Ready for Pick Up" — dry cleaning shows conveyor slot, alterations shows employee selection
     if (status === 'Ready for Pick Up') {
       if (isDryCleaning) {
-        setConveyorSlotInput('')
+        setConveyorSlots([''])
         setShowConveyorSlotPopup(true)
         return
       }
@@ -195,20 +196,21 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
 
 
   async function confirmConveyorSlot() {
-    const slot = conveyorSlotInput.trim()
-    if (!slot || !accountId || !orderId || !order) return
+    const validSlots = conveyorSlots.map(s => s.trim()).filter(Boolean)
+    if (!validSlots.length || !accountId || !orderId || !order) return
     setSaving(true)
     try {
       const assignedBy = staff?.name ?? ''
       await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), {
         status: 'Ready for Pick Up',
-        conveyorSlotNumber: slot,
+        conveyorSlotNumbers: validSlots,
+        conveyorSlotNumber: validSlots[0], // backward compat
         conveyorAssignedBy: assignedBy,
         conveyorAssignedAt: serverTimestamp(),
         jobCompletedDate: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
-      setOrder(o => o ? { ...o, status: 'Ready for Pick Up', conveyorSlotNumber: slot, conveyorAssignedBy: assignedBy } : o)
+      setOrder(o => o ? { ...o, status: 'Ready for Pick Up', conveyorSlotNumbers: validSlots, conveyorSlotNumber: validSlots[0], conveyorAssignedBy: assignedBy } : o)
       setShowConveyorSlotPopup(false)
       if (order.customerPhone && accountProfile) {
         const smsSettings = locationData?.sms || (accountProfile as any).sms
@@ -538,11 +540,18 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                 {order?.completedBy && (
                   <p className="text-white/50 text-xs text-right mt-1">Completed by: {order.completedBy}</p>
                 )}
-                {isDryCleaning && order?.status === 'Ready for Pick Up' && order?.conveyorSlotNumber && (
+                {isDryCleaning && order?.status === 'Ready for Pick Up' && (order?.conveyorSlotNumbers?.length || order?.conveyorSlotNumber) && (
                   <div className="text-right">
-                    <p className="text-white font-bold text-lg">Conveyor # {order.conveyorSlotNumber}</p>
+                    <p className="text-white/70 text-xs mb-1">Conveyor Slot{(order.conveyorSlotNumbers?.length ?? 1) > 1 ? 's' : ''}</p>
+                    <div className="flex flex-wrap gap-1 justify-end">
+                      {(order.conveyorSlotNumbers ?? [order.conveyorSlotNumber!]).map((s, i) => (
+                        <span key={i} className="bg-white/20 text-white font-bold text-base px-2.5 py-0.5 rounded-lg">
+                          #{s}
+                        </span>
+                      ))}
+                    </div>
                     {order.conveyorAssignedBy && (
-                      <p className="text-white/50 text-xs">Loaded by: {order.conveyorAssignedBy}</p>
+                      <p className="text-white/50 text-xs mt-1">Loaded by: {order.conveyorAssignedBy}</p>
                     )}
                   </div>
                 )}
@@ -737,23 +746,48 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
         {showConveyorSlotPopup && (
           <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 rounded-3xl">
             <div className="bg-white rounded-2xl shadow-xl p-6 mx-6 w-full">
-              <p className="text-center font-bold text-gray-900 text-lg mb-2">Conveyor Slot Number</p>
-              <p className="text-center text-gray-500 text-sm mb-4">Enter the slot where this order is loaded</p>
-              <input
-                type="number"
-                inputMode="numeric"
-                value={conveyorSlotInput}
-                onChange={e => setConveyorSlotInput(e.target.value.replace(/\D/g, ''))}
-                placeholder="e.g. 42"
-                className="w-full text-center text-3xl font-bold border-2 border-gray-200 rounded-xl py-4 mb-3 focus:outline-none focus:border-navy"
-                autoFocus
-              />
+              <p className="text-center font-bold text-gray-900 text-lg mb-1">Conveyor Slot Numbers</p>
+              <p className="text-center text-gray-500 text-sm mb-4">Enter all slots where this order is loaded</p>
+
+              <div className="flex flex-col gap-2 mb-3">
+                {conveyorSlots.map((slot, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={slot}
+                      onChange={e => {
+                        const updated = [...conveyorSlots]
+                        updated[idx] = e.target.value.replace(/\D/g, '')
+                        setConveyorSlots(updated)
+                      }}
+                      placeholder={`Slot ${idx + 1} — e.g. ${42 + idx}`}
+                      className="flex-1 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl py-3 focus:outline-none focus:border-navy"
+                      autoFocus={idx === 0}
+                    />
+                    {conveyorSlots.length > 1 && (
+                      <button
+                        onClick={() => setConveyorSlots(conveyorSlots.filter((_, i) => i !== idx))}
+                        className="w-9 h-9 rounded-full bg-red-100 text-red-500 font-bold text-lg flex items-center justify-center shrink-0">
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setConveyorSlots([...conveyorSlots, ''])}
+                className="w-full py-2.5 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 hover:border-navy hover:text-navy transition-colors text-sm font-medium mb-3">
+                + Add Another Slot
+              </button>
+
               <p className="text-center text-red-400 text-xs italic mb-4">
                 (this will send a text message to customer)
               </p>
               <button
                 onClick={confirmConveyorSlot}
-                disabled={!conveyorSlotInput.trim() || saving}
+                disabled={!conveyorSlots.some(s => s.trim()) || saving}
                 className="w-full py-3.5 rounded-xl bg-navy disabled:opacity-40 text-white font-semibold text-base transition-colors">
                 {saving ? 'Saving…' : 'Confirm'}
               </button>
