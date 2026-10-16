@@ -17,7 +17,7 @@ service cloud.firestore {
     }
 
     // Item templates — any authenticated user can read (used during onboarding/new location setup)
-    match /itemTemplates/{shopType}/{document=**} {
+    match /itemTemplates/{document=**} {
       allow read: if request.auth != null;
       allow write: if false; // admin only via Firebase console / server SDK
     }

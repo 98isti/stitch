@@ -135,6 +135,7 @@ export default function OnboardingPage() {
       // 4. Seed categories + items from Firestore template for this location
       await seedItemsForLocation(accountId, newLocRef.id, form.shopType as 'alterations' | 'dryCleaning', form.locationName.trim())
 
+      setSetupStep(5)
       // 5. Mark user as onboarded
       await setDoc(doc(db, 'users', accountId), {
         accountId,
@@ -394,6 +395,9 @@ export default function OnboardingPage() {
                       style={{ width: `${(setupStep / SETUP_STEPS.length) * 100}%` }}
                     />
                   </div>
+                  {setupStep >= 4 && (
+                    <p className="text-xs text-gray-400 mt-2 text-center">Loading your price list — this may take up to 30 seconds…</p>
+                  )}
                 </div>
               )}
 
