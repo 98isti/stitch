@@ -89,9 +89,12 @@ export default function LocationSetupPage() {
             // Activate selected location
             const loc = locations.find(l => l.id === selectedLocationId)
             if (loc) {
-              localStorage.setItem('stitch_device_mode', 'terminal')
+              // Only set terminal mode if not already a management device
+              if (localStorage.getItem('stitch_device_mode') !== 'management') {
+                localStorage.setItem('stitch_device_mode', 'terminal')
+              }
               setActiveLocation(loc)
-              navigate('/pin')
+              navigate(localStorage.getItem('stitch_device_mode') === 'management' ? '/pos' : '/pin')
             }
           }
         } else {

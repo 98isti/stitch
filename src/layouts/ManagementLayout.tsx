@@ -18,9 +18,12 @@ export default function ManagementLayout() {
   const { setActiveLocation, locations } = useLocations(accountId)
 
   function openPOS() {
-    // If only one location, set it active and go to POS
-    // If multiple, pick the first one (they can change in Settings)
-    if (locations.length === 1) setActiveLocation(locations[0])
+    // Set a location if none is saved (pick first available)
+    // Device mode stays 'management' — does not change to terminal
+    const savedLoc = localStorage.getItem('stitch_active_location')
+    if (!savedLoc && locations.length > 0) {
+      setActiveLocation(locations[0])
+    }
     navigate('/pos')
   }
 
