@@ -6,7 +6,7 @@ import { useLocations } from '../hooks/useLocations'
 
 const NAV = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/orders',    label: 'Orders',    icon: List },
+  { path: '/mgmt-orders', label: 'Orders',  icon: List },
   { path: '/reports',   label: 'Reports',   icon: BarChart2 },
   { path: '/signin',    label: 'Team',      icon: Users },
   { path: '/mgmt-more', label: 'More',      icon: MoreHorizontal },
