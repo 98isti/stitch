@@ -45,11 +45,6 @@ function fmtTime(seconds: number) {
   })
 }
 
-  const d = new Date(dateStr + 'T00:00:00')
-  return d.toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
-    ' — ' + d.toLocaleDateString('en-AU', { weekday: 'long' })
-}
-
 function getThisWeekRange(): [string, string] {
   const now = new Date()
   const dow = now.getDay()
