@@ -71,7 +71,7 @@ export default function OrdersPage() {
     setLoading(true)
     try {
       const [ordersSnap, drawerSnap] = await Promise.all([
-        getDocs(query(collection(db, 'accounts', accountId, 'orders'), orderBy('createdAt', 'desc'))),
+        getDocs(query(collection(db, 'accounts', accountId, 'orders'), orderBy('orderNumber', 'desc'))),
         getDocs(query(collection(db, 'accounts', accountId, 'drawerLogs'), orderBy('openedAt', 'desc'))),
       ])
       setOrders(ordersSnap.docs.map(d => ({ id: d.id, ...d.data() } as Order)))
