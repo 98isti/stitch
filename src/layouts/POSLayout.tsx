@@ -10,16 +10,36 @@ import ScreenSaver from '../components/ScreenSaver'
 
 const IDLE_TIMEOUT = 1 * 60 * 1000 // 1 min (temp for testing — change back to 5 * 60 * 1000)
 
-const MORE_ITEMS = [
-  { label: 'Staff',        icon: '👤', path: '/staff' },
-  { label: 'Customers',    icon: '👥', path: '/customers' },
-  { label: 'Categories',   icon: '📂', path: '/categories' },
-  { label: 'Items',        icon: '🏷️', path: '/items' },
-  { label: 'Extras',       icon: '✨', path: '/extras' },
-  { label: 'Leave',        icon: '🌴', path: '/leave' },
-  { label: 'Quick Items',  icon: '⚡', path: '/quick-items' },
-  { label: 'Vouchers',     icon: '🎟️', path: '/vouchers' },
-  { label: 'Settings',     icon: '⚙️', path: '/settings' },
+const MORE_GROUPS = [
+  {
+    label: 'People',
+    items: [
+      { label: 'Staff',      icon: '👤', path: '/staff' },
+      { label: 'Customers',  icon: '👥', path: '/customers' },
+      { label: 'Leave',      icon: '🌴', path: '/leave' },
+    ]
+  },
+  {
+    label: 'Catalogue',
+    items: [
+      { label: 'Items',        icon: '🏷️', path: '/items' },
+      { label: 'Categories',   icon: '📂', path: '/categories' },
+      { label: 'Extras',       icon: '✨', path: '/extras' },
+      { label: 'Quick Items',  icon: '⚡', path: '/quick-items' },
+    ]
+  },
+  {
+    label: 'Sales',
+    items: [
+      { label: 'Vouchers', icon: '🎟️', path: '/vouchers' },
+    ]
+  },
+  {
+    label: 'App',
+    items: [
+      { label: 'Settings', icon: '⚙️', path: '/settings' },
+    ]
+  },
 ]
 
 export default function POSLayout() {
@@ -108,22 +128,25 @@ export default function POSLayout() {
           {showMore && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowMore(false)} />
-              <div className="absolute bottom-full right-0 z-50 mb-2 mr-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden w-72">
-                <div className="grid grid-cols-2">
-                  {MORE_ITEMS.map((item, i) => (
-                    <button key={item.label}
-                      onClick={() => { navigate(item.path); setShowMore(false) }}
-                      className={`flex items-center gap-2 px-4 py-3.5 hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700
-                        ${i % 2 === 0 ? 'border-r border-gray-100' : ''}
-                        ${i < MORE_ITEMS.length - 2 ? 'border-b border-gray-100' : ''}
-                      `}>
-                      <span>{item.icon}</span>{item.label}
-                    </button>
-                  ))}
-                </div>
+              <div className="absolute bottom-full right-0 z-50 mb-2 mr-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden w-80">
+                {MORE_GROUPS.map((group, gi) => (
+                  <div key={group.label} className={gi > 0 ? 'border-t border-gray-100' : ''}>
+                    <p className="px-4 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">{group.label}</p>
+                    <div className="grid grid-cols-3 pb-2">
+                      {group.items.map(item => (
+                        <button key={item.label}
+                          onClick={() => { navigate(item.path); setShowMore(false) }}
+                          className="flex flex-col items-center gap-1.5 px-2 py-2.5 hover:bg-gray-50 rounded-xl mx-1 transition-colors">
+                          <span className="text-xl">{item.icon}</span>
+                          <span className="text-xs font-medium text-gray-700 text-center leading-tight">{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
                 <div className="border-t border-gray-100">
                   <button onClick={() => signOut(auth)}
-                    className="w-full flex items-center gap-2.5 px-4 py-3.5 hover:bg-red-50 transition-colors text-sm font-medium text-red-500">
+                    className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-red-50 transition-colors text-sm font-medium text-red-500">
                     <LogOut size={15} /> Sign Out
                   </button>
                 </div>
