@@ -1,6 +1,6 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { ManagementContext } from '../context/ManagementContext'
-import { LayoutDashboard, List, BarChart2, Users, MoreHorizontal } from 'lucide-react'
+import { LayoutDashboard, List, BarChart2, ClipboardList, MoreHorizontal } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 
@@ -8,7 +8,7 @@ const NAV = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/mgmt-orders', label: 'Orders',  icon: List },
   { path: '/mgmt-report', label: 'Reports', icon: BarChart2 },
-  { path: '/mgmt-team', label: 'Team',      icon: Users },
+  { path: '/mgmt-team', label: 'Sign In',   icon: ClipboardList },
   { path: '/mgmt-more', label: 'More',      icon: MoreHorizontal },
 ]
 
