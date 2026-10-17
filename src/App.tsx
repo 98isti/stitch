@@ -14,6 +14,7 @@ import DeviceSetupPage, { DEVICE_MODE_KEY } from './pages/DeviceSetupPage'
 import DashboardPage from './pages/DashboardPage'
 import ManagementOrdersPage from './pages/ManagementOrdersPage'
 import ManagementReportPage from './pages/ManagementReportPage'
+import ManagementSignInPage from './pages/ManagementSignInPage'
 import ManagementMorePage from './pages/ManagementMorePage'
 import ManagementLayout from './layouts/ManagementLayout'
 import POSLayout from './layouts/POSLayout'
@@ -82,7 +83,7 @@ function AppRoutes() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/mgmt-orders" element={<ManagementOrdersPage />} />
         <Route path="/mgmt-report" element={<ManagementReportPage />} />
-        <Route path="/mgmt-team" element={<SignInPage />} />
+        <Route path="/mgmt-team" element={<ManagementSignInPage />} />
         <Route path="/mgmt-more" element={<ManagementMorePage />} />
       </Route>
 
