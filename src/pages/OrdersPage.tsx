@@ -5,6 +5,7 @@ import OrderDetailSheet from '../components/OrderDetailSheet'
 import EditOrderSheet from '../components/EditOrderSheet'
 import { collection, query, orderBy, getDocs, Timestamp } from 'firebase/firestore'
 
+
 // Simple cash drawer SVG icon
 function CashDrawerIcon({ size = 20, className = '' }: { size?: number; className?: string }) {
   return (
@@ -42,6 +43,7 @@ export interface Order {
   location: string
   paymentMethod: string
   items: string
+  createdAt?: Timestamp
 }
 
 const FILTERS = ['All', 'In progress', 'Ready for Pick Up', 'Picked Up', 'Redo']
@@ -101,7 +103,7 @@ export default function OrdersPage() {
 
   type Row = { type: 'order'; data: Order } | { type: 'drawer'; data: typeof drawerLogs[0] }
   const rows: Row[] = [
-    ...filtered.map(o => ({ type: 'order' as const, data: o, ts: o.orderDate || '' })),
+    ...filtered.map(o => ({ type: 'order' as const, data: o, ts: o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000).toISOString() : o.orderDate || '' })),
     ...filteredDrawerLogs.map(d => ({ type: 'drawer' as const, data: d, ts: d.openedAt?.seconds ? new Date(d.openedAt.seconds * 1000).toISOString() : '' })),
   ].sort((a, b) => b.ts.localeCompare(a.ts)) as Row[]
 
