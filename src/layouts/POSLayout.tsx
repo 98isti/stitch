@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { ClipboardList, List, Calendar, MoreHorizontal, LogOut, BarChart2, LayoutDashboard } from 'lucide-react'
+import { ClipboardList, List, Calendar, MoreHorizontal, LogOut, BarChart2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useDailyRevenue } from '../hooks/useDailyRevenue'
 import { useLocations } from '../hooks/useLocations'
@@ -155,13 +155,6 @@ export default function POSLayout() {
           )}
 
           <div className="bg-white border-t border-gray-200 flex items-center px-2 py-1.5 gap-1">
-            {localStorage.getItem('stitch_device_mode') === 'management' && (
-              <button onClick={() => navigate('/dashboard')}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-navy hover:bg-navy/10 transition-colors text-sm font-medium">
-                <LayoutDashboard size={17} />
-                <span>Dashboard</span>
-              </button>
-            )}
             <button onClick={() => navigate('/signin')}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors text-sm font-medium">
               <ClipboardList size={17} />

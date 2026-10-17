@@ -1,6 +1,6 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { ManagementContext } from '../context/ManagementContext'
-import { LayoutDashboard, List, BarChart2, Users, MoreHorizontal, Monitor } from 'lucide-react'
+import { LayoutDashboard, List, BarChart2, Users, MoreHorizontal } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 
@@ -18,30 +18,13 @@ export default function ManagementLayout() {
   const { accountId } = useAuth()
   const { setActiveLocation, locations } = useLocations(accountId)
 
-  function openPOS() {
-    // Set a location if none is saved (pick first available)
-    // Device mode stays 'management' — does not change to terminal
-    const savedLoc = localStorage.getItem('stitch_active_location')
-    if (!savedLoc && locations.length > 0) {
-      setActiveLocation(locations[0])
-    }
-    navigate('/pos')
-  }
-
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       {/* Top bar */}
-      <div className="bg-navy px-4 py-3 flex items-center justify-between flex-shrink-0">
+      <div className="bg-navy px-4 py-3 flex items-center justify-center flex-shrink-0">
         <div className="bg-white rounded-xl px-3 py-1.5 inline-block">
           <img src="/stitch-logo.png" alt="Stitch" className="h-6 object-contain" />
         </div>
-        <button
-          onClick={openPOS}
-          className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-2 rounded-xl transition-colors"
-        >
-          <Monitor size={14} />
-          Open POS
-        </button>
       </div>
 
       {/* Page content */}

@@ -524,6 +524,36 @@ export default function SettingsPage() {
 
 
 
+              {/* ── This Device ── */}
+              <Section title="This Device">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-gray-900">
+                      {localStorage.getItem('stitch_device_mode') === 'management' ? 'Management Device' : 'Shop POS Terminal'}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {localStorage.getItem('stitch_device_mode') === 'management'
+                        ? 'Switch to use this device as a shop POS'
+                        : 'Switch to use this device for management'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const current = localStorage.getItem('stitch_device_mode')
+                      if (current === 'management') {
+                        localStorage.setItem('stitch_device_mode', 'terminal')
+                        navigate('/pos')
+                      } else {
+                        localStorage.setItem('stitch_device_mode', 'management')
+                        navigate('/dashboard')
+                      }
+                    }}
+                    className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors whitespace-nowrap">
+                    Switch →
+                  </button>
+                </div>
+              </Section>
+
               {/* ── Plan & Billing ── */}
               <Section title="Plan & Billing">
                 <div className="flex items-center justify-between">

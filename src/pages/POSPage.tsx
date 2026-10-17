@@ -759,12 +759,7 @@ export default function POSPage() {
                   <span className="text-gray-400 text-xs">powered by</span>
                   <img src="/stitch-logo.png" alt="Stitch" className="h-5 object-contain opacity-40" />
                 </div>
-                {isManagementDevice && (
-                  <button onClick={() => navigate('/dashboard')}
-                    className="mt-2 flex items-center gap-1 text-xs text-navy/60 hover:text-navy transition-colors font-medium">
-                    ← Dashboard
-                  </button>
-                )}
+
               </div>
               <div className="w-full flex flex-col items-center gap-1 px-2.5 py-1">
                 <div className="flex items-center gap-1.5">
