@@ -47,10 +47,10 @@ export default function DeviceSetupPage() {
             </div>
             <div>
               <p className={`font-bold text-base ${selected === 'terminal' ? 'text-navy' : 'text-white'}`}>
-                Shop terminal
+                Shop POS terminal
               </p>
               <p className={`text-sm mt-1 ${selected === 'terminal' ? 'text-navy/70' : 'text-white/50'}`}>
-                Staff will use this device at the counter with a PIN
+                Process orders and payments
               </p>
             </div>
           </div>
@@ -71,10 +71,10 @@ export default function DeviceSetupPage() {
             </div>
             <div>
               <p className={`font-bold text-base ${selected === 'management' ? 'text-navy' : 'text-white'}`}>
-                My personal device
+                Management Device
               </p>
               <p className={`text-sm mt-1 ${selected === 'management' ? 'text-navy/70' : 'text-white/50'}`}>
-                I'll use this to monitor sales, team and reports
+                Sales, reports and team overview
               </p>
             </div>
           </div>
