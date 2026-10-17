@@ -63,14 +63,19 @@ function Delta({ current, prev }: { current: number; prev: number }) {
 
 // ── Table section ─────────────────────────────────────────────────────────────
 
-function TableSection({ rows, columns }: {
+function TableSection({ label, rows, columns }: {
+  label: string
   rows: Array<{ name: string; isTotal: boolean; values: number[] }>
   columns: { label: string }[]
 }) {
   return (
-    <div className="mb-2">
+    <div className="mb-4">
+      {/* Section label */}
+      <div className="bg-gray-100 rounded-t-xl px-3 py-2 border-b border-gray-200">
+        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{label}</span>
+      </div>
       {/* Column headers */}
-      <div className="flex border-b border-gray-200 pb-1.5 mb-0.5">
+      <div className="flex border-b border-gray-200 pb-1.5 mb-0.5 px-3 pt-2 bg-white">
         <div className="w-32 shrink-0 text-sm font-bold text-gray-700">Location</div>
         <div className="w-px bg-gray-300 mx-2 shrink-0" />
         {columns.map((col, i) => (
@@ -80,7 +85,7 @@ function TableSection({ rows, columns }: {
 
       {/* Data rows */}
       {rows.map(row => (
-        <div key={row.name} className={`flex items-start py-2.5 border-b border-gray-100 ${row.isTotal ? 'border-b-0' : ''}`}>
+        <div key={row.name} className={`flex items-start py-2.5 border-b border-gray-100 px-3 bg-white ${row.isTotal ? '' : ''}`}>
           <div className={`w-32 shrink-0 text-sm truncate pr-2 ${row.isTotal ? 'text-blue-600 font-bold' : 'text-gray-800'}`}>
             {row.name}
           </div>
@@ -189,12 +194,12 @@ export default function ManagementReportPage() {
       {/* Horizontally + vertically scrollable table */}
       <div className="flex-1 overflow-auto px-4 py-4">
         <div className="min-w-max">
-          <TableSection rows={data.dailyRows} columns={data.dailyCols} />
-          <TableSection rows={data.weeklyRows} columns={data.weeklyCols} />
-          <TableSection rows={data.monthlyRows} columns={data.monthlyCols} />
+          <TableSection label="Daily" rows={data.dailyRows} columns={data.dailyCols} />
+          <TableSection label="Weekly" rows={data.weeklyRows} columns={data.weeklyCols} />
+          <TableSection label="Monthly" rows={data.monthlyRows} columns={data.monthlyCols} />
 
           {showLifetime ? (
-            <TableSection rows={data.yearlyRows} columns={data.yearlyCols} />
+            <TableSection label="Yearly" rows={data.yearlyRows} columns={data.yearlyCols} />
           ) : (
             <div className="mt-2 pb-8">
               <button onClick={loadLifetime} disabled={loadingLifetime}
