@@ -207,9 +207,9 @@ export default function ManagementReportPage() {
         <h1 className="text-2xl font-bold text-gray-900">Report</h1>
       </div>
 
-      {/* Horizontally + vertically scrollable table */}
-      <div className="flex-1 overflow-auto px-4 py-4">
-        <div className="min-w-max">
+      {/* Vertically scrollable page, inner panels scroll horizontally */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div>
           <TableSection label="Daily" rows={data.dailyRows} columns={data.dailyCols} />
           <TableSection label="Weekly" rows={data.weeklyRows} columns={data.weeklyCols} />
           <TableSection label="Monthly" rows={data.monthlyRows} columns={data.monthlyCols} />
