@@ -8,16 +8,16 @@ export function useDailyRevenue(accountId: string | null, locationName: string |
 
   useEffect(() => {
     if (!accountId) return
-    const today = new Date().toISOString().split('T')[0]
+    // Use local date (device timezone) not UTC
+    const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local time
     const q = query(
-      collection(db, 'accounts', accountId, 'orders'),
-      where('orderDate', '==', today),
-      orderBy('orderDate')
+      collection(db, 'accounts', accountId, 'payments'),
+      where('paidDate', '==', today)
     )
     getDocs(q).then(snap => {
       const all = snap.docs.map(d => d.data())
-      const filtered = locationName ? all.filter(o => o.location === locationName) : all
-      const total = filtered.reduce((s, o) => s + (o.orderAmount ?? 0), 0)
+      const filtered = locationName ? all.filter(p => p.location === locationName) : all
+      const total = filtered.reduce((s, p) => s + (p.amount ?? 0), 0)
       setRevenue(total)
       setLoading(false)
     }).catch(() => setLoading(false))

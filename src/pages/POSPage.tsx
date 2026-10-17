@@ -65,7 +65,7 @@ async function writePayment(db: any, accountId: string, {
     location,
     paidBy: staffName,
     paidAt: sts(),
-    paidDate: new Date().toISOString().split('T')[0],
+    paidDate: new Date().toLocaleDateString('en-CA'), // local date (AEDT), not UTC
   })
 }
 
