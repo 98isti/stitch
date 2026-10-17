@@ -16,7 +16,7 @@ export default function ManagementLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { accountId } = useAuth()
-  const { setActiveLocation, locations } = useLocations(accountId)
+  const { locations } = useLocations(accountId)
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
