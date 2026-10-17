@@ -835,6 +835,8 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
          .actionPrintText("----------------------------------------\n")
          .styleAlignment(.center)
          .actionPrintText("Thank you!\n")
+         .styleAlignment(.center)
+         .actionPrintText("\n— Powered by Stitch —\n")
 
         if !str(d,"barcode").isEmpty {
             p.actionPrintQRCode(.init(content: str(d,"barcode")).setCellSize(8))
