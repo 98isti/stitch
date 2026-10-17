@@ -76,7 +76,7 @@ function TableSection({ label, rows, columns }: {
       </div>
       {/* Column headers */}
       <div className="flex border-b border-gray-200 pb-1.5 mb-0.5 pt-2 bg-white">
-        <div className="sticky left-0 z-10 bg-white flex items-center shrink-0">
+        <div className="sticky left-0 z-10 flex items-center shrink-0" style={{ backgroundColor: 'white' }}>
           <div className="w-32 px-3 text-sm font-bold text-gray-700">Location</div>
           <div className="w-px bg-gray-300 self-stretch" />
         </div>
@@ -88,7 +88,7 @@ function TableSection({ label, rows, columns }: {
       {/* Data rows */}
       {rows.map(row => (
         <div key={row.name} className="flex items-start py-2.5 border-b border-gray-100 bg-white">
-          <div className="sticky left-0 z-10 bg-white flex items-start shrink-0">
+          <div className="sticky left-0 z-10 flex items-start shrink-0" style={{ backgroundColor: 'white' }}>
             <div className={`w-32 px-3 text-sm truncate ${row.isTotal ? 'text-blue-600 font-bold' : 'text-gray-800'}`}>
               {row.name}
             </div>
