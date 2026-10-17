@@ -8,7 +8,6 @@ interface Payment { amount: number; paidDate: string; location: string }
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
-function toDate(str: string) { const [y,m,d] = str.split('-').map(Number); return new Date(y,m-1,d) }
 function toStr(d: Date) { return d.toISOString().slice(0,10) }
 function addDays(d: Date, n: number) { const r = new Date(d); r.setDate(r.getDate()+n); return r }
 
@@ -48,6 +47,7 @@ function sumPayments(payments: Payment[], location: string | null, dates: string
 
 function fmt(n: number) { return '$' + Math.round(n).toLocaleString('en-AU') }
 
+
 function Delta({ current, prev }: { current: number; prev: number }) {
   if (prev === 0 && current === 0) return null
   const delta = current - prev
@@ -58,10 +58,7 @@ function Delta({ current, prev }: { current: number; prev: number }) {
 
 // ── Table section ─────────────────────────────────────────────────────────────
 
-interface Column { label: string; current: number; prev: number }
-
-function TableSection({ title, rows, columns }: {
-  title: string
+function TableSection({ rows, columns }: {
   rows: Array<{ name: string; isTotal: boolean; values: number[] }>
   columns: { label: string }[]
 }) {
