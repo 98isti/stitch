@@ -82,6 +82,7 @@ function AppRoutes() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/mgmt-orders" element={<ManagementOrdersPage />} />
         <Route path="/mgmt-report" element={<ManagementReportPage />} />
+        <Route path="/mgmt-team" element={<SignInPage />} />
         <Route path="/mgmt-more" element={<ManagementMorePage />} />
       </Route>
 
