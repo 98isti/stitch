@@ -20,8 +20,9 @@ export default function ManagementLayout() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
-      {/* Top bar */}
-      <div className="bg-navy px-4 py-3 flex items-center justify-center flex-shrink-0">
+      {/* Top bar — safe area inset for iPhone notch/Dynamic Island */}
+      <div className="bg-navy px-4 flex items-center justify-center flex-shrink-0"
+        style={{ paddingTop: 'max(12px, env(safe-area-inset-top))', paddingBottom: '12px' }}>
         <div className="bg-white rounded-xl px-3 py-1.5 inline-block">
           <img src="/stitch-logo.png" alt="Stitch" className="h-6 object-contain" />
         </div>
