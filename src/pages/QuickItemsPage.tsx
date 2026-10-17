@@ -115,17 +115,6 @@ export default function QuickItemsPage() {
             <div className="divide-y divide-gray-100">
               {quickItems.map((qi, i) => (
                 <div key={qi.itemId} className="flex items-center gap-2 px-3 py-2.5">
-                  {/* Up/down */}
-                  <div className="flex flex-col gap-0.5">
-                    <button onClick={() => move(i, -1)} disabled={i === 0}
-                      className="p-0.5 text-gray-300 hover:text-navy disabled:opacity-20 transition-colors">
-                      <ChevronUp size={16} />
-                    </button>
-                    <button onClick={() => move(i, 1)} disabled={i === quickItems.length - 1}
-                      className="p-0.5 text-gray-300 hover:text-navy disabled:opacity-20 transition-colors">
-                      <ChevronDown size={16} />
-                    </button>
-                  </div>
                   {/* Number */}
                   <span className="w-5 h-5 rounded-full bg-navy/10 text-navy text-xs font-bold flex items-center justify-center shrink-0">{i + 1}</span>
                   {/* Name + category */}
@@ -133,11 +122,21 @@ export default function QuickItemsPage() {
                     <p className="text-sm font-semibold text-gray-800 truncate">{qi.name}</p>
                     <p className="text-xs text-gray-400">{qi.category} · ${qi.price.toFixed(2)}</p>
                   </div>
-                  {/* Remove */}
-                  <button onClick={() => remove(qi.itemId)}
-                    className="text-gray-300 hover:text-red-500 transition-colors p-1">
-                    <X size={15} />
-                  </button>
+                  {/* Up / Down / Remove — rounded square buttons */}
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={() => move(i, -1)} disabled={i === 0}
+                      className="w-9 h-9 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 flex items-center justify-center disabled:opacity-25 active:scale-95 transition-all hover:bg-gray-100">
+                      <ChevronUp size={16} />
+                    </button>
+                    <button onClick={() => move(i, 1)} disabled={i === quickItems.length - 1}
+                      className="w-9 h-9 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 flex items-center justify-center disabled:opacity-25 active:scale-95 transition-all hover:bg-gray-100">
+                      <ChevronDown size={16} />
+                    </button>
+                    <button onClick={() => remove(qi.itemId)}
+                      className="w-9 h-9 rounded-xl border border-red-200 bg-red-50 text-red-500 flex items-center justify-center active:scale-95 transition-all hover:bg-red-100">
+                      <X size={15} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
