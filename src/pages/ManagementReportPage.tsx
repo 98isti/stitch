@@ -68,45 +68,57 @@ function TableSection({ label, rows, columns }: {
   rows: Array<{ name: string; isTotal: boolean; values: number[] }>
   columns: { label: string }[]
 }) {
+  // Two-panel layout: fixed location column + independently scrollable value columns
   return (
-    <div className="mb-4">
+    <div className="mb-4 bg-white rounded-xl overflow-hidden border border-gray-100">
       {/* Section label */}
-      <div className="bg-gray-100 rounded-t-xl px-3 py-2 border-b border-gray-200">
+      <div className="bg-gray-100 px-3 py-2 border-b border-gray-200">
         <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{label}</span>
       </div>
-      {/* Column headers */}
-      <div className="flex border-b border-gray-200 pb-1.5 mb-0.5 pt-2 bg-white">
-        <div className="sticky left-0 z-10 flex items-center shrink-0" style={{ backgroundColor: 'white' }}>
-          <div className="w-32 px-3 text-sm font-bold text-gray-700">Location</div>
-          <div className="w-px bg-gray-300 self-stretch" />
-        </div>
-        {columns.map((col, i) => (
-          <div key={i} className="w-28 shrink-0 text-right text-sm font-bold text-gray-700 px-2">{col.label}</div>
-        ))}
-      </div>
 
-      {/* Data rows */}
-      {rows.map(row => (
-        <div key={row.name} className="flex items-start py-2.5 border-b border-gray-100 bg-white">
-          <div className="sticky left-0 z-10 flex items-start shrink-0" style={{ backgroundColor: 'white' }}>
-            <div className={`w-32 px-3 text-sm truncate ${row.isTotal ? 'text-blue-600 font-bold' : 'text-gray-800'}`}>
-              {row.name}
-            </div>
-            <div className="w-px bg-gray-200 self-stretch" />
+      <div className="flex">
+        {/* Fixed left: location names */}
+        <div className="flex-shrink-0 w-28 border-r border-gray-200">
+          <div className="px-3 py-2.5 border-b border-gray-200">
+            <span className="text-xs font-bold text-gray-500">Location</span>
           </div>
-          {row.values.map((val, i) => {
-            const prev = i < row.values.length - 1 ? row.values[i + 1] : 0
-            return (
-              <div key={i} className="w-28 shrink-0 text-right">
-                <p className={`text-sm font-semibold ${row.isTotal ? 'text-blue-600' : 'text-gray-900'} ${val === 0 ? 'text-gray-300' : ''}`}>
-                  {val === 0 ? '$0' : fmt(val)}
-                </p>
-                {val > 0 && <Delta current={val} prev={prev} />}
-              </div>
-            )
-          })}
+          {rows.map(row => (
+            <div key={row.name} className="px-3 py-3 border-b border-gray-100 min-h-[52px] flex items-center">
+              <span className={`text-sm leading-tight ${row.isTotal ? 'text-blue-600 font-bold' : 'text-gray-800'}`}>
+                {row.name}
+              </span>
+            </div>
+          ))}
         </div>
-      ))}
+
+        {/* Scrollable right: value columns */}
+        <div className="flex-1 overflow-x-auto">
+          {/* Column headers */}
+          <div className="flex border-b border-gray-200">
+            {columns.map((col, i) => (
+              <div key={i} className="w-28 flex-shrink-0 px-2 py-2.5 text-right">
+                <span className="text-xs font-bold text-gray-500">{col.label}</span>
+              </div>
+            ))}
+          </div>
+          {/* Value rows */}
+          {rows.map(row => (
+            <div key={row.name} className="flex border-b border-gray-100 min-h-[52px]">
+              {row.values.map((val, i) => {
+                const prev = i < row.values.length - 1 ? row.values[i + 1] : 0
+                return (
+                  <div key={i} className="w-28 flex-shrink-0 px-2 py-2.5 text-right flex flex-col justify-center">
+                    <p className={`text-sm font-semibold ${row.isTotal ? 'text-blue-600' : val === 0 ? 'text-gray-300' : 'text-gray-900'}`}>
+                      {fmt(val)}
+                    </p>
+                    {val > 0 && <Delta current={val} prev={prev} />}
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
