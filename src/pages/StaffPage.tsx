@@ -91,7 +91,7 @@ export default function StaffPage() {
   return (
     <div className="flex flex-col h-full bg-gray-50">
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shrink-0">
-        <button onClick={() => navigate('/pos')} className="flex items-center gap-1 text-navy text-sm font-medium"><ChevronLeft size={18} /> Back</button>
+        <button onClick={() => { const isM = localStorage.getItem('stitch_device_mode') === 'management'; navigate(isM ? '/mgmt-more' : '/pos') }} className="flex items-center gap-1 text-navy text-sm font-medium"><ChevronLeft size={18} /> Back</button>
         <h1 className="font-bold text-gray-900">Staff</h1>
         <button onClick={openAdd} className="flex items-center gap-1 text-navy text-sm font-medium"><Plus size={16} /> Add</button>
       </div>

@@ -4,6 +4,7 @@ import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { useNavigate } from 'react-router-dom'
+import { useIsManagement } from '../context/ManagementContext'
 import { ChevronLeft, Printer, X } from 'lucide-react'
 import { usePrinter } from '../context/PrinterContext'
 import type { PickupSheetOrder } from '../lib/buildPickupSheet'
@@ -224,7 +225,7 @@ export default function PickUpPage() {
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 shrink-0">
-        <button onClick={() => navigate('/pos')} className="flex items-center gap-1 text-navy text-sm font-medium hover:opacity-70">
+        <button onClick={() => { const isM = localStorage.getItem('stitch_device_mode') === 'management'; navigate(isM ? '/mgmt-more' : '/pos') }} className="flex items-center gap-1 text-navy text-sm font-medium hover:opacity-70">
           <ChevronLeft size={18} /> Back
         </button>
         <div className="flex-1 text-center">

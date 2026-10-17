@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { usePrinter } from '../context/PrinterContext'
 import { useLocations } from '../hooks/useLocations'
 import { useAccountProfile } from '../hooks/useAccountProfile'
+import { useIsManagement } from '../context/ManagementContext'
 import { useNavigate } from 'react-router-dom'
 import { Plus, X, RefreshCw, Printer } from 'lucide-react'
 
@@ -138,7 +139,7 @@ export default function VouchersPage() {
 
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
-        <button onClick={() => navigate(-1)} className="text-navy font-medium text-sm">← Back</button>
+        <button onClick={() => { const isM = localStorage.getItem('stitch_device_mode') === 'management'; navigate(isM ? '/mgmt-more' : -1 as any) }} className="text-navy font-medium text-sm">← Back</button>
         <h1 className="flex-1 text-center font-bold text-navy text-base">Gift Vouchers</h1>
         <button
           onClick={() => { setForm({ code: randomCode(), amount: '', customerName: '', customerPhone: '', expiryDate: defaultExpiry() }); setShowSheet(true) }}

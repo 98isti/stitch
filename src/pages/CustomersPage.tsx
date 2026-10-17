@@ -32,7 +32,7 @@ export default function CustomersPage() {
   return (
     <div className="flex flex-col h-full bg-gray-50">
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 shrink-0">
-        <button onClick={() => navigate('/pos')} className="flex items-center gap-1 text-navy text-sm font-medium"><ChevronLeft size={18} /> Back</button>
+        <button onClick={() => { const isM = localStorage.getItem('stitch_device_mode') === 'management'; navigate(isM ? '/mgmt-more' : '/pos') }} className="flex items-center gap-1 text-navy text-sm font-medium"><ChevronLeft size={18} /> Back</button>
         <h1 className="flex-1 text-center font-bold text-gray-900">Customers</h1>
         <span className="text-xs text-gray-400 w-16 text-right">{filtered.length}</span>
       </div>

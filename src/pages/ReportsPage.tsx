@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
+import { useIsManagement } from '../context/ManagementContext'
 
 interface DaySummary {
   date: string       // YYYY-MM-DD
@@ -59,9 +60,11 @@ export default function ReportsPage() {
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 shrink-0">
-        <button onClick={() => navigate('/pos')} className="flex items-center gap-1 text-navy text-sm font-medium hover:opacity-70">
-          <ChevronLeft size={18} /> Back
-        </button>
+        {!useIsManagement() && (
+          <button onClick={() => navigate('/pos')} className="flex items-center gap-1 text-navy text-sm font-medium hover:opacity-70">
+            <ChevronLeft size={18} /> Back
+          </button>
+        )}
         <div className="flex-1 text-center">
           <p className="font-bold text-gray-900">Daily Sales</p>
           {activeLocation && <p className="text-xs text-gray-400">{activeLocation.name} · Last 30 days</p>}

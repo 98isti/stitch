@@ -3,6 +3,7 @@ import { doc, getDoc, getDocs, updateDoc, addDoc, deleteDoc, collection, query, 
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { useIsManagement } from '../context/ManagementContext'
 import { ChevronLeft, Save, Check, Plus, Pencil, Trash2, RefreshCw } from 'lucide-react'
 import SettingsPinGate from '../components/SettingsPinGate'
 import PrinterSettings from '../components/PrinterSettings'
@@ -286,7 +287,7 @@ export default function SettingsPage() {
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 shrink-0">
-        <button onClick={() => navigate('/pos')} className="flex items-center gap-1 text-navy text-sm font-medium">
+        <button onClick={() => { const isM = localStorage.getItem('stitch_device_mode') === 'management'; navigate(isM ? '/mgmt-more' : '/pos') }} className="flex items-center gap-1 text-navy text-sm font-medium">
           <ChevronLeft size={18} /> Back
         </button>
         <h1 className="flex-1 text-center font-bold text-gray-900">Settings</h1>

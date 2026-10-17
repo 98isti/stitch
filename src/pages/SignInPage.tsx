@@ -6,6 +6,7 @@ import { useStaff } from '../context/StaffContext'
 import { useLocations } from '../hooks/useLocations'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, Check } from 'lucide-react'
+import { useIsManagement } from '../context/ManagementContext'
 
 function now() {
   return new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: true })
@@ -74,9 +75,11 @@ export default function SignInPage() {
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 shrink-0">
-        <button onClick={() => navigate('/pos')} className="flex items-center gap-1 text-navy text-sm font-medium hover:opacity-70">
-          <ChevronLeft size={18} /> Back
-        </button>
+        {!useIsManagement() && (
+          <button onClick={() => navigate('/pos')} className="flex items-center gap-1 text-navy text-sm font-medium hover:opacity-70">
+            <ChevronLeft size={18} /> Back
+          </button>
+        )}
         <h1 className="flex-1 text-center font-bold text-gray-900">Sign In / Sign Out</h1>
         <div className="w-16" />
       </div>

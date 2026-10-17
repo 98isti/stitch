@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Search, RefreshCw, ChevronLeft } from 'lucide-react'
+import { useIsManagement } from '../context/ManagementContext'
 import { useNavigate } from 'react-router-dom'
 import OrderDetailSheet from '../components/OrderDetailSheet'
 import EditOrderSheet from '../components/EditOrderSheet'
@@ -113,9 +114,11 @@ export default function OrdersPage() {
 
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 shrink-0">
-        <button onClick={() => navigate('/pos')} className="flex items-center gap-1 text-navy text-sm font-medium hover:opacity-70">
-          <ChevronLeft size={18} /> Back
-        </button>
+        {!useIsManagement() && (
+          <button onClick={() => navigate('/pos')} className="flex items-center gap-1 text-navy text-sm font-medium hover:opacity-70">
+            <ChevronLeft size={18} /> Back
+          </button>
+        )}
         <h1 className="flex-1 text-center font-bold text-gray-900">Orders</h1>
         <div className="w-16" />
       </div>

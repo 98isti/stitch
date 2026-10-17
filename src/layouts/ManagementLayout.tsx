@@ -1,4 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { ManagementContext } from '../context/ManagementContext'
 import { LayoutDashboard, List, BarChart2, Users, MoreHorizontal, Monitor } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
@@ -45,7 +46,9 @@ export default function ManagementLayout() {
 
       {/* Page content */}
       <div className="flex-1 overflow-hidden">
-        <Outlet />
+        <ManagementContext.Provider value={true}>
+          <Outlet />
+        </ManagementContext.Provider>
       </div>
 
       {/* Bottom nav */}
