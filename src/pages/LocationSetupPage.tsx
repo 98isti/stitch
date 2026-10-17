@@ -89,6 +89,7 @@ export default function LocationSetupPage() {
             // Activate selected location
             const loc = locations.find(l => l.id === selectedLocationId)
             if (loc) {
+              localStorage.setItem('stitch_device_mode', 'terminal')
               setActiveLocation(loc)
               navigate('/pin')
             }

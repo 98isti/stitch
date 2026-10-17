@@ -65,6 +65,9 @@ function AppRoutes() {
         !onboarded ? <Navigate to="/onboarding" /> :
         (() => {
           const mode = localStorage.getItem(DEVICE_MODE_KEY)
+          const savedLoc = localStorage.getItem('stitch_active_location')
+          // Backward compat: existing configured shop devices have a location but no mode yet
+          if (!mode && savedLoc) return <Navigate to="/pos" />
           if (!mode) return <Navigate to="/device-setup" />
           if (mode === 'management') return <Navigate to="/dashboard" />
           return <Navigate to="/pos" />
