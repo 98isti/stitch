@@ -90,6 +90,9 @@ export default function SettingsPage() {
   // Account-level settings
   const [requirePinAfterLock, setRequirePinAfterLock] = useState(true)
   const [plan, setPlan] = useState('Trial')
+  const [deviceMode, setDeviceMode] = useState<'terminal' | 'management'>(
+    (localStorage.getItem('stitch_device_mode') as 'terminal' | 'management') || 'terminal'
+  )
 
   // Per-location settings
   const [locSettings, setLocSettings] = useState<LocationSettings>(BLANK_LOCATION)
@@ -246,8 +249,17 @@ export default function SettingsPage() {
         requirePinAfterLock,
         updatedAt: serverTimestamp(),
       })
+      // Apply device mode change
+      const prevMode = localStorage.getItem('stitch_device_mode')
+      localStorage.setItem('stitch_device_mode', deviceMode)
       setSaved(true)
-      setTimeout(() => setSaved(false), 2500)
+      setTimeout(() => {
+        setSaved(false)
+        // Navigate if mode changed
+        if (prevMode !== deviceMode) {
+          navigate(deviceMode === 'management' ? '/dashboard' : '/pos')
+        }
+      }, 1000)
     } finally { setSaving(false) }
   }
 
@@ -526,31 +538,17 @@ export default function SettingsPage() {
 
               {/* ── This Device ── */}
               <Section title="This Device">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      {localStorage.getItem('stitch_device_mode') === 'management' ? 'Management Device' : 'Shop POS Terminal'}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {localStorage.getItem('stitch_device_mode') === 'management'
-                        ? 'Switch to use this device as a shop POS'
-                        : 'Switch to use this device for management'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const current = localStorage.getItem('stitch_device_mode')
-                      if (current === 'management') {
-                        localStorage.setItem('stitch_device_mode', 'terminal')
-                        navigate('/pos')
-                      } else {
-                        localStorage.setItem('stitch_device_mode', 'management')
-                        navigate('/dashboard')
-                      }
-                    }}
-                    className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors whitespace-nowrap">
-                    Switch →
-                  </button>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['terminal', 'management'] as const).map(mode => (
+                    <button key={mode} onClick={() => setDeviceMode(mode)}
+                      className={`py-3 px-4 rounded-xl text-sm font-semibold border-2 transition-all ${
+                        deviceMode === mode
+                          ? 'bg-navy text-white border-navy'
+                          : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                      }`}>
+                      {mode === 'terminal' ? 'Shop POS Terminal' : 'Management Device'}
+                    </button>
+                  ))}
                 </div>
               </Section>
 
