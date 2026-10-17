@@ -8,7 +8,12 @@ interface Payment { amount: number; paidDate: string; location: string }
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
-function toStr(d: Date) { return d.toISOString().slice(0,10) }
+function toStr(d: Date) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 function addDays(d: Date, n: number) { const r = new Date(d); r.setDate(r.getDate()+n); return r }
 
 function dayStr(daysAgo: number) {
@@ -63,9 +68,9 @@ function TableSection({ rows, columns }: {
   columns: { label: string }[]
 }) {
   return (
-    <div className="mb-6">
+    <div className="mb-2">
       {/* Column headers */}
-      <div className="flex border-b border-gray-200 pb-2 mb-1">
+      <div className="flex border-b border-gray-200 pb-1.5 mb-0.5">
         <div className="w-32 shrink-0 text-sm font-bold text-gray-700">Location</div>
         <div className="w-px bg-gray-300 mx-2 shrink-0" />
         {columns.map((col, i) => (
