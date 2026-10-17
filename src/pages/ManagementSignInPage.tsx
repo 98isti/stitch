@@ -45,18 +45,6 @@ function fmtTime(seconds: number) {
   })
 }
 
-function getThisWeekRange(): [string, string] {
-  const now = new Date()
-  const dow = now.getDay()
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - ((dow + 6) % 7))
-  monday.setHours(0, 0, 0, 0)
-  const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
-  sunday.setHours(23, 59, 59, 999)
-  return [toLocalDateStr(monday.getTime() / 1000), toLocalDateStr(sunday.getTime() / 1000)]
-}
-
 function fmtDate(dateStr: string) {
   const d = new Date(dateStr + 'T00:00:00')
   return d.toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' })
