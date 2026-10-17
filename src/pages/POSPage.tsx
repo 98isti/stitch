@@ -338,11 +338,13 @@ export default function POSPage() {
   const navigate = useNavigate()
 
   // Redirect to location-setup if no saved location (new device)
+  const isManagementDevice = localStorage.getItem('stitch_device_mode') === 'management'
   useEffect(() => {
     const saved = localStorage.getItem('stitch_active_location')
     if (!saved) { navigate('/location-setup', { replace: true }); return }
-    if (!staff) navigate('/pin', { replace: true })
-  }, [staff, navigate, accountId])
+    // Management users skip staff PIN — already authenticated via email
+    if (!staff && !isManagementDevice) navigate('/pin', { replace: true })
+  }, [staff, navigate, accountId, isManagementDevice])
   const [showStaffMenu, setShowStaffMenu] = useState(false)
   const { loading: locsLoading, activeLocation } = useLocations(accountId)
   const locationShopType = activeLocation?.shopType || 'alterations'
@@ -757,6 +759,12 @@ export default function POSPage() {
                   <span className="text-gray-400 text-xs">powered by</span>
                   <img src="/stitch-logo.png" alt="Stitch" className="h-5 object-contain opacity-40" />
                 </div>
+                {isManagementDevice && (
+                  <button onClick={() => navigate('/dashboard')}
+                    className="mt-2 flex items-center gap-1 text-xs text-navy/60 hover:text-navy transition-colors font-medium">
+                    ← Dashboard
+                  </button>
+                )}
               </div>
               <div className="w-full flex flex-col items-center gap-1 px-2.5 py-1">
                 <div className="flex items-center gap-1.5">
