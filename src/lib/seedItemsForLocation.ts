@@ -3,11 +3,11 @@
  * into an account's items collection for a specific location.
  *
  * Called during onboarding (first location) and when a new location is added.
- * Idempotent: skips if items already exist for this locationId.
+ * Idempotent: skips if location already has seeded=true flag on its doc.
  */
 
 import {
-  collection, getDocs, query, where, limit,
+  collection, getDocs, getDoc, updateDoc, query, where, limit,
   serverTimestamp, writeBatch, doc
 } from 'firebase/firestore'
 import { db } from './firebase'
@@ -19,13 +19,10 @@ export async function seedItemsForLocation(
   locationName?: string
 ): Promise<{ seeded: number; skipped: boolean }> {
 
-  // Check if items already exist for this location
-  const existing = await getDocs(query(
-    collection(db, 'accounts', accountId, 'items'),
-    where('locationId', '==', locationId),
-    limit(1)
-  ))
-  if (!existing.empty) {
+  // Check seeded flag on location doc — single reliable server check
+  const locRef = doc(db, 'accounts', accountId, 'locations', locationId)
+  const locSnap = await getDoc(locRef)
+  if (locSnap.data()?.seeded) {
     return { seeded: 0, skipped: true }
   }
 
@@ -64,6 +61,9 @@ export async function seedItemsForLocation(
 
   // Also seed categories
   await seedCategoriesForLocation(accountId, locationId, shopType)
+
+  // Mark location as seeded — prevents any future duplicate seeding
+  await updateDoc(locRef, { seeded: true })
 
   return { seeded, skipped: false }
 }
