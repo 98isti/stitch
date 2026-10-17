@@ -16,7 +16,7 @@ export default function ManagementLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { accountId } = useAuth()
-  const { locations } = useLocations(accountId)
+  useLocations(accountId) // keep subscription active for location data
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
