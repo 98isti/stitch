@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore'
+import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
@@ -78,15 +78,8 @@ export default function ManagementSignInPage() {
     if (!accountId) return
     setLoading(true)
 
-    const [weekStart] = getThisWeekRange()
-    const weekStartDate = new Date(weekStart + 'T00:00:00')
-
     const [eventsSnap, staffSnap] = await Promise.all([
-      getDocs(query(
-        collection(db, 'accounts', accountId, 'signIns'),
-        where('timestamp', '>=', { seconds: Math.floor(weekStartDate.getTime() / 1000), nanoseconds: 0 }),
-        orderBy('timestamp', 'asc')
-      )).catch(() => null),
+      getDocs(collection(db, 'accounts', accountId, 'signIns')).catch(() => null),
       getDocs(collection(db, 'accounts', accountId, 'staff')).catch(() => null),
     ])
 
