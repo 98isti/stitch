@@ -184,12 +184,12 @@ export default function ManagementReportPage() {
       {/* Horizontally + vertically scrollable table */}
       <div className="flex-1 overflow-auto px-4 py-4">
         <div className="min-w-max">
-          <TableSection title="Daily" rows={data.dailyRows} columns={data.dailyCols} />
-          <TableSection title="Weekly" rows={data.weeklyRows} columns={data.weeklyCols} />
-          <TableSection title="Monthly" rows={data.monthlyRows} columns={data.monthlyCols} />
+          <TableSection rows={data.dailyRows} columns={data.dailyCols} />
+          <TableSection rows={data.weeklyRows} columns={data.weeklyCols} />
+          <TableSection rows={data.monthlyRows} columns={data.monthlyCols} />
 
           {showLifetime ? (
-            <TableSection title="Yearly" rows={data.yearlyRows} columns={data.yearlyCols} />
+            <TableSection rows={data.yearlyRows} columns={data.yearlyCols} />
           ) : (
             <div className="mt-2 pb-8">
               <button onClick={loadLifetime} disabled={loadingLifetime}
