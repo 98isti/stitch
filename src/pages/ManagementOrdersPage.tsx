@@ -262,7 +262,7 @@ export default function ManagementOrdersPage() {
           orderId={selectedOrderId}
           accountId={accountId}
           onClose={() => setSelectedOrderId(null)}
-          readOnly={true}
+          readOnly={false}
         />
       )}
     </div>
