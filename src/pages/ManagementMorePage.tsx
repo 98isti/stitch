@@ -3,13 +3,14 @@ import { getAuth, signOut } from 'firebase/auth'
 import { DEVICE_MODE_KEY } from './DeviceSetupPage'
 import {
   Users, Settings, Calendar, Tag, UserCircle,
-  Ticket, CreditCard, LogOut, RefreshCw, TrendingUp
+  Ticket, CreditCard, LogOut, RefreshCw, TrendingUp, CalendarDays
 } from 'lucide-react'
 
 const ITEMS = [
-  { label: 'Staff',             icon: Users,       path: '/staff' },
-  { label: 'Team Performance',  icon: TrendingUp,  path: '/mgmt-team-performance' },
-  { label: 'Pick-Up Calendar',  icon: Calendar,    path: '/mgmt-pickup-calendar' },
+  { label: 'Staff',             icon: Users,        path: '/staff' },
+  { label: 'Team Performance',  icon: TrendingUp,   path: '/mgmt-team-performance' },
+  { label: 'Roster',            icon: CalendarDays, path: '/mgmt-roster' },
+  { label: 'Pick-Up Calendar',  icon: Calendar,     path: '/mgmt-pickup-calendar' },
   { label: 'Customers',         icon: UserCircle,  path: '/customers' },
   { label: 'Vouchers',          icon: Ticket,      path: '/vouchers' },
   { label: 'Categories',        icon: Tag,         path: '/categories' },

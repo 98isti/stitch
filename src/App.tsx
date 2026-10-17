@@ -38,6 +38,7 @@ import ReportsPage from './pages/ReportsPage'
 import PickUpPage from './pages/PickUpPage'
 import PickupCalendarPage from './pages/PickupCalendarPage'
 import TeamPerformancePage from './pages/TeamPerformancePage'
+import RosterPage from './pages/RosterPage'
 
 function AppRoutes() {
   const { user, loading, onboarded } = useAuth()
@@ -89,6 +90,7 @@ function AppRoutes() {
         <Route path="/mgmt-more" element={<ManagementMorePage />} />
         <Route path="/mgmt-pickup-calendar" element={<PickupCalendarPage />} />
         <Route path="/mgmt-team-performance" element={<TeamPerformancePage />} />
+        <Route path="/mgmt-roster" element={<RosterPage />} />
       </Route>
 
       <Route element={user && onboarded ? <POSLayout /> : <Navigate to="/" />}>
