@@ -78,11 +78,12 @@ interface Props {
   accountId: string | null
   onClose: () => void
   onEdit?: (orderId: string) => void
+  readOnly?: boolean
 }
 
 const SMS_WORKER_URL = 'https://stitch-sms.supto98.workers.dev'
 
-export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }: Props) {
+export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, readOnly = false }: Props) {
   const { staff } = useStaff()
   const accountProfile = useAccountProfile(accountId)
   const [order, setOrder] = useState<OrderDoc | null>(null)
@@ -523,12 +524,18 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
               {/* Status pill + Completed by stacked */}
               <div className="flex flex-col items-end">
                 <div className="relative">
-                  <button
-                    onClick={() => setShowStatusMenu(m => !m)}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold whitespace-nowrap transition-colors ${STATUS_COLOR[order?.status ?? 'Active'] ?? 'bg-blue-500'}`}>
-                    {order?.status ?? '—'}
-                    <ChevronDown size={14} />
-                  </button>
+                  {readOnly ? (
+                    <span className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold whitespace-nowrap ${STATUS_COLOR[order?.status ?? 'Active'] ?? 'bg-blue-500'}`}>
+                      {order?.status ?? '—'}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setShowStatusMenu(m => !m)}
+                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold whitespace-nowrap transition-colors ${STATUS_COLOR[order?.status ?? 'Active'] ?? 'bg-blue-500'}`}>
+                      {order?.status ?? '—'}
+                      <ChevronDown size={14} />
+                    </button>
+                  )}
                   {showStatusMenu && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setShowStatusMenu(false)} />
@@ -565,7 +572,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
                 )}
               </div>
               {/* Edit button alongside status */}
-              {order && onEdit && (
+              {order && onEdit && !readOnly && (
                 <button onClick={() => onEdit(orderId!)}
                   className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors mt-0.5">
                   <Pencil size={14} className="text-white" />
@@ -847,7 +854,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit }
         )}
 
         {/* ── Bottom action bar ── */}
-        {order && (
+        {order && !readOnly && (
           <div className="shrink-0 border-t border-gray-100 px-5 py-4">
             <div className="grid grid-cols-3 gap-3 mb-3">
               <button
