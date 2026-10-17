@@ -57,6 +57,15 @@ function getThisWeekRange(): [string, string] {
   return [toLocalDateStr(monday.getTime() / 1000), toLocalDateStr(sunday.getTime() / 1000)]
 }
 
+function fmtDate(dateStr: string) {
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function fmtDayName(dateStr: string) {
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'long' })
+}
+
 export default function ManagementSignInPage() {
   const { accountId } = useAuth()
   const { locations } = useLocations(accountId)
@@ -70,7 +79,6 @@ export default function ManagementSignInPage() {
     setLoading(true)
 
     const [weekStart] = getThisWeekRange()
-    // Get timestamp for start of this week
     const weekStartDate = new Date(weekStart + 'T00:00:00')
 
     const [eventsSnap, staffSnap] = await Promise.all([
@@ -101,7 +109,6 @@ export default function ManagementSignInPage() {
 
   // Pair in/out events → records
   const records = useMemo<PairedRecord[]>(() => {
-    // Group by employeeId + date
     const grouped: Record<string, { ins: SignInEvent[]; outs: SignInEvent[] }> = {}
 
     events.forEach(ev => {
@@ -155,83 +162,110 @@ export default function ManagementSignInPage() {
 
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* Header */}
-      <div className="px-4 pt-5 pb-1 flex items-start justify-between flex-shrink-0">
-        <h1 className="text-2xl font-bold text-gray-900">Sign In Records</h1>
-        <button onClick={load} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-          <RefreshCw size={18} className="text-gray-400" />
+      {/* Refresh button — top right */}
+      <div className="flex justify-end px-4 pt-4 flex-shrink-0">
+        <button
+          onClick={load}
+          className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-50 transition-colors"
+        >
+          <RefreshCw size={16} className="text-gray-500" />
         </button>
       </div>
 
-      {/* Location filter */}
-      <div className="px-4 py-2 flex-shrink-0">
+      {/* Title */}
+      <div className="px-4 pb-2 flex-shrink-0">
+        <h1 className="text-3xl font-bold text-gray-900">Sign In Records</h1>
+      </div>
+
+      {/* Location filter — centred */}
+      <div className="px-4 pb-4 flex justify-center flex-shrink-0">
         <select
           value={selectedLocation}
           onChange={e => setSelectedLocation(e.target.value)}
-          className="text-sm font-semibold text-blue-600 bg-transparent border-none outline-none cursor-pointer"
+          className="text-base font-semibold text-blue-500 bg-transparent border-none outline-none cursor-pointer"
         >
           <option>All Locations</option>
           {locations.map(l => <option key={l.id}>{l.name}</option>)}
         </select>
       </div>
 
-      {/* Table */}
-      <div className="flex-1 overflow-auto">
+      {/* Content */}
+      <div className="flex-1 overflow-auto px-2">
         {loading ? (
           <div className="flex items-center justify-center h-32">
-            <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
           <p className="text-center text-gray-400 text-sm mt-12">No sign-in records this week</p>
         ) : (
-          <div className="min-w-max">
-            {/* This Week header */}
-            <div className="bg-gray-200 px-4 py-2 text-center">
-              <span className="text-sm font-bold text-gray-700">This Week</span>
+          /* Card wrapping the whole table */
+          <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+            {/* "This Week" section header */}
+            <div className="bg-gray-100 px-4 py-2 text-center border-b border-gray-200">
+              <span className="text-sm font-semibold text-gray-700">This Week</span>
             </div>
 
-            {/* Column headers */}
-            <div className="flex bg-gray-600 text-white text-xs font-semibold sticky top-0">
-              <div className="w-28 px-3 py-2">Name</div>
-              <div className="w-24 px-2 py-2 text-center">Sign In</div>
-              <div className="w-24 px-2 py-2 text-center">Sign Out</div>
-              <div className="w-16 px-2 py-2 text-right">Pay</div>
-              <div className="w-28 px-2 py-2 text-right">Location</div>
+            {/* Horizontally scrollable table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm" style={{ minWidth: 420 }}>
+                {/* Column headers */}
+                <thead>
+                  <tr className="bg-gray-500 text-white">
+                    <th className="px-3 py-2 text-left font-semibold w-24">Name</th>
+                    <th className="px-2 py-2 text-center font-semibold w-20 leading-tight">
+                      Sign<br />in Time
+                    </th>
+                    <th className="px-2 py-2 text-center font-semibold w-20 leading-tight">
+                      Sign out<br />Time
+                    </th>
+                    <th className="px-2 py-2 text-right font-semibold w-16">Pay</th>
+                    <th className="px-2 py-2 text-right font-semibold w-20">Sign-in Loc</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {grouped.map(([date, rows]) => (
+                    <>
+                      {/* Date separator */}
+                      <tr key={`date-${date}`} className="bg-gray-100 border-t border-gray-200">
+                        <td colSpan={2} className="px-3 py-2 font-bold text-gray-800 text-sm">
+                          {fmtDate(date)}
+                        </td>
+                        <td colSpan={3} className="px-2 py-2 font-bold text-gray-800 text-sm text-right">
+                          {fmtDayName(date)}
+                        </td>
+                      </tr>
+
+                      {/* Record rows */}
+                      {rows.map((r, i) => (
+                        <tr key={`${date}-${i}`} className="border-t border-gray-100 hover:bg-gray-50">
+                          <td className="px-3 py-2.5 text-gray-900 font-medium truncate max-w-[96px]">
+                            {r.employeeName.split(' ')[0]}
+                          </td>
+                          <td className="px-2 py-2.5 text-gray-600 text-center">
+                            {r.signInTs ? fmtTime(r.signInTs) : ''}
+                          </td>
+                          <td className="px-2 py-2.5 text-gray-600 text-center">
+                            {r.signOutTs ? fmtTime(r.signOutTs) : ''}
+                          </td>
+                          <td className="px-2 py-2.5 text-gray-900 font-medium text-right">
+                            ${r.pay}
+                          </td>
+                          <td className="px-2 py-2.5 text-gray-500 text-right truncate max-w-[80px]">
+                            {r.location}
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  ))}
+                </tbody>
+              </table>
             </div>
-
-            {grouped.map(([date, rows]) => (
-              <div key={date}>
-                {/* Date row */}
-                <div className="flex px-3 py-2 bg-gray-50 border-b border-gray-200">
-                  <span className="text-sm font-bold text-gray-700 mr-4">
-                    {new Date(date + 'T00:00:00').toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                  </span>
-                  <span className="text-sm font-bold text-gray-700">
-                    {new Date(date + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'long' })}
-                  </span>
-                </div>
-
-                {/* Record rows */}
-                {rows.map((r, i) => (
-                  <div key={i} className="flex border-b border-gray-100 hover:bg-gray-50">
-                    <div className="w-28 px-3 py-2.5 text-sm text-gray-900 truncate">{r.employeeName.split(' ')[0]}</div>
-                    <div className="w-24 px-2 py-2.5 text-sm text-gray-600 text-center">
-                      {r.signInTs ? fmtTime(r.signInTs) : '—'}
-                    </div>
-                    <div className="w-24 px-2 py-2.5 text-sm text-gray-600 text-center">
-                      {r.signOutTs ? fmtTime(r.signOutTs) : '—'}
-                    </div>
-                    <div className="w-16 px-2 py-2.5 text-sm font-medium text-right">
-                      {r.pay > 0 ? `$${r.pay}` : <span className="text-gray-300">$0</span>}
-                    </div>
-                    <div className="w-28 px-2 py-2.5 text-sm text-gray-500 text-right truncate">{r.location}</div>
-                  </div>
-                ))}
-              </div>
-            ))}
           </div>
         )}
       </div>
+
+      {/* Bottom padding for nav bar */}
+      <div className="h-2 flex-shrink-0" />
     </div>
   )
 }
