@@ -10,6 +10,10 @@ import QuickItemsPage from './pages/QuickItemsPage'
 import StaffPinPage from './pages/StaffPinPage'
 import OnboardingPage from './pages/OnboardingPage'
 import LocationSetupPage from './pages/LocationSetupPage'
+import DeviceSetupPage, { DEVICE_MODE_KEY } from './pages/DeviceSetupPage'
+import DashboardPage from './pages/DashboardPage'
+import ManagementMorePage from './pages/ManagementMorePage'
+import ManagementLayout from './layouts/ManagementLayout'
 import POSLayout from './layouts/POSLayout'
 import POSPage from './pages/POSPage'
 import OrdersPage from './pages/OrdersPage'
@@ -59,8 +63,24 @@ function AppRoutes() {
       <Route path="/" element={
         !user ? <Navigate to="/login" /> :
         !onboarded ? <Navigate to="/onboarding" /> :
-        <Navigate to="/pos" />
+        (() => {
+          const mode = localStorage.getItem(DEVICE_MODE_KEY)
+          if (!mode) return <Navigate to="/device-setup" />
+          if (mode === 'management') return <Navigate to="/dashboard" />
+          return <Navigate to="/pos" />
+        })()
       } />
+
+      <Route path="/device-setup" element={
+        !user ? <Navigate to="/login" /> :
+        !onboarded ? <Navigate to="/onboarding" /> :
+        <DeviceSetupPage />
+      } />
+
+      <Route element={user && onboarded ? <ManagementLayout /> : <Navigate to="/" />}>
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/mgmt-more" element={<ManagementMorePage />} />
+      </Route>
 
       <Route element={user && onboarded ? <POSLayout /> : <Navigate to="/" />}>
         <Route path="/pos"               element={<POSPage />} />
