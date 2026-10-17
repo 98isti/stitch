@@ -3,17 +3,18 @@ import { getAuth, signOut } from 'firebase/auth'
 import { DEVICE_MODE_KEY } from './DeviceSetupPage'
 import {
   Users, Settings, Calendar, Tag, UserCircle,
-  Ticket, CreditCard, LogOut, RefreshCw
+  Ticket, CreditCard, LogOut, RefreshCw, TrendingUp
 } from 'lucide-react'
 
 const ITEMS = [
-  { label: 'Staff',          icon: Users,       path: '/staff' },
-  { label: 'Pick-Up Calendar', icon: Calendar,  path: '/mgmt-pickup-calendar' },
-  { label: 'Customers',      icon: UserCircle,  path: '/customers' },
-  { label: 'Vouchers',       icon: Ticket,      path: '/vouchers' },
-  { label: 'Categories',     icon: Tag,         path: '/categories' },
-  { label: 'Settings',       icon: Settings,    path: '/settings' },
-  { label: 'Billing',        icon: CreditCard,  path: '/billing' },
+  { label: 'Staff',             icon: Users,       path: '/staff' },
+  { label: 'Team Performance',  icon: TrendingUp,  path: '/mgmt-team-performance' },
+  { label: 'Pick-Up Calendar',  icon: Calendar,    path: '/mgmt-pickup-calendar' },
+  { label: 'Customers',         icon: UserCircle,  path: '/customers' },
+  { label: 'Vouchers',          icon: Ticket,      path: '/vouchers' },
+  { label: 'Categories',        icon: Tag,         path: '/categories' },
+  { label: 'Settings',          icon: Settings,    path: '/settings' },
+  { label: 'Billing',           icon: CreditCard,  path: '/billing' },
 ]
 
 export default function ManagementMorePage() {
