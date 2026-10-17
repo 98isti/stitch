@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext'
 import { usePrinter } from '../context/PrinterContext'
 import { useLocations } from '../hooks/useLocations'
 import { useAccountProfile } from '../hooks/useAccountProfile'
-import { useIsManagement } from '../context/ManagementContext'
 import { useNavigate } from 'react-router-dom'
 import { Plus, X, RefreshCw, Printer } from 'lucide-react'
 

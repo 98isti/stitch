@@ -3,7 +3,6 @@ import { doc, getDoc, getDocs, updateDoc, addDoc, deleteDoc, collection, query, 
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { useIsManagement } from '../context/ManagementContext'
 import { ChevronLeft, Save, Check, Plus, Pencil, Trash2, RefreshCw } from 'lucide-react'
 import SettingsPinGate from '../components/SettingsPinGate'
 import PrinterSettings from '../components/PrinterSettings'
