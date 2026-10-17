@@ -53,7 +53,7 @@ export default function SettingsPinGate({ accountId, onUnlocked }: Props) {
   return (
     <div className="flex flex-col h-full bg-navy">
       <div className="px-4 pt-4">
-        <button onClick={() => navigate('/pos')} className="flex items-center gap-1 text-white/60 hover:text-white text-sm transition-colors">
+        <button onClick={() => navigate(localStorage.getItem('stitch_device_mode') === 'management' ? '/mgmt-more' : '/pos')} className="flex items-center gap-1 text-white/60 hover:text-white text-sm transition-colors">
           <ChevronLeft size={18} /> Back
         </button>
       </div>
