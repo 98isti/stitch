@@ -8,7 +8,7 @@ import { signOut } from 'firebase/auth'
 import { auth } from '../lib/firebase'
 import ScreenSaver from '../components/ScreenSaver'
 
-const IDLE_TIMEOUT = 1 * 60 * 1000 // 1 min (temp for testing — change back to 5 * 60 * 1000)
+const IDLE_TIMEOUT = 10 * 60 * 1000 // 10 minutes
 
 const MORE_GROUPS = [
   {
