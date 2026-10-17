@@ -4,7 +4,7 @@ import { collection, getDocs, addDoc, serverTimestamp, query } from 'firebase/fi
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
-import { Delete, ChevronRight, Plus } from 'lucide-react'
+import { Delete, ChevronRight, Plus, BarChart2 } from 'lucide-react'
 
 const STATES = ['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA']
 
@@ -164,6 +164,19 @@ export default function LocationSetupPage() {
             className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-white/30 hover:border-white/50 text-white/70 hover:text-white px-5 py-4 rounded-2xl transition-colors">
             <Plus size={18} />
             <span className="font-medium">Set up a new location</span>
+          </button>
+
+          {/* Management device option */}
+          <button onClick={() => {
+            localStorage.setItem('stitch_device_mode', 'management')
+            navigate('/dashboard', { replace: true })
+          }}
+            className="w-full flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/15 text-white/60 hover:text-white px-5 py-4 rounded-2xl transition-colors mt-2">
+            <BarChart2 size={18} className="shrink-0" />
+            <div className="text-left">
+              <p className="font-medium text-sm">Management Device</p>
+              <p className="text-xs text-white/40">Sales, reports and team overview</p>
+            </div>
           </button>
         </div>
       </div>
