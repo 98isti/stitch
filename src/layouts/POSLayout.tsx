@@ -128,7 +128,7 @@ export default function POSLayout() {
           {showMore && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowMore(false)} />
-              <div className="absolute bottom-full right-0 z-50 mb-2 mr-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden w-80">
+              <div className="absolute bottom-full right-0 z-50 mb-2 mr-2 bg-gray-50 rounded-2xl shadow-2xl border border-gray-300 overflow-hidden w-80">
                 {MORE_GROUPS.map((group, gi) => (
                   <div key={group.label} className={gi > 0 ? 'border-t border-gray-100' : ''}>
                     <p className="px-4 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">{group.label}</p>
