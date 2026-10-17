@@ -8,7 +8,7 @@ import {
 
 const ITEMS = [
   { label: 'Staff',          icon: Users,       path: '/staff' },
-  { label: 'Pick-Up Calendar', icon: Calendar,  path: '/pickup' },
+  { label: 'Pick-Up Calendar', icon: Calendar,  path: '/mgmt-pickup-calendar' },
   { label: 'Customers',      icon: UserCircle,  path: '/customers' },
   { label: 'Vouchers',       icon: Ticket,      path: '/vouchers' },
   { label: 'Categories',     icon: Tag,         path: '/categories' },
