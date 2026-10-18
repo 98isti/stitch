@@ -24,6 +24,7 @@ interface OrderDoc {
   createdAt?: { seconds: number } | null
   completedBy?: string
   orderNote?: string
+  servedBy?: string
   barcode?: string
   pickupDate: string
   redoReason?: string
