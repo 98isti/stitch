@@ -517,7 +517,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
                 {order ? formatDateTime(order.orderDate) : '—'}
                 {order?.createdAt && <span> at {formatTime(order.createdAt)}</span>}
               </p>
-              {staff && <p className="text-white/50 text-xs mt-0.5">Served by: {staff.name}</p>}
+              {(order?.servedBy || staff) && <p className="text-white/50 text-xs mt-0.5">Served by: {order?.servedBy || staff?.name}</p>}
             </div>
             {/* RIGHT — status (with completedBy below) + edit button */}
             <div className="flex items-start gap-2 shrink-0">
