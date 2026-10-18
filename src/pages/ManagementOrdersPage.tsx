@@ -139,7 +139,7 @@ export default function ManagementOrdersPage() {
   const rows = useMemo<Row[]>(() => {
     const filteredOrders = selectedLocation === 'All Locations'
       ? orders
-      : orders.filter(o => o.location === selectedLocation)
+      : orders.filter(o => o.location === selectedLocation || (o as any).locationName === selectedLocation)
 
     const filteredDrawer = selectedLocation === 'All Locations'
       ? drawerLogs
