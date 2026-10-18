@@ -256,7 +256,7 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
         let builder = StarXpandCommand.StarXpandCommandBuilder()
 
         // Leading blank label (dry cleaning only)
-        if isDryCleaning { builder.addDocument(makeBlank(finalCut: false)) }
+        // No leading blank — trailing blank only (per Oct 2026 update)
 
         for i in 1...total {
             let name = String(labelNames[i - 1].prefix(25)).uppercased()
