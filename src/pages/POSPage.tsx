@@ -849,9 +849,9 @@ export default function POSPage() {
                           }])
                         }}
                         className="shrink-0 flex flex-col items-center justify-center bg-navy/5 border border-navy/20 rounded-xl px-3 py-2 hover:bg-navy hover:text-white hover:border-navy active:scale-95 transition-all">
-                        <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wide whitespace-nowrap mb-0.5">{qi.category}</span>
                         <span className="text-xs font-semibold whitespace-nowrap text-navy group-hover:text-white">{qi.name}</span>
-                        <span className="text-xs text-gray-500 mt-0.5">${qi.price.toFixed(2)}</span>
+                        <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wide whitespace-nowrap">{qi.category}</span>
+                        <span className="text-xs text-gray-500">${qi.price.toFixed(2)}</span>
                       </button>
                     ))}
                   </div>
