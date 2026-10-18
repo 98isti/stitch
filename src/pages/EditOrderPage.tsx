@@ -23,7 +23,7 @@ interface OrderDoc {
   status: string
 }
 
-function isoDate(d: Date) { return d.toISOString().split('T')[0] }
+function isoDate(d: Date) { return d.toLocaleDateString('en-CA') }
 
 export default function EditOrderPage() {
   const { id } = useParams<{ id: string }>()

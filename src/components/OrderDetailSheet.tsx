@@ -283,7 +283,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
     setShowRedoSheet(false)
     setSaving(true)
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const today = new Date().toLocaleDateString('en-CA')
       await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), {
         status: 'Redo',
         redoReason: reason,
@@ -421,7 +421,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
     const paidAmount = Math.round((cash + card) * 100) / 100
     const isPaid = stillDue === 0
     const method = cash > 0 && card > 0 ? 'Split' : cash > 0 ? 'Cash' : 'Card'
-    const paidDate = new Date().toISOString().split('T')[0]
+    const paidDate = new Date().toLocaleDateString('en-CA')
     await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId!), {
       isPaid, paidAmount, stillDueAmount: stillDue,
       paymentMethod: method, paidAt: serverTimestamp(), paidDate,
@@ -450,7 +450,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
     setSaving(true)
     setShowPaymentPrompt(false)
     try {
-      const paidDate = new Date().toISOString().split('T')[0]
+      const paidDate = new Date().toLocaleDateString('en-CA')
       await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), {
         isPaid: true, paidAmount: order.orderAmount, stillDueAmount: 0,
         paymentMethod: method, paidAt: serverTimestamp(), paidDate,

@@ -8,13 +8,13 @@ interface Props {
 function addDays(dateStr: string, days: number): string {
   const d = new Date(dateStr)
   d.setDate(d.getDate() + days)
-  return d.toISOString().split('T')[0]
+  return d.toLocaleDateString('en-CA')
 }
 
 export default function RedoSheet({ onConfirm, onCancel }: Props) {
   const [reason, setReason] = useState('')
   const [pickupDate, setPickupDate] = useState(() => {
-    const today = new Date().toISOString().split('T')[0]
+    const today = new Date().toLocaleDateString('en-CA')
     return addDays(today, 2)
   })
 
