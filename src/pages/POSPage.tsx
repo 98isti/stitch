@@ -45,7 +45,7 @@ function defaultPickup() {
 }
 
 function isoDate(d: Date) {
-  return d.toISOString().split('T')[0]
+  return d.toLocaleDateString('en-CA') // YYYY-MM-DD in local timezone (not UTC)
 }
 
 // ── Save Order ────────────────────────────────────────────────────────────────
@@ -542,7 +542,7 @@ export default function POSPage() {
       await printer.printLabelsForOrder({
         orderNumberString: params.orderNumber,
         customerName,
-        pickupDate: pickupDate.toISOString().split('T')[0],
+        pickupDate: pickupDate.toLocaleDateString('en-CA'),
         items: JSON.stringify(items.map(i => ({
           id: i.id, garmentId: i.garmentId, category: i.category,
           name: i.name, quantity: i.quantity, unitPrice: i.unitPrice, note: i.note,
@@ -600,7 +600,7 @@ export default function POSPage() {
 
   async function handleTodaysDue() {
     if (!accountId || !activeLocation) return
-    const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+    const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD local time
     try {
       const snap = await getDocs(query(
         collection(db, 'accounts', accountId, 'orders'),
