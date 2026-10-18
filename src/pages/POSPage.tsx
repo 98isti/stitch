@@ -268,24 +268,29 @@ function CustomerSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/30" />
-      <div className="relative z-10 bg-white rounded-2xl w-full max-w-sm shadow-2xl max-h-[80vh] flex flex-col overflow-hidden"
+      <div className="relative z-10 bg-white rounded-2xl w-full max-w-sm shadow-2xl max-h-[70vh] flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100">
-          <h3 className="font-bold text-gray-900 text-base">{addMode ? 'New Customer' : 'Customer Lookup'}</h3>
-          {addMode && <button onClick={() => setAddMode(false)} className="text-sm text-navy font-medium">← Back</button>}
-        </div>
-
-        {!addMode ? (
-          <>
-            <div className="px-4 mb-3">
+        {/* Header + search bar — always visible, never scrolls */}
+        <div className="flex-shrink-0 border-b border-gray-100">
+          <div className="flex items-center justify-between px-4 py-3.5">
+            <h3 className="font-bold text-gray-900 text-base">{addMode ? 'New Customer' : 'Customer Lookup'}</h3>
+            {addMode && <button onClick={() => setAddMode(false)} className="text-sm text-navy font-medium">← Back</button>}
+          </div>
+          {!addMode && (
+            <div className="px-4 pb-3">
               <input ref={inputRef} value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search by phone number…"
                 inputMode="tel"
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-navy" />
             </div>
-            <div className="flex-1 overflow-y-auto px-4 space-y-1">
+          )}
+        </div>
+
+        {!addMode ? (
+          <>
+            <div className="flex-1 overflow-y-auto px-4 pt-2 space-y-1">
               {searching && <p className="text-center text-gray-400 text-sm py-4">Searching…</p>}
               {!searching && results.map(c => (
                 <button key={c.id}
