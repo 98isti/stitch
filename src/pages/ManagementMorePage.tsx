@@ -17,7 +17,6 @@ const ITEMS = [
   { label: 'Pick-Up Calendar',  icon: Calendar,     path: '/mgmt-pickup-calendar' },
   { label: 'Customers',         icon: UserCircle,  path: '/customers' },
   { label: 'Vouchers',          icon: Ticket,      path: '/vouchers' },
-  { label: 'Categories',        icon: Tag,         path: '/categories' },
   { label: 'Settings',          icon: Settings,    path: '/settings' },
   { label: 'Billing',           icon: CreditCard,  path: '/billing' },
 ]
