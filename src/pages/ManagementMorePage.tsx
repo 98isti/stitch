@@ -6,21 +6,41 @@ import {
   Ticket, CreditCard, LogOut, RefreshCw, TrendingUp, CalendarDays, UmbrellaOff, DollarSign, BarChart3
 } from 'lucide-react'
 
-const ITEMS = [
-  { label: 'Staff',             icon: Users,        path: '/staff' },
-  { label: 'Payroll',           icon: DollarSign,   path: '/mgmt-payroll' },
-  { label: 'Avg Sales',         icon: BarChart3,    path: '/mgmt-avg-sales' },
-  { label: 'Avg by Day',         icon: BarChart3,    path: '/mgmt-avg-by-day' },
-  { label: 'Monthly Averages',   icon: BarChart3,    path: '/mgmt-monthly-avg' },
-  { label: 'Team Performance',  icon: TrendingUp,   path: '/mgmt-team-performance' },
-  { label: 'Roster',            icon: CalendarDays, path: '/mgmt-roster' },
-  { label: 'Leave Requests',    icon: UmbrellaOff,  path: '/mgmt-leave' },
-  { label: 'OCR',               icon: BarChart3,    path: '/mgmt-ocr' },
-  { label: 'Pick-Up Calendar',  icon: Calendar,     path: '/mgmt-pickup-calendar' },
-  { label: 'Customers',         icon: UserCircle,  path: '/customers' },
-  { label: 'Vouchers',          icon: Ticket,      path: '/vouchers' },
-  { label: 'Settings',          icon: Settings,    path: '/settings' },
-  { label: 'Billing',           icon: CreditCard,  path: '/billing' },
+const SECTIONS = [
+  {
+    title: 'Team',
+    items: [
+      { label: 'Staff',            icon: Users,        path: '/staff' },
+      { label: 'Payroll',          icon: DollarSign,   path: '/mgmt-payroll' },
+      { label: 'Team Performance', icon: TrendingUp,   path: '/mgmt-team-performance' },
+      { label: 'Roster',           icon: CalendarDays, path: '/mgmt-roster' },
+      { label: 'Leave Requests',   icon: UmbrellaOff,  path: '/mgmt-leave' },
+    ],
+  },
+  {
+    title: 'Analytics',
+    items: [
+      { label: 'Avg Sales',        icon: BarChart3,    path: '/mgmt-avg-sales' },
+      { label: 'Avg by Day',       icon: BarChart3,    path: '/mgmt-avg-by-day' },
+      { label: 'Monthly Averages', icon: BarChart3,    path: '/mgmt-monthly-avg' },
+      { label: 'OCR',              icon: BarChart3,    path: '/mgmt-ocr' },
+    ],
+  },
+  {
+    title: 'Operations',
+    items: [
+      { label: 'Pick-Up Calendar', icon: Calendar,    path: '/mgmt-pickup-calendar' },
+      { label: 'Customers',        icon: UserCircle,  path: '/customers' },
+      { label: 'Vouchers',         icon: Ticket,      path: '/vouchers' },
+    ],
+  },
+  {
+    title: 'System',
+    items: [
+      { label: 'Settings',         icon: Settings,    path: '/settings' },
+      { label: 'Billing',          icon: CreditCard,  path: '/billing' },
+    ],
+  },
 ]
 
 export default function ManagementMorePage() {
@@ -28,7 +48,6 @@ export default function ManagementMorePage() {
 
   async function handleSignOut() {
     await signOut(getAuth())
-    // Keep device mode — just clear auth session
     navigate('/login', { replace: true })
   }
 
@@ -45,22 +64,30 @@ export default function ManagementMorePage() {
         <h1 className="text-2xl font-bold text-gray-900">More</h1>
       </div>
 
-      <div className="px-4 mt-4">
-        <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100 overflow-hidden">
-          {ITEMS.map(item => (
-            <button
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 transition-colors text-left"
-            >
-              <item.icon size={20} className="text-gray-500 flex-shrink-0" />
-              <span className="text-sm font-medium text-gray-900">{item.label}</span>
-            </button>
-          ))}
-        </div>
+      <div className="px-4 mt-4 space-y-6 pb-6">
+        {SECTIONS.map(section => (
+          <div key={section.title}>
+            {/* Section header */}
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2">
+              {section.title}
+            </p>
+            <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100 overflow-hidden">
+              {section.items.map(item => (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 transition-colors text-left"
+                >
+                  <item.icon size={20} className="text-gray-500 flex-shrink-0" />
+                  <span className="text-sm font-medium text-gray-900">{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
 
         {/* Sign out + reset */}
-        <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100 overflow-hidden mt-4">
+        <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100 overflow-hidden">
           <button
             onClick={handleSignOut}
             className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 transition-colors text-left"
