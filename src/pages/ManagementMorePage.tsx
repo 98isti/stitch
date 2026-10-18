@@ -14,6 +14,7 @@ const ITEMS = [
   { label: 'Team Performance',  icon: TrendingUp,   path: '/mgmt-team-performance' },
   { label: 'Roster',            icon: CalendarDays, path: '/mgmt-roster' },
   { label: 'Leave Requests',    icon: UmbrellaOff,  path: '/mgmt-leave' },
+  { label: 'OCR',               icon: BarChart3,    path: '/mgmt-ocr' },
   { label: 'Pick-Up Calendar',  icon: Calendar,     path: '/mgmt-pickup-calendar' },
   { label: 'Customers',         icon: UserCircle,  path: '/customers' },
   { label: 'Vouchers',          icon: Ticket,      path: '/vouchers' },

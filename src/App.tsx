@@ -43,6 +43,7 @@ import ManagementLeavePage from './pages/ManagementLeavePage'
 import ManagementPayrollPage from './pages/ManagementPayrollPage'
 import AvgSalesPage from './pages/AvgSalesPage'
 import AvgSalesByDayPage from './pages/AvgSalesByDayPage'
+import OCRPage from './pages/OCRPage'
 
 function AppRoutes() {
   const { user, loading, onboarded } = useAuth()
@@ -99,6 +100,7 @@ function AppRoutes() {
         <Route path="/mgmt-payroll" element={<ManagementPayrollPage />} />
         <Route path="/mgmt-avg-sales" element={<AvgSalesPage />} />
         <Route path="/mgmt-avg-by-day" element={<AvgSalesByDayPage />} />
+        <Route path="/mgmt-ocr" element={<OCRPage />} />
       </Route>
 
       <Route element={user && onboarded ? <POSLayout /> : <Navigate to="/" />}>
