@@ -21,7 +21,7 @@ export default function ManagementLayout() {
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       {/* Top bar — logo level with Dynamic Island on the left */}
-      <div className="bg-white flex-shrink-0 flex items-center px-5" style={{ paddingTop: '14px', paddingBottom: '6px', borderBottom: '1px solid #f0f0f0' }}>
+      <div className="bg-white flex-shrink-0 flex items-center justify-end px-5" style={{ paddingTop: '14px', paddingBottom: '6px', borderBottom: '1px solid #f0f0f0' }}>
         <img src="/stitch-logo.png" alt="Stitch" className="h-5 object-contain" />
       </div>
 
