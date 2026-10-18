@@ -41,6 +41,7 @@ import TeamPerformancePage from './pages/TeamPerformancePage'
 import RosterPage from './pages/RosterPage'
 import ManagementLeavePage from './pages/ManagementLeavePage'
 import ManagementPayrollPage from './pages/ManagementPayrollPage'
+import AvgSalesPage from './pages/AvgSalesPage'
 
 function AppRoutes() {
   const { user, loading, onboarded } = useAuth()
@@ -95,6 +96,7 @@ function AppRoutes() {
         <Route path="/mgmt-roster" element={<RosterPage />} />
         <Route path="/mgmt-leave" element={<ManagementLeavePage />} />
         <Route path="/mgmt-payroll" element={<ManagementPayrollPage />} />
+        <Route path="/mgmt-avg-sales" element={<AvgSalesPage />} />
       </Route>
 
       <Route element={user && onboarded ? <POSLayout /> : <Navigate to="/" />}>

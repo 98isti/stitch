@@ -3,12 +3,13 @@ import { getAuth, signOut } from 'firebase/auth'
 import { DEVICE_MODE_KEY } from './DeviceSetupPage'
 import {
   Users, Settings, Calendar, Tag, UserCircle,
-  Ticket, CreditCard, LogOut, RefreshCw, TrendingUp, CalendarDays, UmbrellaOff, DollarSign
+  Ticket, CreditCard, LogOut, RefreshCw, TrendingUp, CalendarDays, UmbrellaOff, DollarSign, BarChart3
 } from 'lucide-react'
 
 const ITEMS = [
   { label: 'Staff',             icon: Users,        path: '/staff' },
   { label: 'Payroll',           icon: DollarSign,   path: '/mgmt-payroll' },
+  { label: 'Avg Sales',         icon: BarChart3,    path: '/mgmt-avg-sales' },
   { label: 'Team Performance',  icon: TrendingUp,   path: '/mgmt-team-performance' },
   { label: 'Roster',            icon: CalendarDays, path: '/mgmt-roster' },
   { label: 'Leave Requests',    icon: UmbrellaOff,  path: '/mgmt-leave' },
