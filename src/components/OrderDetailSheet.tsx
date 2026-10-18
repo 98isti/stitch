@@ -299,7 +299,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
         customerName: order.customerName,
         pickupDate: newPickupDate,
         items: order.items,
-        shopType: order.shopType,
+        shopType: isDryCleaning ? 'dryCleaning' : 'alterations',
         isRedo: true,
         redoReason: reason,
       })
@@ -865,7 +865,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
                     customerName: order.customerName,
                     pickupDate: order.pickupDate ?? '',
                     items: order.items,
-                    shopType: order.shopType,
+                    shopType: isDryCleaning ? 'dryCleaning' : 'alterations',
                   })
                   if (!ok) {
                     const noImpact = !printer.impactPrinter
