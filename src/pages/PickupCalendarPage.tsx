@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
@@ -48,11 +48,11 @@ export default function PickupCalendarPage() {
   useEffect(() => {
     if (!accountId) return
     setLoading(true)
-    getDocs(query(
-      collection(db, 'accounts', accountId, 'orders'),
-      where('status', 'not-in', ['Picked Up', 'Cancelled'])
-    )).then(snap => {
-      setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Order)))
+    getDocs(collection(db, 'accounts', accountId, 'orders')).then(snap => {
+      const pending = snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as Order))
+        .filter(o => o.status !== 'Picked Up' && o.status !== 'Cancelled')
+      setOrders(pending)
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [accountId])
