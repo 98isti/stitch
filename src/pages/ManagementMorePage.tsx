@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { getAuth, signOut } from 'firebase/auth'
 import { DEVICE_MODE_KEY } from './DeviceSetupPage'
 import {
-  Users, Settings, Calendar, Tag, UserCircle,
+  Users, Settings, Calendar, UserCircle,
   Ticket, CreditCard, LogOut, RefreshCw, TrendingUp, CalendarDays, UmbrellaOff, DollarSign, BarChart3
 } from 'lucide-react'
 
