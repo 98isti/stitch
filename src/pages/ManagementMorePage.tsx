@@ -11,6 +11,7 @@ const ITEMS = [
   { label: 'Payroll',           icon: DollarSign,   path: '/mgmt-payroll' },
   { label: 'Avg Sales',         icon: BarChart3,    path: '/mgmt-avg-sales' },
   { label: 'Avg by Day',         icon: BarChart3,    path: '/mgmt-avg-by-day' },
+  { label: 'Monthly Averages',   icon: BarChart3,    path: '/mgmt-monthly-avg' },
   { label: 'Team Performance',  icon: TrendingUp,   path: '/mgmt-team-performance' },
   { label: 'Roster',            icon: CalendarDays, path: '/mgmt-roster' },
   { label: 'Leave Requests',    icon: UmbrellaOff,  path: '/mgmt-leave' },
