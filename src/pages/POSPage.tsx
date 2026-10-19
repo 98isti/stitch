@@ -104,6 +104,7 @@ async function saveOrder({
   overrideIsPaid?: boolean
   shopType?: string
   barcode?: string
+  servedBy?: string
 }): Promise<{ orderNumber: string; orderId: string; barcode: string }> {
   const counterRef = doc(db, 'accounts', accountId, 'orderCounters', locationId)
   const ordersRef = collection(db, 'accounts', accountId, 'orders')
@@ -149,6 +150,7 @@ async function saveOrder({
       completedBy: '',
       jobCompletedDate: null,
       createdAt: serverTimestamp(),
+      ...(servedBy ? { servedBy } : {}),
     })
   })
 
@@ -581,6 +583,7 @@ export default function POSPage() {
         discountAmount,
         paymentMethod: method,
         orderNote,
+        servedBy: staff?.name || undefined,
       })
       if (method !== 'Pay Later') {
         await writePayment(db, accountId, {
@@ -681,6 +684,7 @@ export default function POSPage() {
         overridePaidAmount: paidAmount,
         overrideStillDue: stillDue,
         overrideIsPaid: isPaid,
+        servedBy: staff?.name || undefined,
       })
       // Write separate payment records for cash and card portions
       if (cash > 0) {
