@@ -64,6 +64,7 @@ interface LocationSettings {
   dailyRent: number
   dailyWages: number
   dailyOther: number
+  googlePlaceId: string
   shopType: string
   orderPrefix: string
   sms: { senderName: string; template: string }
@@ -73,7 +74,7 @@ const BLANK_LOCATION: LocationSettings = {
   name: '', businessName: '', abn: '', businessEmail: '',
   shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '',
   state: 'NSW', postCode: '', country: 'Australia',
-    phone: '', dailyTarget: 1000, dailyRent: 0, dailyWages: 0, dailyOther: 0, shopType: '', orderPrefix: '',
+      phone: '', dailyTarget: 1000, dailyRent: 0, dailyWages: 0, dailyOther: 0, googlePlaceId: '', shopType: '', orderPrefix: '',
   sms: { senderName: '', template: DEFAULT_SMS_TEMPLATE },
 }
 
@@ -93,6 +94,8 @@ export default function SettingsPage() {
   // Account-level settings
   const [requirePinAfterLock, setRequirePinAfterLock] = useState(true)
   const [plan, setPlan] = useState('Trial')
+  const [googleApiKey, setGoogleApiKey] = useState('')
+  const [savingGoogleKey, setSavingGoogleKey] = useState(false)
   const [deviceMode, setDeviceMode] = useState<'terminal' | 'management'>(
     (localStorage.getItem('stitch_device_mode') as 'terminal' | 'management') || 'terminal'
   )
@@ -118,6 +121,7 @@ export default function SettingsPage() {
         const d = snap.data()
         setRequirePinAfterLock(d.requirePinAfterLock !== false)
         setPlan(d.plan ?? 'Trial')
+        setGoogleApiKey(d.googleApiKey ?? '')
       }
       setLoading(false)
     }).catch(() => setLoading(false))
@@ -147,6 +151,7 @@ export default function SettingsPage() {
         dailyRent:      d.dailyRent      ?? 0,
         dailyWages:     d.dailyWages     ?? 0,
         dailyOther:     d.dailyOther     ?? 0,
+        googlePlaceId:  d.googlePlaceId  ?? '',
         shopType:       d.shopType       ?? 'alterations',
         orderPrefix:    d.orderPrefix    ?? '',
         sms: {
@@ -245,6 +250,10 @@ export default function SettingsPage() {
         country:        locSettings.country,
         phone:          locSettings.phone,
         dailyTarget:    locSettings.dailyTarget,
+        dailyRent:      locSettings.dailyRent,
+        dailyWages:     locSettings.dailyWages,
+        dailyOther:     locSettings.dailyOther,
+        googlePlaceId:  locSettings.googlePlaceId,
         shopType:       locSettings.shopType,
         orderPrefix:    locSettings.orderPrefix,
         sms:            locSettings.sms,
@@ -463,6 +472,18 @@ export default function SettingsPage() {
                 ))}
               </Section>
 
+              {/* ── Google Reviews ── */}
+              <Section title="Google Reviews" subtitle={`For ${activeLocation?.name ?? 'this location'}`}>
+                <Field label="Google Place ID" note="Find this in Google Maps → share your business → copy link. The Place ID starts with ChIJ...">
+                  <input
+                    value={locSettings.googlePlaceId}
+                    onChange={e => setLocSettings(s => ({ ...s, googlePlaceId: e.target.value.trim() }))}
+                    placeholder="ChIJxxxxxxxxxxxxxxxx"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-navy"
+                  />
+                </Field>
+              </Section>
+
               {/* ── SMS Notifications (location-level) ── */}
               <Section title="SMS Notifications" subtitle={`For ${activeLocation?.name ?? 'this location'}`}>
                 <Field label="SMS Number"
@@ -581,6 +602,34 @@ export default function SettingsPage() {
                     </button>
                   ))}
                 </div>
+              </Section>
+
+              {/* ── Google API Key (account-level) ── */}
+              <Section title="Google API Key" subtitle="Used to fetch Google ratings. One key for all locations.">
+                <Field label="Google Places API Key">
+                  <div className="flex gap-2">
+                    <input
+                      value={googleApiKey}
+                      onChange={e => setGoogleApiKey(e.target.value.trim())}
+                      placeholder="AIzaSy..."
+                      type="password"
+                      className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-navy"
+                    />
+                    <button
+                      disabled={savingGoogleKey}
+                      onClick={async () => {
+                        if (!accountId) return
+                        setSavingGoogleKey(true)
+                        try {
+                          const { updateDoc, doc: fdoc } = await import('firebase/firestore')
+                          await updateDoc(fdoc(db, 'accounts', accountId), { googleApiKey })
+                        } finally { setSavingGoogleKey(false) }
+                      }}
+                      className="px-4 py-3 rounded-xl bg-navy text-white text-sm font-semibold disabled:opacity-40">
+                      {savingGoogleKey ? '…' : 'Save'}
+                    </button>
+                  </div>
+                </Field>
               </Section>
 
               {/* ── Plan & Billing ── */}
