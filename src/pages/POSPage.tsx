@@ -387,6 +387,27 @@ export default function POSPage() {
   const [pickerCategory, setPickerCategory] = useState<string | null>(null)
   const [longPressGarmentId, setLongPressGarmentId] = useState<string | null>(null)
   const [showSaleMenu, setShowSaleMenu] = useState(false)
+  const [showVoucherEntry, setShowVoucherEntry] = useState(false)
+  const [voucherInput, setVoucherInput] = useState('')
+  const [voucherLookupResult, setVoucherLookupResult] = useState<{ id: string; code: string; balance: number; customerName: string } | null | 'notfound'>('notfound')
+  const [voucherLooking, setVoucherLooking] = useState(false)
+
+  async function lookupVoucherByCode(code: string) {
+    if (!accountId || !code.trim()) return
+    setVoucherLooking(true)
+    try {
+      const snap = await getDocs(query(
+        collection(db, 'accounts', accountId, 'vouchers'),
+        where('code', '==', code.trim().toUpperCase()),
+      ))
+      if (snap.empty) { setVoucherLookupResult('notfound'); return }
+      const d = snap.docs[0].data() as any
+      const balance = d.balance ?? d.amount ?? 0
+      if (d.isRedeemed || balance <= 0) { setVoucherLookupResult('notfound'); return }
+      setVoucherLookupResult({ id: snap.docs[0].id, code: d.code, balance, customerName: d.customerName || '' })
+    } catch { setVoucherLookupResult('notfound') }
+    finally { setVoucherLooking(false) }
+  }
   const [showNoteSheet, setShowNoteSheet] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
 
@@ -1006,8 +1027,12 @@ export default function POSPage() {
                   🗑️ Clear Sale
                 </button>
                 <button onClick={() => { setShowSaleMenu(false); setShowNoteSheet(true) }}
-                  className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-gray-50 text-gray-600 text-sm font-medium transition-colors">
+                  className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-gray-50 text-gray-600 text-sm font-medium transition-colors border-b border-gray-50">
                   📝 Order Note{orderNote ? ' ✓' : ''}
+                </button>
+                <button onClick={() => { setShowSaleMenu(false); setVoucherInput(''); setVoucherLookupResult('notfound'); setShowVoucherEntry(true) }}
+                  className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-gray-50 text-gray-600 text-sm font-medium transition-colors">
+                  🎟️ Apply Voucher{appliedVoucher ? ' ✓' : ''}
                 </button>
               </div>
             </>
@@ -1042,6 +1067,54 @@ export default function POSPage() {
                     Done
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Voucher entry sheet */}
+          {showVoucherEntry && (
+            <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowVoucherEntry(false)}>
+              <div className="absolute inset-0 bg-black/30" />
+              <div className="relative z-10 bg-white rounded-t-3xl w-full max-w-sm pb-10 pt-4 shadow-2xl"
+                onClick={e => e.stopPropagation()}>
+                <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+                <h3 className="text-center font-bold text-gray-900 text-base mb-4 px-4">🎟️ Apply Voucher</h3>
+                <div className="px-6 mb-4 flex gap-2">
+                  <input
+                    value={voucherInput}
+                    onChange={e => { setVoucherInput(e.target.value.toUpperCase()); setVoucherLookupResult('notfound') }}
+                    placeholder="Enter voucher code"
+                    autoFocus
+                    className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono tracking-widest focus:outline-none focus:border-navy uppercase"
+                  />
+                  <button onClick={() => lookupVoucherByCode(voucherInput)}
+                    disabled={!voucherInput.trim() || voucherLooking}
+                    className="px-4 py-3 rounded-xl bg-navy text-white text-sm font-semibold disabled:opacity-40">
+                    {voucherLooking ? '…' : 'Find'}
+                  </button>
+                </div>
+                {voucherLookupResult && voucherLookupResult !== 'notfound' && (
+                  <div className="mx-6 mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                    <p className="text-sm font-semibold text-amber-900">{voucherLookupResult.customerName || 'Customer'}</p>
+                    <p className="text-2xl font-bold text-amber-700 mt-0.5">${voucherLookupResult.balance.toFixed(2)} available</p>
+                    <button
+                      onClick={() => { setAppliedVoucher(voucherLookupResult as any); setPendingVoucher(null); setShowVoucherEntry(false) }}
+                      className="w-full mt-3 py-3 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors">
+                      Apply to Sale
+                    </button>
+                  </div>
+                )}
+                {voucherInput.length >= 4 && voucherLookupResult === 'notfound' && !voucherLooking && (
+                  <p className="text-center text-sm text-gray-400 mb-4">No active voucher found for this code</p>
+                )}
+                {appliedVoucher && (
+                  <div className="px-6 mb-2">
+                    <button onClick={() => { setAppliedVoucher(null); setShowVoucherEntry(false) }}
+                      className="w-full py-3 rounded-xl border border-red-200 text-red-500 font-semibold text-sm">
+                      Remove Applied Voucher ({appliedVoucher.code})
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
