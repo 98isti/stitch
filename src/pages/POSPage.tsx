@@ -86,6 +86,7 @@ async function saveOrder({
   overrideStillDue,
   overrideIsPaid,
   barcode,
+  servedBy,
 }: {
   accountId: string
   locationId: string
