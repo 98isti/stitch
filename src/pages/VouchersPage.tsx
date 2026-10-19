@@ -92,7 +92,7 @@ export default function VouchersPage() {
   }
 
   async function handleIssue() {
-    if (!accountId || !form.amount) return
+    if (!accountId || !form.amount || !form.customerPhone.trim()) return
     setSaving(true)
     try {
       const issueDate = new Date().toISOString().slice(0, 10)
@@ -272,7 +272,7 @@ export default function VouchersPage() {
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-navy" />
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Customer Phone (optional)</label>
+                <label className="text-xs text-gray-500 mb-1 block">Customer Phone *</label>
                 <input type="tel" value={form.customerPhone} onChange={e => set('customerPhone', e.target.value)}
                   placeholder="04XX XXX XXX"
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-navy" />
@@ -286,7 +286,7 @@ export default function VouchersPage() {
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-navy" />
               </div>
 
-              <button onClick={handleIssue} disabled={!form.amount || saving}
+              <button onClick={handleIssue} disabled={!form.amount || !form.customerPhone.trim() || saving
                 className="w-full bg-navy text-white py-3.5 rounded-xl font-semibold text-sm disabled:opacity-40 hover:bg-navy/90 transition-colors">
                 {saving ? 'Issuing…' : 'Issue & Print Voucher'}
               </button>
