@@ -597,10 +597,11 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
         // ── Header: business details ──────────────────────────────────────
         p.styleAlignment(.center)
          .styleBold(true)
+         .styleMagnification(.init(width: 2, height: 2))
          .actionPrintText("\(businessName)\n")
+         .styleMagnification(.init(width: 1, height: 1))
          .styleBold(false)
 
-        p.styleAlignment(.left)
         if !locationName.isEmpty    { p.actionPrintText("\(businessName) - \(locationName)\n") }
         if !locationAddress.isEmpty { p.actionPrintText("\(locationAddress)\n") }
         if !locationPhone.isEmpty   { p.actionPrintText("Phone: \(locationPhone)\n") }
@@ -651,7 +652,14 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
         // ── Footer ────────────────────────────────────────────────────────
         p.actionPrintText("----------------------------------------\n")
          .styleAlignment(.center)
-         .actionPrintText("Redeem this voucher at any \(businessName)\nlocation before the expiry date.\nThank you!\n")
+         .actionPrintText("Redeem this voucher at any\n")
+         .actionPrintText("\(businessName)\n")
+         .actionPrintText("location before the expiry date.\n")
+         .actionPrintText("\n")
+         .actionPrintText("Please visit our website for\n")
+         .actionPrintText("terms and conditions.\n")
+         .actionPrintText("\n")
+         .actionPrintText("Thank you!\n")
          .actionFeedLine(3)
          .actionCut(.partial)
 
@@ -784,6 +792,13 @@ public class StarPrinterPlugin: CAPPlugin, CAPBridgedPlugin, StarDeviceDiscovery
          .actionPrintText("\(padRow("Subtotal", fmt(subtotal)))\n")
 
         if discount > 0 { p.actionPrintText("\(padRow("Discount", "-\(fmt(discount))"))\n") }
+
+        let voucherAmt  = dbl(d, "voucherDeduction")
+        let voucherCode = str(d, "voucherCode")
+        if voucherAmt > 0 {
+            let label = voucherCode.isEmpty ? "Voucher" : "Voucher (\(voucherCode))"
+            p.actionPrintText("\(padRow(label, "-\(fmt(voucherAmt))"))\n")
+        }
 
         p.styleBold(true)
          .actionPrintText("\(padRow("Total (incl 10% GST)", fmt(total)))\n")

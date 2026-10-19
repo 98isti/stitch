@@ -544,7 +544,8 @@ export default function POSPage() {
 
   async function autoPrintReceipt(params: {
     orderNumber: string; items: any[]; subtotal: number; total: number;
-    discount?: number; paidAmount: number; stillDue: number; method: string; createdAt: Date; barcode?: string;
+    discount?: number; voucherCode?: string; voucherDeduction?: number;
+    paidAmount: number; stillDue: number; method: string; createdAt: Date; barcode?: string;
   }) {
     if (printer.status !== 'connected' || !printer.thermalPrinter) return
     try {
@@ -571,6 +572,8 @@ export default function POSPage() {
         items: params.items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, unitPrice: i.unitPrice + (i.extras ?? []).reduce((s: number, e: any) => s + e.price, 0), note: i.note, extras: i.extras ?? [], components: i.components ?? [] })),
         subtotal: params.subtotal,
         discount: (params.discount ?? 0) > 0 ? params.discount : undefined,
+        voucherCode: params.voucherCode,
+        voucherDeduction: (params.voucherDeduction ?? 0) > 0 ? params.voucherDeduction : undefined,
         total: params.total,
         paidAmount: params.paidAmount,
         stillDue: params.stillDue,
@@ -645,7 +648,7 @@ export default function POSPage() {
         })
       }
       setSuccess({ orderNumber, total, method })
-      autoPrintReceipt({ orderNumber, items, subtotal: rawTotal, discount: discountAmount > 0 ? discountAmount : undefined, total, paidAmount: method !== 'Pay Later' ? total : 0, stillDue: method !== 'Pay Later' ? 0 : total, method, createdAt: new Date(), barcode })
+      autoPrintReceipt({ orderNumber, items, subtotal: rawTotal, discount: discountAmount > 0 ? discountAmount : undefined, voucherCode: appliedVoucher?.code, voucherDeduction: voucherDeduction > 0 ? voucherDeduction : undefined, total, paidAmount: method !== 'Pay Later' ? total : 0, stillDue: method !== 'Pay Later' ? 0 : total, method, createdAt: new Date(), barcode })
       clearSale()
     } catch (e) {
       console.error(e)
@@ -760,7 +763,7 @@ export default function POSPage() {
         })
       }
       setSuccess({ orderNumber, total: paidAmount, method })
-      autoPrintReceipt({ orderNumber, items, subtotal: rawTotal, discount: discountAmount > 0 ? discountAmount : undefined, total, paidAmount, stillDue, method, createdAt: new Date(), barcode })
+      autoPrintReceipt({ orderNumber, items, subtotal: rawTotal, discount: discountAmount > 0 ? discountAmount : undefined, voucherCode: appliedVoucher?.code, voucherDeduction: voucherDeduction > 0 ? voucherDeduction : undefined, total, paidAmount, stillDue, method, createdAt: new Date(), barcode })
       clearSale()
     } catch (e) {
       console.error(e)

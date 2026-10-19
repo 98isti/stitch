@@ -16,6 +16,8 @@ interface OrderItem {
 }
 
 interface OrderDoc {
+  voucherCode?: string
+  voucherDeduction?: number
   id: string
   orderNumberString: string
   customerName: string
@@ -693,6 +695,18 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
                           <span>Subtotal</span>
                           <span>${(order.subTotalAmount ?? order.orderAmount).toFixed(2)}</span>
                         </div>
+                        {order.discountApplied > 0 && (
+                          <div className="flex items-baseline gap-3 text-sm text-red-500 mb-1">
+                            <span>Discount</span>
+                            <span>-${order.discountApplied.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {order.voucherDeduction && order.voucherDeduction > 0 && (
+                          <div className="flex items-baseline gap-3 text-sm text-amber-600 mb-1">
+                            <span>🎟️ Voucher {order.voucherCode ? `(${order.voucherCode})` : ''}</span>
+                            <span>-${order.voucherDeduction.toFixed(2)}</span>
+                          </div>
+                        )}
                         <div className="w-full border-t border-dashed border-gray-200 my-1.5" />
                         <div className="flex items-baseline gap-3 font-bold text-gray-900 text-base">
                           <span>Total</span>
