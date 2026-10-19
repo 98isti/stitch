@@ -439,7 +439,7 @@ export default function SettingsPage() {
               </Section>
 
               {/* ── Monthly Expenses ── */}
-              <Section title="Monthly Expenses" subtitle="Enter monthly amounts — saved as daily averages (÷ 30) for OCR reporting">
+              <Section title="Monthly Expenses" subtitle={`For ${activeLocation?.name ?? 'this location'}`}>
                 {[
                   { label: 'Monthly Rent ($)',            key: 'dailyRent'  as const },
                   { label: 'Monthly Wages ($)',           key: 'dailyWages' as const },
