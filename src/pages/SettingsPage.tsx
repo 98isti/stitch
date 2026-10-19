@@ -61,6 +61,9 @@ interface LocationSettings {
   country: string
   phone: string
   dailyTarget: number
+  dailyRent: number
+  dailyWages: number
+  dailyOther: number
   shopType: string
   orderPrefix: string
   sms: { senderName: string; template: string }
@@ -70,7 +73,7 @@ const BLANK_LOCATION: LocationSettings = {
   name: '', businessName: '', abn: '', businessEmail: '',
   shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '',
   state: 'NSW', postCode: '', country: 'Australia',
-  phone: '', dailyTarget: 1000, shopType: '', orderPrefix: '',
+    phone: '', dailyTarget: 1000, dailyRent: 0, dailyWages: 0, dailyOther: 0, shopType: '', orderPrefix: '',
   sms: { senderName: '', template: DEFAULT_SMS_TEMPLATE },
 }
 
@@ -141,6 +144,9 @@ export default function SettingsPage() {
         country:        d.country        ?? 'Australia',
         phone:          d.phone          ?? '',
         dailyTarget:    d.dailyTarget    ?? 1000,
+        dailyRent:      d.dailyRent      ?? 0,
+        dailyWages:     d.dailyWages     ?? 0,
+        dailyOther:     d.dailyOther     ?? 0,
         shopType:       d.shopType       ?? 'alterations',
         orderPrefix:    d.orderPrefix    ?? '',
         sms: {
@@ -430,6 +436,31 @@ export default function SettingsPage() {
                       className="flex-1 text-sm focus:outline-none bg-transparent" />
                   </div>
                 </Field>
+              </Section>
+
+              {/* ── Monthly Expenses ── */}
+              <Section title="Monthly Expenses" subtitle="Enter monthly amounts — saved as daily averages (÷ 30) for OCR reporting">
+                {[
+                  { label: 'Monthly Rent ($)',            key: 'dailyRent'  as const },
+                  { label: 'Monthly Wages ($)',           key: 'dailyWages' as const },
+                  { label: 'Monthly Other Expenses ($)',  key: 'dailyOther' as const },
+                ].map(({ label, key }) => (
+                  <Field key={key} label={label}>
+                    <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-3 focus-within:border-navy">
+                      <span className="text-gray-400 font-medium">$</span>
+                      <input
+                        type="number"
+                        value={locSettings[key] ? Math.round(locSettings[key] * 30) : ''}
+                        placeholder="0"
+                        onChange={e => {
+                          const monthly = parseFloat(e.target.value) || 0
+                          setLocSettings(s => ({ ...s, [key]: Math.round((monthly / 30) * 100) / 100 }))
+                        }}
+                        className="flex-1 text-sm focus:outline-none bg-transparent"
+                      />
+                    </div>
+                  </Field>
+                ))}
               </Section>
 
               {/* ── SMS Notifications (location-level) ── */}
