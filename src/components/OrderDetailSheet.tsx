@@ -510,11 +510,11 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
             {/* LEFT — all info */}
             <div className="flex-1 min-w-0 pr-4">
               <p className="text-navy-light text-xs font-medium mb-0.5">Order #</p>
-              <p className="text-white text-xl font-bold leading-tight">
+              <p className="text-white text-xl font-bold leading-tight whitespace-nowrap">
                 {order?.orderNumberString ?? '—'}
-                {order?.location && <span className="font-normal text-white/60 text-base ml-2">{order.location}</span>}
               </p>
-              <p className="text-white/50 text-xs mt-1">
+              {order?.location && <p className="text-white/60 text-xs font-medium mt-0.5">{order.location}</p>}
+              <p className="text-white/50 text-xs mt-1 whitespace-nowrap">
                 {order ? formatDateTime(order.orderDate) : '—'}
                 {order?.createdAt && <span> at {formatTime(order.createdAt)}</span>}
               </p>
