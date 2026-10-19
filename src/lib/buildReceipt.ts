@@ -46,7 +46,7 @@ export interface ReceiptData {
   orderNumber: string
   orderDate: string
   orderTime: string
-  servedBy: string
+  servedBy?: string
   customerName: string
   customerPhone?: string
   pickupDay: string
