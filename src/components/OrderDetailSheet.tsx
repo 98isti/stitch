@@ -509,7 +509,6 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
           <div className="flex items-start justify-between mb-3">
             {/* LEFT — all info */}
             <div className="flex-1 min-w-0 pr-4">
-              <p className="text-navy-light text-xs font-medium mb-0.5">Order #</p>
               <p className="text-white text-xl font-bold leading-tight whitespace-nowrap">
                 {order?.orderNumberString ?? '—'}
               </p>
