@@ -9,11 +9,11 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, X, RefreshCw, Printer } from 'lucide-react'
 
 interface Voucher {
-  id: string; code: string; amount: number
+  id: string; code: string; amount: number; balance: number
   customerName: string; customerPhone: string
   locationName: string
   issueDate: string; expiryDate: string
-  isRedeemed: boolean; redeemedAt?: string
+  isRedeemed: boolean; redeemedAt?: string; lastUsedDate?: string
 }
 
 interface FormState {
@@ -97,7 +97,7 @@ export default function VouchersPage() {
     try {
       const issueDate = new Date().toISOString().slice(0, 10)
       const newVoucher: Omit<Voucher, 'id'> = {
-        code: form.code, amount: parseFloat(form.amount),
+        code: form.code, amount: parseFloat(form.amount), balance: parseFloat(form.amount),
         customerName: form.customerName, customerPhone: form.customerPhone,
         locationName: activeLocation?.name || '',
         issueDate, expiryDate: form.expiryDate, isRedeemed: false,

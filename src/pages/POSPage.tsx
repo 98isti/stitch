@@ -8,7 +8,7 @@ import SplitPaymentSheet from '../components/SplitPaymentSheet'
 import { usePrinter } from '../context/PrinterContext'
 import {
   collection, query, getDocs, addDoc, serverTimestamp, orderBy, where,
-  doc, runTransaction
+  doc, runTransaction, updateDoc
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import ItemPickerSheet from '../components/ItemPickerSheet'
@@ -87,6 +87,8 @@ async function saveOrder({
   overrideIsPaid,
   barcode,
   servedBy,
+  voucherCode,
+  voucherDeduction,
 }: {
   accountId: string
   locationId: string
@@ -106,6 +108,8 @@ async function saveOrder({
   shopType?: string
   barcode?: string
   servedBy?: string
+  voucherCode?: string
+  voucherDeduction?: number
 }): Promise<{ orderNumber: string; orderId: string; barcode: string }> {
   const counterRef = doc(db, 'accounts', accountId, 'orderCounters', locationId)
   const ordersRef = collection(db, 'accounts', accountId, 'orders')
@@ -154,6 +158,7 @@ async function saveOrder({
       jobCompletedDate: null,
       createdAt: serverTimestamp(),
       ...(servedBy ? { servedBy } : {}),
+      ...(voucherDeduction && voucherDeduction > 0 ? { voucherCode, voucherDeduction } : {}),
     })
   })
 
@@ -419,6 +424,32 @@ export default function POSPage() {
 
   const [showCustomerSheet, setShowCustomerSheet] = useState(false)
 
+  // Voucher
+  interface ActiveVoucher { id: string; code: string; balance: number }
+  const [pendingVoucher, setPendingVoucher] = useState<ActiveVoucher | null>(null)   // found, not yet applied
+  const [appliedVoucher, setAppliedVoucher] = useState<ActiveVoucher | null>(null)  // applied to this sale
+
+  async function checkVoucherForPhone(phone: string) {
+    if (!accountId || !phone) return
+    try {
+      const snap = await getDocs(query(
+        collection(db, 'accounts', accountId, 'vouchers'),
+        where('customerPhone', '==', phone),
+        where('isRedeemed', '==', false),
+      ))
+      const active = snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as any))
+        .filter((v: any) => (v.balance ?? v.amount ?? 0) > 0)
+        .sort((a: any, b: any) => (a.expiryDate ?? '').localeCompare(b.expiryDate ?? ''))
+      if (active.length > 0) {
+        const v = active[0]
+        setPendingVoucher({ id: v.id, code: v.code, balance: v.balance ?? v.amount })
+      } else {
+        setPendingVoucher(null)
+      }
+    } catch { /* ignore */ }
+  }
+
   const [showDiscountSheet, setShowDiscountSheet] = useState(false)
   const [discountInput, setDiscountInput] = useState('')
   const [discountType, setDiscountType] = useState<'percent' | 'flat'>('percent')
@@ -436,7 +467,9 @@ export default function POSPage() {
   const discountAmount = discount
     ? discount.type === 'percent' ? rawTotal * discount.value / 100 : Math.min(discount.value, rawTotal)
     : 0
-  const total = rawTotal - discountAmount
+  const afterDiscount = rawTotal - discountAmount
+  const voucherDeduction = appliedVoucher ? Math.min(appliedVoucher.balance, afterDiscount) : 0
+  const total = Math.max(0, afterDiscount - voucherDeduction)
 
   const categoryCount: Record<string, number> = {}
   items.forEach(i => {
@@ -504,6 +537,8 @@ export default function POSPage() {
   function clearSale() {
     setOrderNote('')
     clearPersistedSale()
+    setPendingVoucher(null)
+    setAppliedVoucher(null)
     setCalMonth(() => { const d = defaultPickup(); return { year: d.getFullYear(), month: d.getMonth() } })
   }
 
@@ -587,7 +622,17 @@ export default function POSPage() {
         paymentMethod: method,
         orderNote,
         servedBy: staff?.name || undefined,
+        voucherCode: appliedVoucher?.code,
+        voucherDeduction: voucherDeduction > 0 ? voucherDeduction : undefined,
       })
+      if (appliedVoucher && voucherDeduction > 0 && accountId) {
+        const newBalance = Math.round((appliedVoucher.balance - voucherDeduction) * 100) / 100
+        await updateDoc(doc(db, 'accounts', accountId, 'vouchers', appliedVoucher.id), {
+          balance: newBalance,
+          isRedeemed: newBalance <= 0,
+          lastUsedDate: new Date().toLocaleDateString('en-CA'),
+        })
+      }
       if (method !== 'Pay Later') {
         await writePayment(db, accountId, {
           orderId,
@@ -688,7 +733,17 @@ export default function POSPage() {
         overrideStillDue: stillDue,
         overrideIsPaid: isPaid,
         servedBy: staff?.name || undefined,
+        voucherCode: appliedVoucher?.code,
+        voucherDeduction: voucherDeduction > 0 ? voucherDeduction : undefined,
       })
+      if (appliedVoucher && voucherDeduction > 0 && accountId) {
+        const newBalance = Math.round((appliedVoucher.balance - voucherDeduction) * 100) / 100
+        await updateDoc(doc(db, 'accounts', accountId, 'vouchers', appliedVoucher.id), {
+          balance: newBalance,
+          isRedeemed: newBalance <= 0,
+          lastUsedDate: new Date().toLocaleDateString('en-CA'),
+        })
+      }
       // Write separate payment records for cash and card portions
       if (cash > 0) {
         await writePayment(db, accountId, {
@@ -1020,6 +1075,26 @@ export default function POSPage() {
             }
           </button>
 
+          {/* Voucher banner */}
+          {pendingVoucher && !appliedVoucher && (
+            <div className="w-full flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+              <span className="text-amber-600 text-base">🎟️</span>
+              <span className="flex-1 text-xs font-medium text-amber-800">${pendingVoucher.balance.toFixed(2)} voucher available</span>
+              <button onClick={() => setAppliedVoucher(pendingVoucher)}
+                className="text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg px-3 py-1 transition-colors">Apply</button>
+              <button onClick={() => setPendingVoucher(null)}
+                className="text-xs font-medium text-amber-600 hover:text-amber-800 px-1">Skip</button>
+            </div>
+          )}
+          {appliedVoucher && (
+            <div className="w-full flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2.5">
+              <span className="text-green-600 text-base">✓</span>
+              <span className="flex-1 text-xs font-medium text-green-800">Voucher applied — -${voucherDeduction.toFixed(2)}</span>
+              <button onClick={() => { setAppliedVoucher(null); setPendingVoucher(appliedVoucher) }}
+                className="text-xs font-medium text-green-600 hover:text-green-800 px-1">Remove</button>
+            </div>
+          )}
+
           <button onClick={openDatePicker}
             className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-500 rounded-xl py-2 text-xs font-medium hover:bg-red-100 transition-colors">
             Pick up: {formatPickupDate(pickupDate)} <ChevronDown size={13} />
@@ -1112,6 +1187,11 @@ export default function POSPage() {
             {discount && discountAmount > 0 && (
               <div className="flex justify-between text-sm text-red-500">
                 <span>Discount</span><span>-${discountAmount.toFixed(2)}</span>
+              </div>
+            )}
+            {appliedVoucher && voucherDeduction > 0 && (
+              <div className="flex justify-between text-sm text-amber-600">
+                <span>🎟️ Voucher ({appliedVoucher.code})</span><span>-${voucherDeduction.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between items-baseline">
@@ -1241,7 +1321,7 @@ export default function POSPage() {
       {showCustomerSheet && (
         <CustomerSheet
           accountId={accountId}
-          onSelect={(name, phone) => { setCustomerName(name); setCustomerPhone(phone); setShowCustomerSheet(false) }}
+          onSelect={(name, phone) => { setCustomerName(name); setCustomerPhone(phone); setShowCustomerSheet(false); setPendingVoucher(null); setAppliedVoucher(null); checkVoucherForPhone(phone) }}
           onClose={() => setShowCustomerSheet(false)}
         />
       )}
