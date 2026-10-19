@@ -695,10 +695,10 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
                           <span>Subtotal</span>
                           <span>${(order.subTotalAmount ?? order.orderAmount).toFixed(2)}</span>
                         </div>
-                        {order.discountApplied > 0 && (
+                        {(order.discountApplied ?? 0) > 0 && (
                           <div className="flex items-baseline gap-3 text-sm text-red-500 mb-1">
                             <span>Discount</span>
-                            <span>-${order.discountApplied.toFixed(2)}</span>
+                            <span>-${(order.discountApplied ?? 0).toFixed(2)}</span>
                           </div>
                         )}
                         {order.voucherDeduction && order.voucherDeduction > 0 && (

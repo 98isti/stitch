@@ -55,6 +55,8 @@ export interface ReceiptData {
   items: ReceiptItem[]
   subtotal: number
   discount?: number
+  voucherCode?: string
+  voucherDeduction?: number
   total: number
   paidAmount: number
   stillDue: number
