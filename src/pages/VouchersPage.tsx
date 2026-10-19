@@ -286,7 +286,7 @@ export default function VouchersPage() {
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-navy" />
               </div>
 
-              <button onClick={handleIssue} disabled={!form.amount || !form.customerPhone.trim() || saving
+              <button onClick={handleIssue} disabled={!form.amount || !form.customerPhone.trim() || saving}
                 className="w-full bg-navy text-white py-3.5 rounded-xl font-semibold text-sm disabled:opacity-40 hover:bg-navy/90 transition-colors">
                 {saving ? 'Issuing…' : 'Issue & Print Voucher'}
               </button>
