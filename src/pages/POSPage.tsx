@@ -145,6 +145,8 @@ async function saveOrder({
       isPaid,
       status: 'In progress',
       location: locationName,
+      locationName,
+      locationId,
       paymentMethod,
       barcode: savedBarcode,
       orderNote: orderNote || null,
