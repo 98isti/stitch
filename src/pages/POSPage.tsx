@@ -523,7 +523,7 @@ export default function POSPage() {
         orderNumber: params.orderNumber,
         orderDate: params.createdAt.toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' }),
         orderTime: params.createdAt.toLocaleTimeString('en-AU', { hour:'numeric', minute:'2-digit', hour12:true }),
-        servedBy: staff?.name ?? '',
+        servedBy: staff?.name || undefined,
         customerName,
         customerPhone,
         pickupDay: pickupDate.toLocaleDateString('en-AU', { weekday:'long' }),
