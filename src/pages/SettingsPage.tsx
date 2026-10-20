@@ -65,6 +65,8 @@ interface LocationSettings {
   dailyWages: number
   dailyOther: number
   googlePlaceId: string
+  googleBusinessName: string
+  googlePostcode: string
   shopType: string
   orderPrefix: string
   sms: { senderName: string; template: string }
@@ -74,7 +76,7 @@ const BLANK_LOCATION: LocationSettings = {
   name: '', businessName: '', abn: '', businessEmail: '',
   shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '',
   state: 'NSW', postCode: '', country: 'Australia',
-      phone: '', dailyTarget: 1000, dailyRent: 0, dailyWages: 0, dailyOther: 0, googlePlaceId: '', shopType: '', orderPrefix: '',
+        phone: '', dailyTarget: 1000, dailyRent: 0, dailyWages: 0, dailyOther: 0, googlePlaceId: '', googleBusinessName: '', googlePostcode: '', shopType: '', orderPrefix: '',
   sms: { senderName: '', template: DEFAULT_SMS_TEMPLATE },
 }
 
@@ -151,7 +153,9 @@ export default function SettingsPage() {
         dailyRent:      d.dailyRent      ?? 0,
         dailyWages:     d.dailyWages     ?? 0,
         dailyOther:     d.dailyOther     ?? 0,
-        googlePlaceId:  d.googlePlaceId  ?? '',
+        googlePlaceId:      d.googlePlaceId      ?? '',
+        googleBusinessName: d.googleBusinessName ?? '',
+        googlePostcode:     d.googlePostcode     ?? ''
         shopType:       d.shopType       ?? 'alterations',
         orderPrefix:    d.orderPrefix    ?? '',
         sms: {
@@ -235,6 +239,23 @@ export default function SettingsPage() {
     if (!accountId || !activeLocation) return
     setSaving(true)
     try {
+      // Auto-resolve Google Place ID if business name set but Place ID not yet stored
+      let resolvedPlaceId = locSettings.googlePlaceId
+      if (locSettings.googleBusinessName && !resolvedPlaceId) {
+        try {
+          const accountSnap = await getDoc(doc(db, 'accounts', accountId))
+          const apiKey = accountSnap.data()?.googleApiKey ?? ''
+          if (apiKey) {
+            const q = encodeURIComponent(`${locSettings.googleBusinessName} ${locSettings.googlePostcode}`.trim())
+            const res = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${q}&key=${apiKey}`)
+            const json = await res.json()
+            if (json.results?.[0]?.place_id) {
+              resolvedPlaceId = json.results[0].place_id
+              setLocSettings(s => ({ ...s, googlePlaceId: resolvedPlaceId }))
+            }
+          }
+        } catch { /* ignore — save without Place ID */ }
+      }
       // All info → location doc (including business details)
       await updateDoc(doc(db, 'accounts', accountId, 'locations', activeLocation.id), {
         name:           locSettings.name,
@@ -253,7 +274,9 @@ export default function SettingsPage() {
         dailyRent:      locSettings.dailyRent,
         dailyWages:     locSettings.dailyWages,
         dailyOther:     locSettings.dailyOther,
-        googlePlaceId:  locSettings.googlePlaceId,
+        googlePlaceId:      resolvedPlaceId,
+        googleBusinessName: locSettings.googleBusinessName,
+        googlePostcode:     locSettings.googlePostcode,
         shopType:       locSettings.shopType,
         orderPrefix:    locSettings.orderPrefix,
         sms:            locSettings.sms,
@@ -474,14 +497,33 @@ export default function SettingsPage() {
 
               {/* ── Google Reviews ── */}
               <Section title="Google Reviews" subtitle={`For ${activeLocation?.name ?? 'this location'}`}>
-                <Field label="Google Place ID" note="Find this in Google Maps → share your business → copy link. The Place ID starts with ChIJ...">
+                <Field label="Business name on Google" note="Enter the name exactly as it appears on your Google Maps listing">
                   <input
-                    value={locSettings.googlePlaceId}
-                    onChange={e => setLocSettings(s => ({ ...s, googlePlaceId: e.target.value.trim() }))}
-                    placeholder="ChIJxxxxxxxxxxxxxxxx"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-navy"
+                    value={locSettings.googleBusinessName}
+                    onChange={e => setLocSettings(s => ({ ...s, googleBusinessName: e.target.value, googlePlaceId: '' }))}
+                    placeholder="e.g. Press Smart Dry Cleaners St Ives"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-navy"
                   />
                 </Field>
+                <Field label="Postcode" note="Helps find the right location if there are multiple matches">
+                  <input
+                    value={locSettings.googlePostcode}
+                    onChange={e => setLocSettings(s => ({ ...s, googlePostcode: e.target.value, googlePlaceId: '' }))}
+                    placeholder="e.g. 2075"
+                    inputMode="numeric"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-navy"
+                  />
+                </Field>
+                {locSettings.googlePlaceId ? (
+                  <div className="flex items-center gap-2 px-4 py-3 bg-green-50 rounded-xl">
+                    <span className="text-green-600 text-base">✓</span>
+                    <span className="text-sm text-green-800 font-medium">Google listing linked</span>
+                    <button onClick={() => setLocSettings(s => ({ ...s, googlePlaceId: '', googleBusinessName: '', googlePostcode: '' }))}
+                      className="ml-auto text-xs text-gray-400 hover:text-red-500">× Remove</button>
+                  </div>
+                ) : locSettings.googleBusinessName ? (
+                  <p className="text-xs text-amber-600 px-1">⚠️ Not linked yet — save location settings to look up automatically</p>
+                ) : null}
               </Section>
 
               {/* ── SMS Notifications (location-level) ── */}
