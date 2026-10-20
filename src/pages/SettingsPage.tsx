@@ -242,7 +242,6 @@ export default function SettingsPage() {
       let resolvedPlaceId = locSettings.googlePlaceId
       if (locSettings.googleBusinessName && !resolvedPlaceId) {
         try {
-          const accountSnap = await getDoc(doc(db, 'accounts', accountId))
           const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY ?? ''
           if (apiKey) {
             const q = encodeURIComponent(`${locSettings.googleBusinessName} ${locSettings.googlePostcode}`.trim())
