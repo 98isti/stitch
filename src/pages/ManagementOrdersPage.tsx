@@ -4,6 +4,7 @@ import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { CreditCard, DollarSign, AlertTriangle, ChevronRight, Archive } from 'lucide-react'
+import { toLocalDate, todayLocal, yesterdayLocal, formatTimeLocal } from '../lib/dateUtils'
 import OrderDetailSheet from '../components/OrderDetailSheet'
 
 interface Order {
@@ -33,16 +34,12 @@ interface DrawerLog {
 
 type Row = { type: 'order'; data: Order; ts: number } | { type: 'drawer'; data: DrawerLog; ts: number }
 
-function formatTime(seconds: number) {
-  return new Date(seconds * 1000).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true })
-}
-
 function formatDateHeader(dateStr: string) {
-  const d = new Date(dateStr)
-  const today = new Date().toISOString().slice(0, 10)
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+  const today = todayLocal()
+  const yesterday = yesterdayLocal()
   if (dateStr === today) return 'Today'
   if (dateStr === yesterday) return 'Yesterday'
+  const d = new Date(dateStr + 'T12:00:00')
   return d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
@@ -156,7 +153,7 @@ export default function ManagementOrdersPage() {
   const grouped = useMemo(() => {
     const map: Record<string, Row[]> = {}
     for (const row of rows) {
-      const date = new Date(row.ts * 1000).toISOString().slice(0, 10)
+      const date = toLocalDate(row.ts * 1000)
       if (!map[date]) map[date] = []
       map[date].push(row)
     }
@@ -208,7 +205,7 @@ export default function ManagementOrdersPage() {
                           </div>
                           <div className="text-right flex-shrink-0">
                             <p className="text-xs text-gray-400">{row.data.location}</p>
-                            <p className="text-xs text-gray-400">{formatTime(row.data.openedAt.seconds)}</p>
+                            <p className="text-xs text-gray-400">{formatTimeLocal(row.data.openedAt.seconds)}</p>
                           </div>
                         </div>
                       )
@@ -236,7 +233,7 @@ export default function ManagementOrdersPage() {
                         </div>
                         <div className="text-right flex-shrink-0 mr-1">
                           <p className="text-xs text-gray-500">{order.location}</p>
-                          <p className="text-xs text-gray-400">{row.ts ? formatTime(row.ts) : ''}</p>
+                          <p className="text-xs text-gray-400">{row.ts ? formatTimeLocal(row.ts) : ''}</p>
                         </div>
                         <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
                       </button>

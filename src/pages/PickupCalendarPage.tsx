@@ -4,6 +4,7 @@ import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { todayLocal } from '../lib/dateUtils'
 import { useNavigate } from 'react-router-dom'
 
 interface Order {
@@ -23,12 +24,8 @@ function jsToGridCol(jsDay: number) {
   return jsDay === 6 ? 0 : jsDay + 1
 }
 
-function toYMD(d: Date) {
-  return d.toISOString().split('T')[0]
-}
-
 function todayYMD() {
-  return toYMD(new Date())
+  return todayLocal()
 }
 
 export default function PickupCalendarPage() {

@@ -4,6 +4,7 @@ import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { ChevronLeft, RefreshCw } from 'lucide-react'
+import { toLocalDate } from '../lib/dateUtils'
 import { useNavigate } from 'react-router-dom'
 
 interface Payment {
@@ -63,7 +64,7 @@ function getDateRange(filter: FilterKey): { start: Date; end: Date; days: number
 }
 
 function toYMD(d: Date) {
-  return d.toISOString().split('T')[0]
+  return toLocalDate(d.getTime())
 }
 
 function fmtDate(d: Date) {
