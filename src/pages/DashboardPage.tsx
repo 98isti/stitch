@@ -66,8 +66,8 @@ function barColor(revenue: number, target: number) {
 async function fetchGoogleRating(placeId: string, apiKey: string): Promise<{ rating: number; count: number } | null> {
   if (!placeId || !apiKey) return null
   try {
-    const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?fields=rating,userRatingCount&key=${apiKey}`
-    const res = await fetch(url, { headers: { 'Content-Type': 'application/json' } })
+    const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`
+    const res = await fetch(url, { headers: { 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': 'rating,userRatingCount' } })
     if (!res.ok) return null
     const json = await res.json()
     if (json.rating && json.userRatingCount) {
@@ -208,7 +208,7 @@ export default function DashboardPage() {
 
     // ── Fetch Google API key from account doc ─────────────────────────────
     const accountSnap = await getDoc(doc(db, 'accounts', accountId))
-    const googleApiKey = accountSnap.data()?.googleApiKey ?? ''
+    const googleApiKey = *** ?? ''
 
     // ── Load all data in parallel ─────────────────────────────────────────
     const [paymentsSnap, ordersSnap, customersSnap] = await Promise.all([

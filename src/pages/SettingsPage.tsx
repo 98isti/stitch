@@ -242,13 +242,17 @@ export default function SettingsPage() {
       let resolvedPlaceId = locSettings.googlePlaceId
       if (locSettings.googleBusinessName && !resolvedPlaceId) {
         try {
-          const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY ?? ''
+          const apiKey = *** ?? ''
           if (apiKey) {
             const q = encodeURIComponent(`${locSettings.googleBusinessName} ${locSettings.googlePostcode}`.trim())
-            const res = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${q}&key=${apiKey}`)
+            const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': 'places.id,places.displayName' },
+              body: JSON.stringify({ textQuery: `${locSettings.googleBusinessName} ${locSettings.googlePostcode}`.trim() }),
+            })
             const json = await res.json()
-            if (json.results?.[0]?.place_id) {
-              resolvedPlaceId = json.results[0].place_id
+            if (json.places?.[0]?.id) {
+              resolvedPlaceId = json.places[0].id
               setLocSettings(s => ({ ...s, googlePlaceId: resolvedPlaceId }))
             }
           }
