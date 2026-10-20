@@ -96,8 +96,7 @@ export default function SettingsPage() {
   // Account-level settings
   const [requirePinAfterLock, setRequirePinAfterLock] = useState(true)
   const [plan, setPlan] = useState('Trial')
-  const [googleApiKey, setGoogleApiKey] = useState('')
-  const [savingGoogleKey, setSavingGoogleKey] = useState(false)
+
   const [deviceMode, setDeviceMode] = useState<'terminal' | 'management'>(
     (localStorage.getItem('stitch_device_mode') as 'terminal' | 'management') || 'terminal'
   )
@@ -123,7 +122,7 @@ export default function SettingsPage() {
         const d = snap.data()
         setRequirePinAfterLock(d.requirePinAfterLock !== false)
         setPlan(d.plan ?? 'Trial')
-        setGoogleApiKey(d.googleApiKey ?? '')
+
       }
       setLoading(false)
     }).catch(() => setLoading(false))
@@ -244,7 +243,7 @@ export default function SettingsPage() {
       if (locSettings.googleBusinessName && !resolvedPlaceId) {
         try {
           const accountSnap = await getDoc(doc(db, 'accounts', accountId))
-          const apiKey = accountSnap.data()?.googleApiKey ?? ''
+          const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY ?? ''
           if (apiKey) {
             const q = encodeURIComponent(`${locSettings.googleBusinessName} ${locSettings.googlePostcode}`.trim())
             const res = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${q}&key=${apiKey}`)
@@ -644,34 +643,6 @@ export default function SettingsPage() {
                     </button>
                   ))}
                 </div>
-              </Section>
-
-              {/* ── Google API Key (account-level) ── */}
-              <Section title="Google API Key" subtitle="Used to fetch Google ratings. One key for all locations.">
-                <Field label="Google Places API Key">
-                  <div className="flex gap-2">
-                    <input
-                      value={googleApiKey}
-                      onChange={e => setGoogleApiKey(e.target.value.trim())}
-                      placeholder="AIzaSy..."
-                      type="password"
-                      className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-navy"
-                    />
-                    <button
-                      disabled={savingGoogleKey}
-                      onClick={async () => {
-                        if (!accountId) return
-                        setSavingGoogleKey(true)
-                        try {
-                          const { updateDoc, doc: fdoc } = await import('firebase/firestore')
-                          await updateDoc(fdoc(db, 'accounts', accountId), { googleApiKey })
-                        } finally { setSavingGoogleKey(false) }
-                      }}
-                      className="px-4 py-3 rounded-xl bg-navy text-white text-sm font-semibold disabled:opacity-40">
-                      {savingGoogleKey ? '…' : 'Save'}
-                    </button>
-                  </div>
-                </Field>
               </Section>
 
               {/* ── Plan & Billing ── */}
