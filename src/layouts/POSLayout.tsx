@@ -7,6 +7,7 @@ import { useLocations } from '../hooks/useLocations'
 import { signOut } from 'firebase/auth'
 import { auth } from '../lib/firebase'
 import ScreenSaver from '../components/ScreenSaver'
+import { useStaff } from '../context/StaffContext'
 
 const IDLE_TIMEOUT = 10 * 60 * 1000 // 10 minutes
 
@@ -46,7 +47,17 @@ export default function POSLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { accountId } = useAuth()
+  const { staff } = useStaff()
   const [requirePin, setRequirePin] = useState(true)
+
+  // On mount — if no staff session and not a management device, send to PIN
+  useEffect(() => {
+    const isManagementDevice = localStorage.getItem('stitch_device_mode') === 'management'
+    if (!staff && !isManagementDevice) {
+      navigate('/pin')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (!accountId) return
