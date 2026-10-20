@@ -242,7 +242,7 @@ export default function SettingsPage() {
       let resolvedPlaceId = locSettings.googlePlaceId
       if (locSettings.googleBusinessName && !resolvedPlaceId) {
         try {
-          const apiKey = *** ?? ''
+          const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY ?? ''
           if (apiKey) {
             const q = encodeURIComponent(`${locSettings.googleBusinessName} ${locSettings.googlePostcode}`.trim())
             const res = await fetch('https://places.googleapis.com/v1/places:searchText', {

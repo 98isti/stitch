@@ -208,7 +208,7 @@ export default function DashboardPage() {
 
     // ── Fetch Google API key from account doc ─────────────────────────────
     const accountSnap = await getDoc(doc(db, 'accounts', accountId))
-    const googleApiKey = *** ?? ''
+    const googleApiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY ?? ''
 
     // ── Load all data in parallel ─────────────────────────────────────────
     const [paymentsSnap, ordersSnap, customersSnap] = await Promise.all([
