@@ -155,7 +155,7 @@ export default function SettingsPage() {
         dailyOther:     d.dailyOther     ?? 0,
         googlePlaceId:      d.googlePlaceId      ?? '',
         googleBusinessName: d.googleBusinessName ?? '',
-        googlePostcode:     d.googlePostcode     ?? ''
+        googlePostcode:     d.googlePostcode     ?? '',
         shopType:       d.shopType       ?? 'alterations',
         orderPrefix:    d.orderPrefix    ?? '',
         sms: {
