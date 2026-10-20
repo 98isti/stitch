@@ -396,7 +396,7 @@ export default function POSPage() {
     const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY
     if (!placeId || !apiKey) { setGoogleRating(null); return }
     fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
-      headers: { 'X-Goog-Api-Key': ***, 'X-Goog-FieldMask': 'rating,userRatingCount' },
+      headers: { 'X-Goog-Api-Key': import.meta.env.VITE_GOOGLE_PLACES_API_KEY, 'X-Goog-FieldMask': 'rating,userRatingCount' },
     })
       .then(r => r.json())
       .then(j => { if (j.rating && j.userRatingCount) setGoogleRating({ rating: j.rating, count: j.userRatingCount }) })
