@@ -190,12 +190,12 @@ export default function ManagementOrdersPage() {
                 {/* Date header */}
                 <p className="text-sm font-semibold text-gray-500 px-1 mb-2 mt-3">{formatDateHeader(date)}</p>
 
-                {/* Rows */}
-                <div className="bg-white rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-50">
+                {/* Rows — each row is its own card */}
+                <div className="flex flex-col gap-2">
                   {dateRows.map(row => {
                     if (row.type === 'drawer') {
                       return (
-                        <div key={row.data.id} className="flex items-center gap-3 px-4 py-3">
+                        <div key={row.data.id} className="flex items-center gap-3 px-4 py-3 bg-white rounded-2xl shadow-sm border border-amber-100">
                           <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
                             <Archive size={18} className="text-amber-500" />
                           </div>
@@ -217,7 +217,7 @@ export default function ManagementOrdersPage() {
 
                     return (
                       <button key={order.id} onClick={() => setSelectedOrderId(order.id)}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left">
+                        className="w-full flex items-center gap-3 px-4 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 hover:border-gray-200 hover:shadow-md active:scale-[0.99] transition-all text-left">
                         <PaymentIcon order={order} />
                         <div className="flex-1 min-w-0">
                           {isDrawerOrder ? (
