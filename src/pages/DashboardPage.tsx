@@ -93,7 +93,7 @@ function LocationCard({ m, loading }: { m: LocationMetrics; loading: boolean }) 
   const plColor = pl >= 0 ? 'text-emerald-600' : 'text-red-500'
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-4">
+    <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden mb-4">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-gray-100">
         <div className="flex items-start justify-between mb-2">
@@ -314,7 +314,7 @@ export default function DashboardPage() {
 
         {/* Overall summary */}
         {metrics.length > 1 && (
-          <div className="mt-4 bg-white rounded-2xl shadow-sm px-4 py-3">
+          <div className="mt-4 bg-white rounded-2xl shadow-md border border-gray-200 px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">All Locations Today</span>
               <span className="text-xs text-gray-400">{totalOrders} orders</span>
