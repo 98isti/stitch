@@ -387,6 +387,21 @@ export default function POSPage() {
   const [pickerCategory, setPickerCategory] = useState<string | null>(null)
   const [longPressGarmentId, setLongPressGarmentId] = useState<string | null>(null)
   const [showSaleMenu, setShowSaleMenu] = useState(false)
+
+  // Google rating for this location
+  const [googleRating, setGoogleRating] = useState<{ rating: number; count: number } | null>(null)
+
+  useEffect(() => {
+    const placeId = (activeLocation as any)?.googlePlaceId
+    const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY
+    if (!placeId || !apiKey) { setGoogleRating(null); return }
+    fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
+      headers: { 'X-Goog-Api-Key': ***, 'X-Goog-FieldMask': 'rating,userRatingCount' },
+    })
+      .then(r => r.json())
+      .then(j => { if (j.rating && j.userRatingCount) setGoogleRating({ rating: j.rating, count: j.userRatingCount }) })
+      .catch(() => {})
+  }, [activeLocation?.id])
   const [showVoucherEntry, setShowVoucherEntry] = useState(false)
   const [voucherInput, setVoucherInput] = useState('')
   const [voucherLookupResult, setVoucherLookupResult] = useState<{ id: string; code: string; balance: number; customerName: string } | null | 'notfound'>('notfound')
@@ -857,6 +872,14 @@ export default function POSPage() {
                   <MapPin size={12} className="text-navy shrink-0" />
                   <span className="text-sm font-semibold text-gray-800 truncate">{locationLabel}</span>
                 </div>
+                {googleRating && (
+                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                    <span className="font-medium text-gray-600">Google</span>
+                    <span className="font-semibold text-gray-800">{googleRating.rating.toFixed(1)}</span>
+                    <span className="text-amber-400">★</span>
+                    <span className="text-gray-400">({googleRating.count})</span>
+                  </div>
+                )}
                 {staff && (
                   <div className="relative">
                     <button
