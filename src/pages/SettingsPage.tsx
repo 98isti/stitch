@@ -244,7 +244,6 @@ export default function SettingsPage() {
         try {
           const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY ?? ''
           if (apiKey) {
-            const q = encodeURIComponent(`${locSettings.googleBusinessName} ${locSettings.googlePostcode}`.trim())
             const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': 'places.id,places.displayName' },
