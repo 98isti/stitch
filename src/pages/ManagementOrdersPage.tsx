@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { collection, query, orderBy, where, limit, getDocs, Timestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
@@ -75,6 +75,7 @@ export default function ManagementOrdersPage() {
   const [hasMore, setHasMore] = useState(true)
   const [selectedLocation, setSelectedLocation] = useState('All Locations')
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   function startOfDayLocal(daysAgo: number): Date {
     const d = new Date()
@@ -89,6 +90,22 @@ export default function ManagementOrdersPage() {
     loadDrawerLogs()
   }, [accountId])
 
+  // Infinite scroll
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasMore && !loadingMore && !loading) {
+          loadOrders(false)
+        }
+      },
+      { rootMargin: '200px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore, loadingMore, loading, oldestWindowStart])
+
   async function loadOrders(reset = false) {
     if (!accountId) return
     if (reset) setLoading(true)
@@ -98,12 +115,12 @@ export default function ManagementOrdersPage() {
     let windowEnd: Date | null = null
 
     if (reset) {
-      windowStart = startOfDayLocal(1) // start of yesterday
+      windowStart = startOfDayLocal(2) // today + yesterday + day before = 3 days
       setOldestWindowStart(windowStart)
     } else {
       windowEnd = oldestWindowStart!
       windowStart = new Date(oldestWindowStart!)
-      windowStart.setDate(windowStart.getDate() - 2)
+      windowStart.setDate(windowStart.getDate() - 3) // 3 more days each load
       setOldestWindowStart(windowStart)
     }
 
@@ -260,12 +277,12 @@ export default function ManagementOrdersPage() {
               </div>
             ))}
 
-            {hasMore && (
-              <button onClick={() => loadOrders(false)} disabled={loadingMore}
-                className="w-full py-3 text-sm font-semibold text-navy hover:opacity-70 disabled:opacity-40 mt-2">
-                {loadingMore ? 'Loading…' : 'Load 2 more days'}
-              </button>
-            )}
+            {/* Infinite scroll sentinel */}
+            <div ref={sentinelRef} className="flex justify-center py-4">
+              {loadingMore && (
+                <div className="w-5 h-5 border-2 border-navy border-t-transparent rounded-full animate-spin" />
+              )}
+            </div>
           </>
         )}
       </div>

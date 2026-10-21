@@ -227,6 +227,22 @@ export default function OrdersPage() {
     loadDrawerLogs()
   }, [accountId, activeLocation?.id, filter])
 
+  // Infinite scroll — load more when sentinel enters viewport
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasMore && !loadingMore && !loading && !isSearching) {
+          loadOrders(false)
+        }
+      },
+      { rootMargin: '200px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore, loadingMore, loading, isSearching, oldestWindowStart])
+
   // ── Rows to display ───────────────────────────────────────────────────────
   const isSearching = search.trim().length > 0
 
@@ -403,15 +419,12 @@ export default function OrdersPage() {
               </tbody>
             </table>
 
-            {/* Load more (only in list mode, not search) */}
-            {!isSearching && hasMore && (
-              <div className="flex justify-center py-4">
-                <button
-                  onClick={() => loadOrders(false)}
-                  disabled={loadingMore}
-                  className="px-6 py-2 rounded-full bg-white border border-gray-200 text-sm font-semibold text-navy hover:bg-gray-50 disabled:opacity-40 shadow-sm">
-                  {loadingMore ? 'Loading…' : 'Load 2 more days'}
-                </button>
+            {/* Infinite scroll sentinel */}
+            {!isSearching && (
+              <div ref={sentinelRef} className="flex justify-center py-4">
+                {loadingMore && (
+                  <div className="w-5 h-5 border-2 border-navy border-t-transparent rounded-full animate-spin" />
+                )}
               </div>
             )}
           </>
