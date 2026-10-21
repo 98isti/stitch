@@ -81,6 +81,7 @@ export default function OrdersPage() {
   const [searchResults, setSearchResults] = useState<Order[] | null>(null)
   const [searching, setSearching] = useState(false)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   // Returns midnight of N days ago in local time
   function startOfDayLocal(daysAgo: number): Date {
@@ -233,7 +234,7 @@ export default function OrdersPage() {
     if (!el) return
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && hasMore && !loadingMore && !loading && !isSearching) {
+        if (entry.isIntersecting && hasMore && !loadingMore && !loading) {
           loadOrders(false)
         }
       },
@@ -241,7 +242,7 @@ export default function OrdersPage() {
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [hasMore, loadingMore, loading, isSearching, oldestWindowStart])
+  }, [hasMore, loadingMore, loading, oldestWindowStart])
 
   // ── Rows to display ───────────────────────────────────────────────────────
   const isSearching = search.trim().length > 0
