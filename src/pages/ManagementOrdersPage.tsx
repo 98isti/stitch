@@ -183,12 +183,10 @@ export default function ManagementOrdersPage() {
                   {dateRows.map(row => {
                     if (row.type === 'drawer') {
                       return (
-                        <div key={row.data.id} className="flex items-center gap-3 px-4 py-3 bg-white rounded-2xl shadow-sm border border-amber-100">
-                          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                            <Archive size={18} className="text-amber-500" />
-                          </div>
+                        <div key={row.data.id} className="flex items-center gap-3 px-4 py-3 bg-white rounded-2xl shadow-sm border border-gray-100">
+                          <Archive size={18} className="text-gray-400 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-amber-500">Drawer Opened</p>
+                            <p className="text-sm font-semibold text-gray-500">Drawer Opened</p>
                             <p className="text-xs text-gray-400">by {row.data.openedBy}</p>
                           </div>
                           <div className="text-right flex-shrink-0">
