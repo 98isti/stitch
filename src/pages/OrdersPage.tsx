@@ -5,8 +5,8 @@ import { useNavigate } from 'react-router-dom'
 import OrderDetailSheet from '../components/OrderDetailSheet'
 import EditOrderSheet from '../components/EditOrderSheet'
 import {
-  collection, query, where, orderBy, limit,
-  getDocs, QueryDocumentSnapshot, QueryConstraint, Timestamp
+  collection, query, where, orderBy, limit, startAfter,
+  getDocs, QueryDocumentSnapshot, QueryConstraint
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
@@ -68,7 +68,7 @@ export default function OrdersPage() {
 
   const [orders, setOrders] = useState<Order[]>([])
   const [drawerLogs, setDrawerLogs] = useState<DrawerLog[]>([])
-  const [oldestWindowStart, setOldestWindowStart] = useState<Date | null>(null)
+  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -83,42 +83,22 @@ export default function OrdersPage() {
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
-  // Returns midnight of N days ago in local time
-  function startOfDayLocal(daysAgo: number): Date {
-    const d = new Date()
-    d.setHours(0, 0, 0, 0)
-    d.setDate(d.getDate() - daysAgo)
-    return d
-  }
+  const PAGE_SIZE = 100
 
-  // ── Load orders by date window ────────────────────────────────────────────────
+  // ── Load orders — newest first, cursor-based pagination ────────────────────────
   async function loadOrders(reset = false) {
     if (!accountId || !activeLocation) return
-    if (reset) setLoading(true)
+    if (reset) { setLoading(true); setLastDoc(null) }
     else setLoadingMore(true)
 
     try {
-      let windowStart: Date
-      let windowEnd: Date | null = null
-
-      if (reset) {
-        windowStart = startOfDayLocal(1) // start of yesterday
-        setOldestWindowStart(windowStart)
-      } else {
-        // 2 more days before the current oldest window
-        windowEnd = oldestWindowStart!
-        windowStart = new Date(oldestWindowStart!)
-        windowStart.setDate(windowStart.getDate() - 2)
-        setOldestWindowStart(windowStart)
-      }
-
       const constraints: QueryConstraint[] = [
         where('locationId', '==', activeLocation.id),
-        where('createdAt', '>=', Timestamp.fromDate(windowStart)),
       ]
-      if (windowEnd) constraints.push(where('createdAt', '<', Timestamp.fromDate(windowEnd)))
       if (filter !== 'All') constraints.push(where('status', '==', filter))
       constraints.push(orderBy('createdAt', 'desc'))
+      constraints.push(limit(PAGE_SIZE))
+      if (!reset && lastDoc) constraints.push(startAfter(lastDoc))
 
       const snap = await getDocs(query(
         collection(db, 'accounts', accountId, 'orders'),
@@ -127,7 +107,8 @@ export default function OrdersPage() {
 
       const loaded = snap.docs.map(d => ({ id: d.id, ...d.data() } as Order))
       setOrders(prev => reset ? loaded : [...prev, ...loaded])
-      setHasMore(snap.docs.length > 0)
+      setLastDoc(snap.docs[snap.docs.length - 1] ?? null)
+      setHasMore(snap.docs.length === PAGE_SIZE)
     } catch (e) { console.error('loadOrders:', e) }
     finally {
       if (reset) setLoading(false)
@@ -242,7 +223,7 @@ export default function OrdersPage() {
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [hasMore, loadingMore, loading, oldestWindowStart])
+  }, [hasMore, loadingMore, loading, lastDoc])
 
   // ── Rows to display ───────────────────────────────────────────────────────
   const isSearching = search.trim().length > 0

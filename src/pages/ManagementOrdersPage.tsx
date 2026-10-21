@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
-import { collection, query, orderBy, where, limit, getDocs, Timestamp } from 'firebase/firestore'
+import { collection, query, orderBy, where, limit, startAfter, getDocs, QueryDocumentSnapshot } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
@@ -71,18 +71,13 @@ export default function ManagementOrdersPage() {
   const [drawerLogs, setDrawerLogs] = useState<DrawerLog[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [oldestWindowStart, setOldestWindowStart] = useState<Date | null>(null)
+  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const [selectedLocation, setSelectedLocation] = useState('All Locations')
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
-  function startOfDayLocal(daysAgo: number): Date {
-    const d = new Date()
-    d.setHours(0, 0, 0, 0)
-    d.setDate(d.getDate() - daysAgo)
-    return d
-  }
+  const PAGE_SIZE = 100
 
   useEffect(() => {
     if (!accountId) return
@@ -104,31 +99,18 @@ export default function ManagementOrdersPage() {
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [hasMore, loadingMore, loading, oldestWindowStart])
+  }, [hasMore, loadingMore, loading, lastDoc])
 
   async function loadOrders(reset = false) {
     if (!accountId) return
-    if (reset) setLoading(true)
+    if (reset) { setLoading(true); setLastDoc(null) }
     else setLoadingMore(true)
 
-    let windowStart: Date
-    let windowEnd: Date | null = null
-
-    if (reset) {
-      windowStart = startOfDayLocal(2) // today + yesterday + day before = 3 days
-      setOldestWindowStart(windowStart)
-    } else {
-      windowEnd = oldestWindowStart!
-      windowStart = new Date(oldestWindowStart!)
-      windowStart.setDate(windowStart.getDate() - 3) // 3 more days each load
-      setOldestWindowStart(windowStart)
-    }
-
-    const constraints = [
-      where('createdAt', '>=', Timestamp.fromDate(windowStart)),
-      ...(windowEnd ? [where('createdAt', '<', Timestamp.fromDate(windowEnd))] : []),
+    const constraints: any[] = [
       orderBy('createdAt', 'desc'),
+      limit(PAGE_SIZE),
     ]
+    if (!reset && lastDoc) constraints.push(startAfter(lastDoc))
 
     const snap = await getDocs(
       query(collection(db, 'accounts', accountId, 'orders'), ...constraints)
@@ -137,7 +119,8 @@ export default function ManagementOrdersPage() {
 
     const loaded = snap.docs.map(d => ({ id: d.id, ...d.data() } as Order))
     setOrders(prev => reset ? loaded : [...prev, ...loaded])
-    setHasMore(snap.docs.length > 0)
+    setLastDoc(snap.docs[snap.docs.length - 1] ?? null)
+    setHasMore(snap.docs.length === PAGE_SIZE)
     if (reset) setLoading(false)
     else setLoadingMore(false)
   }
