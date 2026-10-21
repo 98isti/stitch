@@ -222,9 +222,19 @@ export default function ManagementOrdersPage() {
                     const isDrawerOrder = order.customerName === 'Drawer Opened'
                     const due = order.stillDueAmount ?? 0
 
+                    const isCancelled = order.status === 'Cancelled'
+
                     return (
                       <button key={order.id} onClick={() => setSelectedOrderId(order.id)}
-                        className="w-full flex items-center gap-3 px-4 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 hover:border-gray-200 hover:shadow-md active:scale-[0.99] transition-all text-left">
+                        className={`w-full flex items-center gap-3 px-4 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 hover:border-gray-200 hover:shadow-md active:scale-[0.99] transition-all text-left ${
+                          isCancelled ? 'opacity-50' : ''
+                        }`}
+                        style={isCancelled ? {
+                          backgroundImage: 'linear-gradient(to right, #9ca3af, #9ca3af)',
+                          backgroundSize: '100% 1px',
+                          backgroundPosition: 'center',
+                          backgroundRepeat: 'no-repeat',
+                        } : undefined}>
                         <PaymentIcon order={order} />
                         <div className="flex-1 min-w-0">
                           {isDrawerOrder ? (
