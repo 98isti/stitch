@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import OrderDetailSheet from '../components/OrderDetailSheet'
 import EditOrderSheet from '../components/EditOrderSheet'
 import {
-  collection, query, where, orderBy, limit, startAfter,
+  collection, query, where, orderBy, limit,
   getDocs, QueryDocumentSnapshot, QueryConstraint, Timestamp
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
@@ -54,7 +54,6 @@ interface DrawerLog {
 }
 
 const FILTERS = ['All', 'In progress', 'Ready for Pick Up', 'Picked Up', 'Redo']
-const PAGE_SIZE = 50
 
 function formatDate(str: string) {
   if (!str) return '—'
@@ -69,8 +68,8 @@ export default function OrdersPage() {
 
   const [orders, setOrders] = useState<Order[]>([])
   const [drawerLogs, setDrawerLogs] = useState<DrawerLog[]>([])
-  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null)
-  const [hasMore, setHasMore] = useState(false)
+  const [oldestWindowStart, setOldestWindowStart] = useState<Date | null>(null)
+  const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [search, setSearch] = useState('')
@@ -83,45 +82,51 @@ export default function OrdersPage() {
   const [searching, setSearching] = useState(false)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // ── Load paginated orders ────────────────────────────────────────────────
+  // Returns midnight of N days ago in local time
+  function startOfDayLocal(daysAgo: number): Date {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    d.setDate(d.getDate() - daysAgo)
+    return d
+  }
+
+  // ── Load orders by date window ────────────────────────────────────────────────
   async function loadOrders(reset = false) {
     if (!accountId || !activeLocation) return
-    if (reset) { setLoading(true); setLastDoc(null) }
+    if (reset) setLoading(true)
     else setLoadingMore(true)
 
     try {
-      // Primary: server-side location filter + ordered (requires composite index)
+      let windowStart: Date
+      let windowEnd: Date | null = null
+
+      if (reset) {
+        windowStart = startOfDayLocal(1) // start of yesterday
+        setOldestWindowStart(windowStart)
+      } else {
+        // 2 more days before the current oldest window
+        windowEnd = oldestWindowStart!
+        windowStart = new Date(oldestWindowStart!)
+        windowStart.setDate(windowStart.getDate() - 2)
+        setOldestWindowStart(windowStart)
+      }
+
       const constraints: QueryConstraint[] = [
         where('locationId', '==', activeLocation.id),
+        where('createdAt', '>=', Timestamp.fromDate(windowStart)),
       ]
+      if (windowEnd) constraints.push(where('createdAt', '<', Timestamp.fromDate(windowEnd)))
       if (filter !== 'All') constraints.push(where('status', '==', filter))
       constraints.push(orderBy('createdAt', 'desc'))
-      constraints.push(limit(PAGE_SIZE))
-      if (!reset && lastDoc) constraints.push(startAfter(lastDoc))
 
-      let snap = await getDocs(query(
+      const snap = await getDocs(query(
         collection(db, 'accounts', accountId, 'orders'),
         ...constraints
-      )).catch(async (e) => {
-        // Composite index not yet ready — fall back to unordered location filter
-        console.warn('Index not ready, falling back:', e?.message)
-        const fallbackConstraints: QueryConstraint[] = [
-          where('locationId', '==', activeLocation.id),
-          limit(PAGE_SIZE),
-        ]
-        if (filter !== 'All') fallbackConstraints.unshift(where('status', '==', filter))
-        return getDocs(query(
-          collection(db, 'accounts', accountId, 'orders'),
-          ...fallbackConstraints
-        ))
-      })
+      ))
 
       const loaded = snap.docs.map(d => ({ id: d.id, ...d.data() } as Order))
-      // Sort client-side in fallback scenario
-      loaded.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0))
       setOrders(prev => reset ? loaded : [...prev, ...loaded])
-      setLastDoc(snap.docs[snap.docs.length - 1] ?? null)
-      setHasMore(snap.docs.length === PAGE_SIZE)
+      setHasMore(snap.docs.length > 0)
     } catch (e) { console.error('loadOrders:', e) }
     finally {
       if (reset) setLoading(false)
@@ -405,7 +410,7 @@ export default function OrdersPage() {
                   onClick={() => loadOrders(false)}
                   disabled={loadingMore}
                   className="px-6 py-2 rounded-full bg-white border border-gray-200 text-sm font-semibold text-navy hover:bg-gray-50 disabled:opacity-40 shadow-sm">
-                  {loadingMore ? 'Loading…' : 'Load more orders'}
+                  {loadingMore ? 'Loading…' : 'Load 2 more days'}
                 </button>
               </div>
             )}

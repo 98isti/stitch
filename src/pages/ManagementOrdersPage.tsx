@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { collection, query, orderBy, limit, getDocs, startAfter, QueryDocumentSnapshot } from 'firebase/firestore'
+import { collection, query, orderBy, where, limit, getDocs, Timestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
@@ -64,8 +64,6 @@ function PaymentIcon({ order }: { order: Order }) {
   return <DollarSign size={18} className="text-gray-400 flex-shrink-0" />
 }
 
-const PAGE_SIZE = 40
-
 export default function ManagementOrdersPage() {
   const { accountId } = useAuth()
   const { locations } = useLocations(accountId)
@@ -73,10 +71,17 @@ export default function ManagementOrdersPage() {
   const [drawerLogs, setDrawerLogs] = useState<DrawerLog[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null)
+  const [oldestWindowStart, setOldestWindowStart] = useState<Date | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const [selectedLocation, setSelectedLocation] = useState('All Locations')
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+
+  function startOfDayLocal(daysAgo: number): Date {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    d.setDate(d.getDate() - daysAgo)
+    return d
+  }
 
   useEffect(() => {
     if (!accountId) return
@@ -89,17 +94,33 @@ export default function ManagementOrdersPage() {
     if (reset) setLoading(true)
     else setLoadingMore(true)
 
-    const q = reset
-      ? query(collection(db, 'accounts', accountId, 'orders'), orderBy('createdAt', 'desc'), limit(PAGE_SIZE))
-      : query(collection(db, 'accounts', accountId, 'orders'), orderBy('createdAt', 'desc'), limit(PAGE_SIZE), startAfter(lastDoc))
+    let windowStart: Date
+    let windowEnd: Date | null = null
 
-    const snap = await getDocs(q).catch(() => null)
+    if (reset) {
+      windowStart = startOfDayLocal(1) // start of yesterday
+      setOldestWindowStart(windowStart)
+    } else {
+      windowEnd = oldestWindowStart!
+      windowStart = new Date(oldestWindowStart!)
+      windowStart.setDate(windowStart.getDate() - 2)
+      setOldestWindowStart(windowStart)
+    }
+
+    const constraints = [
+      where('createdAt', '>=', Timestamp.fromDate(windowStart)),
+      ...(windowEnd ? [where('createdAt', '<', Timestamp.fromDate(windowEnd))] : []),
+      orderBy('createdAt', 'desc'),
+    ]
+
+    const snap = await getDocs(
+      query(collection(db, 'accounts', accountId, 'orders'), ...constraints)
+    ).catch(() => null)
     if (!snap) { setLoading(false); setLoadingMore(false); return }
 
     const loaded = snap.docs.map(d => ({ id: d.id, ...d.data() } as Order))
     setOrders(prev => reset ? loaded : [...prev, ...loaded])
-    setLastDoc(snap.docs[snap.docs.length - 1] ?? null)
-    setHasMore(snap.docs.length === PAGE_SIZE)
+    setHasMore(snap.docs.length > 0)
     if (reset) setLoading(false)
     else setLoadingMore(false)
   }
@@ -184,9 +205,9 @@ export default function ManagementOrdersPage() {
                     if (row.type === 'drawer') {
                       return (
                         <div key={row.data.id} className="flex items-center gap-3 px-4 py-3 bg-white rounded-2xl shadow-sm border border-gray-100">
-                          <Archive size={18} className="text-gray-400 flex-shrink-0" />
+                          <Archive size={18} className="text-amber-600 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-500">Drawer Opened</p>
+                            <p className="text-sm font-semibold text-amber-700">Drawer Opened</p>
                             <p className="text-xs text-gray-400">by {row.data.openedBy}</p>
                           </div>
                           <div className="text-right flex-shrink-0">
@@ -232,7 +253,7 @@ export default function ManagementOrdersPage() {
             {hasMore && (
               <button onClick={() => loadOrders(false)} disabled={loadingMore}
                 className="w-full py-3 text-sm font-semibold text-navy hover:opacity-70 disabled:opacity-40 mt-2">
-                {loadingMore ? 'Loading…' : 'Load More'}
+                {loadingMore ? 'Loading…' : 'Load 2 more days'}
               </button>
             )}
           </>
