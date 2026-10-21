@@ -82,11 +82,11 @@ function TableSection({ label, rows, columns, showDelta = true }: {
           <thead>
             <tr className="border-b border-gray-200 bg-white">
               {/* Sticky location header */}
-              <th className="sticky left-0 z-10 bg-white px-4 py-4 text-left border-r border-gray-200 w-36">
+              <th className="sticky left-0 z-10 bg-white px-3 py-2.5 text-left border-r border-gray-200 w-32">
                 <span className="text-base font-bold text-gray-500">Location</span>
               </th>
               {columns.map((col, i) => (
-                <th key={i} className="px-3 py-4 text-right min-w-[120px]">
+                <th key={i} className="px-2 py-2.5 text-right min-w-[100px]">
                   <span className="text-base font-bold text-gray-500 whitespace-nowrap">{col.label}</span>
                 </th>
               ))}
@@ -96,7 +96,7 @@ function TableSection({ label, rows, columns, showDelta = true }: {
             {rows.map(row => (
               <tr key={row.name} className="border-b border-gray-100">
                 {/* Sticky location name */}
-                <td className="sticky left-0 z-10 bg-white px-4 py-4 border-r border-gray-200 w-36">
+                <td className="sticky left-0 z-10 bg-white px-3 py-2.5 border-r border-gray-200 w-32">
                   <span className={`text-lg leading-snug whitespace-nowrap ${row.isTotal ? 'text-blue-600 font-bold' : 'text-gray-800 font-medium'}`}>
                     {row.name}
                   </span>
@@ -104,7 +104,7 @@ function TableSection({ label, rows, columns, showDelta = true }: {
                 {row.values.map((val, i) => {
                   const prev = i < row.values.length - 1 ? row.values[i + 1] : 0
                   return (
-                    <td key={i} className="px-3 py-4 text-right align-top min-w-[120px]">
+                    <td key={i} className="px-2 py-2.5 text-right align-top min-w-[100px]">
                       <p className={`text-lg ${
                         row.isTotal ? 'text-blue-600 font-bold' : val === 0 ? 'text-gray-300' : 'text-gray-900'
                       }`}>
