@@ -63,10 +63,11 @@ function Delta({ current, prev }: { current: number; prev: number }) {
 
 // ── Table section ─────────────────────────────────────────────────────────────
 
-function TableSection({ label, rows, columns }: {
+function TableSection({ label, rows, columns, showDelta = true }: {
   label: string
   rows: Array<{ name: string; isTotal: boolean; values: number[] }>
   columns: { label: string }[]
+  showDelta?: boolean
 }) {
   // Single <table> with sticky first column — guarantees perfect row alignment
   return (
@@ -109,7 +110,7 @@ function TableSection({ label, rows, columns }: {
                       }`}>
                         {fmt(val)}
                       </p>
-                      {val > 0 && <Delta current={val} prev={prev} />}
+                      {showDelta && val > 0 && <Delta current={val} prev={prev} />}
                     </td>
                   )
                 })}
@@ -209,7 +210,7 @@ export default function ManagementReportPage() {
       {/* Vertically scrollable page, inner panels scroll horizontally */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div>
-          <TableSection label="Daily" rows={data.dailyRows} columns={data.dailyCols} />
+          <TableSection label="Daily" rows={data.dailyRows} columns={data.dailyCols} showDelta={false} />
           <TableSection label="Weekly" rows={data.weeklyRows} columns={data.weeklyCols} />
           <TableSection label="Monthly" rows={data.monthlyRows} columns={data.monthlyCols} />
 
