@@ -12,19 +12,6 @@ import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 
-function CashDrawerIcon({ size = 20, className = '' }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-      className={className}>
-      <rect x="2" y="3" width="20" height="11" rx="2" />
-      <line x1="2" y1="10" x2="22" y2="10" />
-      <rect x="4" y="14" width="16" height="7" rx="1.5" />
-      <line x1="9" y1="17.5" x2="15" y2="17.5" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  )
-}
-
 export interface Order {
   id: string
   orderNumberString: string
@@ -45,13 +32,6 @@ export interface Order {
   createdAt?: Timestamp
 }
 
-interface DrawerLog {
-  id: string
-  openedAt: Timestamp
-  openedBy: string
-  location: string
-}
-
 const FILTERS = ['All', 'In progress', 'Ready for Pick Up', 'Picked Up', 'Redo']
 const PAGE_SIZE = 50
 
@@ -67,7 +47,6 @@ export default function OrdersPage() {
   const { activeLocation } = useLocations(accountId)
 
   const [orders, setOrders] = useState<Order[]>([])
-  const [drawerLogs, setDrawerLogs] = useState<DrawerLog[]>([])
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null)
   const [hasMore, setHasMore] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -126,20 +105,6 @@ export default function OrdersPage() {
       if (reset) setLoading(false)
       else setLoadingMore(false)
     }
-  }
-
-  // ── Load drawer logs for active location ─────────────────────────────────
-  async function loadDrawerLogs() {
-    if (!accountId || !activeLocation) return
-    try {
-      const snap = await getDocs(query(
-        collection(db, 'accounts', accountId, 'drawerLogs'),
-        where('locationId', '==', activeLocation.id),
-        orderBy('openedAt', 'desc'),
-        limit(100)
-      ))
-      setDrawerLogs(snap.docs.map(d => ({ id: d.id, ...d.data() } as DrawerLog)))
-    } catch (e) { console.error('loadDrawerLogs:', e) }
   }
 
   // ── Server-side search ────────────────────────────────────────────────────
@@ -218,23 +183,16 @@ export default function OrdersPage() {
     setSearchResults(null)
     setOrders([])
     loadOrders(true)
-    loadDrawerLogs()
   }, [accountId, activeLocation?.id, filter])
 
   // ── Rows to display ───────────────────────────────────────────────────────
   const isSearching = search.trim().length > 0
 
-  type Row = { type: 'order'; data: Order; ts: number } | { type: 'drawer'; data: DrawerLog; ts: number }
+  type Row = { type: 'order'; data: Order; ts: number }
 
   const rows: Row[] = isSearching
     ? (searchResults ?? []).map(o => ({ type: 'order' as const, data: o, ts: o.createdAt?.seconds ?? 0 }))
-    : [
-        ...orders.map(o => ({ type: 'order' as const, data: o, ts: o.createdAt?.seconds ?? 0 })),
-        ...(filter === 'All'
-          ? drawerLogs.map(d => ({ type: 'drawer' as const, data: d, ts: d.openedAt?.seconds ?? 0 }))
-          : []
-        ),
-      ].sort((a, b) => b.ts - a.ts)
+    : orders.map(o => ({ type: 'order' as const, data: o, ts: o.createdAt?.seconds ?? 0 }))
 
   const displayCount = isSearching ? (searchResults?.length ?? 0) : orders.length
 
@@ -272,7 +230,7 @@ export default function OrdersPage() {
             )}
           </div>
           <button
-            onClick={() => { setSearch(''); setSearchResults(null); loadOrders(true); loadDrawerLogs() }}
+            onClick={() => { setSearch(''); setSearchResults(null); loadOrders(true) }}
             className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500 transition-colors">
             <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -324,21 +282,6 @@ export default function OrdersPage() {
               </thead>
               <tbody className="bg-white">
                 {rows.map((row, idx) => {
-                  if (row.type === 'drawer') {
-                    const d = row.data
-                    const time = d.openedAt?.seconds
-                      ? new Date(d.openedAt.seconds * 1000).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true })
-                      : ''
-                    return (
-                      <tr key={'drawer-' + d.id} className="border-b border-amber-100 bg-amber-50/40">
-                        <td className="px-5 py-3"><CashDrawerIcon size={20} className="text-amber-600" /></td>
-                        <td className="px-3 py-3 text-gray-500 text-xs whitespace-nowrap">{time}</td>
-                        <td className="px-3 py-3 text-amber-700 font-medium text-sm" colSpan={5}>Drawer Opened — by {d.openedBy}</td>
-                        <td className="px-5 py-3" />
-                      </tr>
-                    )
-                  }
-
                   const order = row.data as Order
                   const isNewest = idx === 0 && !isSearching
                   const isDue = order.stillDueAmount > 0 && order.status !== 'Picked Up'
