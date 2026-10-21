@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
 
 // Firebase config for StitchApp project (stitchapp-31192)
 // These are safe to be public — security is enforced by Firestore rules
@@ -15,4 +15,11 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
-export const db = getFirestore(app)
+// Firestore IndexedDB persistence — caches query results on device for instant repeat loads.
+// Syncs with server in background. Safe for Capacitor WebView (one tab per device).
+// Note: if admin scripts fix data externally, force-quit the app to clear stale cache.
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+  }),
+})
