@@ -105,8 +105,8 @@ function TableSection({ label, rows, columns, showDelta = true }: {
                   const prev = i < row.values.length - 1 ? row.values[i + 1] : 0
                   return (
                     <td key={i} className="px-3 py-3 text-right align-top min-w-[110px]">
-                      <p className={`text-base font-bold ${
-                        row.isTotal ? 'text-blue-600' : val === 0 ? 'text-gray-300' : 'text-gray-900'
+                      <p className={`text-base ${
+                        row.isTotal ? 'text-blue-600 font-bold' : val === 0 ? 'text-gray-300' : 'text-gray-900'
                       }`}>
                         {fmt(val)}
                       </p>
