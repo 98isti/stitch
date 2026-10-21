@@ -58,7 +58,7 @@ function Delta({ current, prev }: { current: number; prev: number }) {
   const delta = current - prev
   if (delta === 0) return null
   const color = delta >= 0 ? 'text-emerald-600' : 'text-red-500'
-  return <p className={`text-xs ${color} mt-0.5`}>({delta >= 0 ? '+' : ''}{fmt(delta)})</p>
+  return <p className={`text-sm ${color} mt-0.5`}>({delta >= 0 ? '+' : ''}{fmt(delta)})</p>
 }
 
 // ── Table section ─────────────────────────────────────────────────────────────
@@ -68,56 +68,55 @@ function TableSection({ label, rows, columns }: {
   rows: Array<{ name: string; isTotal: boolean; values: number[] }>
   columns: { label: string }[]
 }) {
-  // Two-panel layout: fixed location column + independently scrollable value columns
+  // Single <table> with sticky first column — guarantees perfect row alignment
   return (
     <div className="mb-4 bg-white rounded-xl overflow-hidden border border-gray-100">
       {/* Section label */}
-      <div className="bg-gray-100 px-3 py-2 border-b border-gray-200">
-        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{label}</span>
+      <div className="bg-gray-100 px-4 py-2.5 border-b border-gray-200">
+        <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">{label}</span>
       </div>
 
-      <div className="flex">
-        {/* Fixed left: location names */}
-        <div className="flex-shrink-0 w-28 border-r border-gray-200">
-          <div className="px-3 py-2.5 border-b border-gray-200">
-            <span className="text-xs font-bold text-gray-500">Location</span>
-          </div>
-          {rows.map(row => (
-            <div key={row.name} className="px-3 py-3 border-b border-gray-100 min-h-[52px] flex items-center">
-              <span className={`text-sm leading-tight ${row.isTotal ? 'text-blue-600 font-bold' : 'text-gray-800'}`}>
-                {row.name}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* Scrollable right: value columns */}
-        <div className="flex-1 overflow-x-auto">
-          {/* Column headers */}
-          <div className="flex border-b border-gray-200">
-            {columns.map((col, i) => (
-              <div key={i} className="w-28 flex-shrink-0 px-2 py-2.5 text-right">
-                <span className="text-xs font-bold text-gray-500">{col.label}</span>
-              </div>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse" style={{ minWidth: `${140 + columns.length * 110}px` }}>
+          <thead>
+            <tr className="border-b border-gray-200 bg-white">
+              {/* Sticky location header */}
+              <th className="sticky left-0 z-10 bg-white px-4 py-3 text-left border-r border-gray-200 w-36">
+                <span className="text-sm font-bold text-gray-500">Location</span>
+              </th>
+              {columns.map((col, i) => (
+                <th key={i} className="px-3 py-3 text-right min-w-[110px]">
+                  <span className="text-sm font-bold text-gray-500 whitespace-nowrap">{col.label}</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(row => (
+              <tr key={row.name} className="border-b border-gray-100">
+                {/* Sticky location name */}
+                <td className="sticky left-0 z-10 bg-white px-4 py-3 border-r border-gray-200 w-36">
+                  <span className={`text-base leading-snug whitespace-nowrap ${row.isTotal ? 'text-blue-600 font-bold' : 'text-gray-800 font-medium'}`}>
+                    {row.name}
+                  </span>
+                </td>
+                {row.values.map((val, i) => {
+                  const prev = i < row.values.length - 1 ? row.values[i + 1] : 0
+                  return (
+                    <td key={i} className="px-3 py-3 text-right align-top min-w-[110px]">
+                      <p className={`text-base font-bold ${
+                        row.isTotal ? 'text-blue-600' : val === 0 ? 'text-gray-300' : 'text-gray-900'
+                      }`}>
+                        {fmt(val)}
+                      </p>
+                      {val > 0 && <Delta current={val} prev={prev} />}
+                    </td>
+                  )
+                })}
+              </tr>
             ))}
-          </div>
-          {/* Value rows */}
-          {rows.map(row => (
-            <div key={row.name} className="flex border-b border-gray-100 min-h-[52px]">
-              {row.values.map((val, i) => {
-                const prev = i < row.values.length - 1 ? row.values[i + 1] : 0
-                return (
-                  <div key={i} className="w-28 flex-shrink-0 px-2 py-2.5 text-right flex flex-col justify-center">
-                    <p className={`text-sm font-semibold ${row.isTotal ? 'text-blue-600' : val === 0 ? 'text-gray-300' : 'text-gray-900'}`}>
-                      {fmt(val)}
-                    </p>
-                    {val > 0 && <Delta current={val} prev={prev} />}
-                  </div>
-                )
-              })}
-            </div>
-          ))}
-        </div>
+          </tbody>
+        </table>
       </div>
     </div>
   )
