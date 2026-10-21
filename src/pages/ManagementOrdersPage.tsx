@@ -58,28 +58,28 @@ function PaymentIcon({ order }: { order: Order }) {
   const partial = (order.paidAmount ?? 0) > 0 && unpaid
 
   if (isDrawer) return (
-    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-      <Archive size={18} className="text-amber-500" />
+    <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+      <Archive size={18} className="text-amber-400" />
     </div>
   )
   if (order.paidAmount === 0) return (
-    <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-      <AlertTriangle size={18} className="text-red-500" />
+    <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+      <AlertTriangle size={18} className="text-red-400" />
     </div>
   )
   if (partial) return (
-    <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-      <AlertTriangle size={18} className="text-orange-500" />
+    <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center flex-shrink-0">
+      <AlertTriangle size={18} className="text-orange-400" />
     </div>
   )
   if (order.paymentMethod === 'Card') return (
-    <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-      <CreditCard size={18} className="text-emerald-600" />
+    <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
+      <CreditCard size={18} className="text-emerald-500" />
     </div>
   )
   return (
-    <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-      <DollarSign size={18} className="text-emerald-600" />
+    <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
+      <DollarSign size={18} className="text-emerald-500" />
     </div>
   )
 }
