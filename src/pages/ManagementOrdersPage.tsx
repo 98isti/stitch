@@ -142,9 +142,17 @@ export default function ManagementOrdersPage() {
       ? drawerLogs
       : drawerLogs.filter(d => d.location === selectedLocation)
 
+    // Only show drawer logs on dates that have real orders loaded
+    const loadedOrderDates = new Set(
+      filteredOrders.map(o => toLocalDate((o.createdAt?.seconds ?? 0) * 1000))
+    )
+    const matchedDrawer = filteredDrawer.filter(
+      d => loadedOrderDates.has(toLocalDate((d.openedAt?.seconds ?? 0) * 1000))
+    )
+
     const merged: Row[] = [
       ...filteredOrders.map(o => ({ type: 'order' as const, data: o, ts: o.createdAt?.seconds ?? 0 })),
-      ...filteredDrawer.map(d => ({ type: 'drawer' as const, data: d, ts: d.openedAt?.seconds ?? 0 })),
+      ...matchedDrawer.map(d => ({ type: 'drawer' as const, data: d, ts: d.openedAt?.seconds ?? 0 })),
     ]
     return merged.sort((a, b) => b.ts - a.ts)
   }, [orders, drawerLogs, selectedLocation])

@@ -11,6 +11,7 @@ import {
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
+import { toLocalDate } from '../lib/dateUtils'
 
 function CashDrawerIcon({ size = 20, className = '' }: { size?: number; className?: string }) {
   return (
@@ -226,12 +227,19 @@ export default function OrdersPage() {
 
   type Row = { type: 'order'; data: Order; ts: number } | { type: 'drawer'; data: DrawerLog; ts: number }
 
+  // Build set of dates that have real orders loaded — drawer logs only show on those dates
+  const loadedOrderDates = new Set(
+    orders.map(o => toLocalDate((o.createdAt?.seconds ?? 0) * 1000))
+  )
+
   const rows: Row[] = isSearching
     ? (searchResults ?? []).map(o => ({ type: 'order' as const, data: o, ts: o.createdAt?.seconds ?? 0 }))
     : [
         ...orders.map(o => ({ type: 'order' as const, data: o, ts: o.createdAt?.seconds ?? 0 })),
         ...(filter === 'All'
-          ? drawerLogs.map(d => ({ type: 'drawer' as const, data: d, ts: d.openedAt?.seconds ?? 0 }))
+          ? drawerLogs
+              .filter(d => loadedOrderDates.has(toLocalDate((d.openedAt?.seconds ?? 0) * 1000)))
+              .map(d => ({ type: 'drawer' as const, data: d, ts: d.openedAt?.seconds ?? 0 }))
           : []
         ),
       ].sort((a, b) => b.ts - a.ts)
