@@ -90,6 +90,7 @@ export default function ManagementOrdersPage() {
   const { accountId } = useAuth()
   const { locations } = useLocations(accountId)
   const [orders, setOrders] = useState<Order[]>([])
+  const [drawerLogs, setDrawerLogs] = useState<DrawerLog[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null)
@@ -100,6 +101,7 @@ export default function ManagementOrdersPage() {
   useEffect(() => {
     if (!accountId) return
     loadOrders(true)
+    loadDrawerLogs()
   }, [accountId])
 
   async function loadOrders(reset = false) {
@@ -122,6 +124,13 @@ export default function ManagementOrdersPage() {
     else setLoadingMore(false)
   }
 
+  async function loadDrawerLogs() {
+    if (!accountId) return
+    const snap = await getDocs(
+      query(collection(db, 'accounts', accountId, 'drawerLogs'), orderBy('openedAt', 'desc'), limit(50))
+    ).catch(() => null)
+    if (snap) setDrawerLogs(snap.docs.map(d => ({ id: d.id, ...d.data() } as DrawerLog)))
+  }
 
   // Merge orders + drawer logs, filter by location, sort newest first
   const rows = useMemo<Row[]>(() => {
@@ -129,10 +138,16 @@ export default function ManagementOrdersPage() {
       ? orders
       : orders.filter(o => o.location === selectedLocation || (o as any).locationName === selectedLocation)
 
-    return filteredOrders
-      .map(o => ({ type: 'order' as const, data: o, ts: o.createdAt?.seconds ?? 0 }))
-      .sort((a, b) => b.ts - a.ts)
-  }, [orders, selectedLocation])
+    const filteredDrawer = selectedLocation === 'All Locations'
+      ? drawerLogs
+      : drawerLogs.filter(d => d.location === selectedLocation)
+
+    const merged: Row[] = [
+      ...filteredOrders.map(o => ({ type: 'order' as const, data: o, ts: o.createdAt?.seconds ?? 0 })),
+      ...filteredDrawer.map(d => ({ type: 'drawer' as const, data: d, ts: d.openedAt?.seconds ?? 0 })),
+    ]
+    return merged.sort((a, b) => b.ts - a.ts)
+  }, [orders, drawerLogs, selectedLocation])
 
   // Group by date
   const grouped = useMemo(() => {
