@@ -196,8 +196,8 @@ export default function ManagementOrdersPage() {
           <>
             {grouped.map(([date, dateRows]) => (
               <div key={date} className="mb-3">
-                {/* Date header */}
-                <p className="text-sm font-semibold text-gray-500 px-1 mb-2 mt-3">{formatDateHeader(date)}</p>
+                {/* Date header — sticky */}
+                <p className="sticky top-0 z-10 text-sm font-semibold text-gray-500 px-1 mb-2 mt-3 bg-gray-100 py-1">{formatDateHeader(date)}</p>
 
                 {/* Rows — each row is its own card */}
                 <div className="flex flex-col gap-2">
