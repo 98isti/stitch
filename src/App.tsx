@@ -51,7 +51,8 @@ function AppRoutes() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-navy flex items-center justify-center">
+      <div className="min-h-screen bg-navy flex flex-col items-center justify-center gap-6">
+        <img src="/stitch-logo.png" alt="Stitch" className="h-12 object-contain opacity-90" />
         <div className="w-8 h-8 border-2 border-tan border-t-transparent rounded-full animate-spin" />
       </div>
     )
