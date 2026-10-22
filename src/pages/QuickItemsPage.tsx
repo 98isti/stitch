@@ -13,6 +13,7 @@ interface QuickItem {
   name: string
   price: number
   category: string
+  components?: string[]
 }
 
 const MAX = 8
@@ -52,7 +53,7 @@ export default function QuickItemsPage() {
 
   function addItem(item: { id: string; itemName: string; itemPrice: number; itemCategoryName: string }) {
     if (quickItems.length >= MAX || quickItems.some(q => q.itemId === item.id)) return
-    const updated = [...quickItems, { itemId: item.id, name: item.itemName, price: item.itemPrice, category: item.itemCategoryName }]
+    const updated = [...quickItems, { itemId: item.id, name: item.itemName, price: item.itemPrice, category: item.itemCategoryName, ...(( item as any).components?.length ? { components: (item as any).components } : {}) }]
     setQuickItems(updated)
     save(updated)
     setPickerCategory(null)

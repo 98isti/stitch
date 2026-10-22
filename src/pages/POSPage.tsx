@@ -369,7 +369,7 @@ export default function POSPage() {
   const loading = catsLoading || itemsLoading || locsLoading
 
   // Quick items — loaded from location doc
-  const quickItems: { itemId: string; name: string; price: number; category: string }[] =
+  const quickItems: { itemId: string; name: string; price: number; category: string; components?: string[] }[] =
     (activeLocation as any)?.quickItems ?? []
 
   const {
@@ -959,7 +959,8 @@ export default function POSPage() {
                           setItems(prev => [...prev, {
                             id: crypto.randomUUID(), garmentId: crypto.randomUUID(),
                             category: qi.category, name: qi.name,
-                            quantity: 1, unitPrice: qi.price, note: ''
+                            quantity: 1, unitPrice: qi.price, note: '',
+                            ...(qi.components?.length ? { components: qi.components } : {})
                           }])
                         }}
                         className="shrink-0 flex flex-col items-center justify-center bg-navy/5 border border-navy/20 rounded-xl px-3 py-2 hover:bg-navy hover:text-white hover:border-navy active:scale-95 transition-all">
