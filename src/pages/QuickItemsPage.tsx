@@ -168,9 +168,9 @@ export default function QuickItemsPage() {
 
       {/* Picker sheet */}
       {pickerOpen && (
-        <div className="fixed inset-0 z-50 flex items-end">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/40" onClick={() => { setPickerCategory(null); setSearch('') }} />
-          <div className="relative w-full bg-white rounded-t-2xl shadow-2xl max-w-lg mx-auto flex flex-col max-h-[85vh]">
+          <div className="relative w-full bg-white rounded-2xl shadow-2xl max-w-lg mx-4 flex flex-col max-h-[85vh]">
 
             {/* Sheet header */}
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-4 mb-3 shrink-0" />
@@ -212,12 +212,14 @@ export default function QuickItemsPage() {
                   ? <p className="text-center text-sm text-gray-400 py-8">No items found</p>
                   : searchResults.map(item => (
                     <button key={item.id} onClick={() => addItem(item)}
-                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left">
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">{item.itemName}</p>
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left gap-3">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-800">
+                          {item.itemName}{(item as any).components?.length ? ` (${(item as any).components.join(' + ')})` : ''}
+                        </p>
                         <p className="text-xs text-gray-400">{item.itemCategoryName}</p>
                       </div>
-                      <span className="text-sm font-semibold text-navy">${item.itemPrice.toFixed(2)}</span>
+                      <span className="text-sm font-semibold text-navy shrink-0">${item.itemPrice.toFixed(2)}</span>
                     </button>
                   ))
 
@@ -252,9 +254,11 @@ export default function QuickItemsPage() {
                   ? <p className="text-center text-sm text-gray-400 py-8">All items from this category already added</p>
                   : pickerItems.map(item => (
                     <button key={item.id} onClick={() => addItem(item)}
-                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left">
-                      <span className="text-sm font-medium text-gray-800">{item.itemName}</span>
-                      <span className="text-sm font-semibold text-navy">${item.itemPrice.toFixed(2)}</span>
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left gap-3">
+                      <span className="text-sm font-medium text-gray-800 flex-1">
+                        {item.itemName}{(item as any).components?.length ? ` (${(item as any).components.join(' + ')})` : ''}
+                      </span>
+                      <span className="text-sm font-semibold text-navy shrink-0">${item.itemPrice.toFixed(2)}</span>
                     </button>
                   ))
               )}
