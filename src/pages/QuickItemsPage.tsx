@@ -28,8 +28,9 @@ export default function QuickItemsPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  // Picker state: null = closed, '' = category list, 'CategoryName' = items in category
+  // Picker state: null = closed, '' = category list, 'CategoryName' = sub-cat/items in category
   const [pickerCategory, setPickerCategory] = useState<string | null>(null)
+  const [pickerSubCategory, setPickerSubCategory] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function QuickItemsPage() {
     setQuickItems(updated)
     save(updated)
     setPickerCategory(null)
+    setPickerSubCategory(null)
     setSearch('')
   }
 
@@ -72,9 +74,17 @@ export default function QuickItemsPage() {
     save(updated)
   }
 
-  // Items in selected category (for picker)
+  // Sub-categories for selected category
+  const pickerSubCategories = pickerCategory
+    ? [...new Set(items
+        .filter(i => i.itemCategoryName === pickerCategory && i.itemSubCategoryName)
+        .map(i => i.itemSubCategoryName!))].sort()
+    : []
+
+  // Items in selected category, optionally filtered by sub-category
   const pickerItems = items
     .filter(i => i.itemCategoryName === pickerCategory && i.itemPrice > 0)
+    .filter(i => !pickerSubCategory || i.itemSubCategoryName === pickerSubCategory)
     .filter(i => !quickItems.some(q => q.itemId === i.id))
     .sort((a, b) => a.itemName.localeCompare(b.itemName))
 
@@ -165,14 +175,18 @@ export default function QuickItemsPage() {
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-4 mb-3 shrink-0" />
             <div className="px-4 pb-3 shrink-0 space-y-3">
               <div className="flex items-center gap-2">
-                {pickerCategory !== '' && (
-                  <button onClick={() => { setPickerCategory(''); setSearch('') }}
-                    className="text-navy p-1">
+                {(pickerCategory !== '' || pickerSubCategory) && (
+                  <button onClick={() => {
+                    if (pickerSubCategory) { setPickerSubCategory(null); setSearch('') }
+                    else { setPickerCategory(''); setSearch('') }
+                  }} className="text-navy p-1">
                     <ArrowLeft size={18} />
                   </button>
                 )}
                 <h2 className="font-bold text-navy text-base flex-1">
-                  {pickerCategory !== '' ? pickerCategory : 'Choose Category'}
+                  {pickerCategory === '' ? 'Choose Category'
+                    : pickerSubCategory ? `${pickerCategory} › ${pickerSubCategory}`
+                    : pickerCategory}
                 </h2>
                 <button onClick={() => { setPickerCategory(null); setSearch('') }}
                   className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -209,15 +223,30 @@ export default function QuickItemsPage() {
               ) : pickerCategory === '' ? (
                 /* Category list */
                 categories.map(cat => (
-                  <button key={cat.id} onClick={() => setPickerCategory(cat.categoryName)}
+                  <button key={cat.id} onClick={() => { setPickerCategory(cat.categoryName); setPickerSubCategory(null) }}
                     className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors text-left">
                     <span className="text-sm font-medium text-gray-800">{cat.categoryName}</span>
                     <ChevronRight size={16} className="text-gray-300" />
                   </button>
                 ))
 
+              ) : pickerSubCategories.length > 1 && !pickerSubCategory ? (
+                /* Sub-category list */
+                pickerSubCategories.map(sub => (
+                  <button key={sub} onClick={() => setPickerSubCategory(sub)}
+                    className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors text-left">
+                    <span className="text-sm font-medium text-gray-800">{sub}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400">
+                        {items.filter(i => i.itemCategoryName === pickerCategory && i.itemSubCategoryName === sub && i.itemPrice > 0).length} items
+                      </span>
+                      <ChevronRight size={16} className="text-gray-300" />
+                    </div>
+                  </button>
+                ))
+
               ) : (
-                /* Items in category */
+                /* Items list */
                 pickerItems.length === 0
                   ? <p className="text-center text-sm text-gray-400 py-8">All items from this category already added</p>
                   : pickerItems.map(item => (
