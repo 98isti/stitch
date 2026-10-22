@@ -8,11 +8,19 @@ import {
 
 const SECTIONS = [
   {
+    title: 'Operations',
+    items: [
+      { label: 'Pick-Up Calendar', icon: Calendar,    path: '/mgmt-pickup-calendar' },
+      { label: 'Customers',        icon: UserCircle,  path: '/customers' },
+      { label: 'Vouchers',         icon: Ticket,      path: '/vouchers' },
+      { label: 'Team Performance', icon: TrendingUp,  path: '/mgmt-team-performance' },
+    ],
+  },
+  {
     title: 'Team',
     items: [
       { label: 'Staff',            icon: Users,        path: '/staff' },
       { label: 'Payroll',          icon: DollarSign,   path: '/mgmt-payroll' },
-      { label: 'Team Performance', icon: TrendingUp,   path: '/mgmt-team-performance' },
       { label: 'Roster',           icon: CalendarDays, path: '/mgmt-roster' },
       { label: 'Leave Requests',   icon: UmbrellaOff,  path: '/mgmt-leave' },
     ],
@@ -24,14 +32,6 @@ const SECTIONS = [
       { label: 'Avg by Day',       icon: BarChart3,    path: '/mgmt-avg-by-day' },
       { label: 'Monthly Averages', icon: BarChart3,    path: '/mgmt-monthly-avg' },
       { label: 'OCR',              icon: BarChart3,    path: '/mgmt-ocr' },
-    ],
-  },
-  {
-    title: 'Operations',
-    items: [
-      { label: 'Pick-Up Calendar', icon: Calendar,    path: '/mgmt-pickup-calendar' },
-      { label: 'Customers',        icon: UserCircle,  path: '/customers' },
-      { label: 'Vouchers',         icon: Ticket,      path: '/vouchers' },
     ],
   },
   {
