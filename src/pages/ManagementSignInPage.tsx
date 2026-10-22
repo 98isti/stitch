@@ -199,7 +199,6 @@ export default function ManagementSignInPage() {
                     <th className="px-2 py-2 text-center font-semibold w-20 leading-tight">
                       Sign out<br />Time
                     </th>
-                    <th className="px-2 py-2 text-right font-semibold w-16">Pay</th>
                     <th className="px-2 py-2 text-right font-semibold w-20">Sign-in Loc</th>
                   </tr>
                 </thead>
@@ -211,7 +210,7 @@ export default function ManagementSignInPage() {
                         <td colSpan={2} className="px-3 py-2 font-bold text-gray-800 text-sm">
                           {fmtDate(date)}
                         </td>
-                        <td colSpan={3} className="px-2 py-2 font-bold text-gray-800 text-sm text-right">
+                        <td colSpan={2} className="px-2 py-2 font-bold text-gray-800 text-sm text-right">
                           {fmtDayName(date)}
                         </td>
                       </tr>
@@ -227,9 +226,6 @@ export default function ManagementSignInPage() {
                           </td>
                           <td className="px-2 py-2.5 text-gray-600 text-center">
                             {r.signOutTs ? fmtTime(r.signOutTs) : ''}
-                          </td>
-                          <td className="px-2 py-2.5 text-gray-900 font-medium text-right">
-                            ${r.pay}
                           </td>
                           <td className="px-2 py-2.5 text-gray-500 text-right truncate max-w-[80px]">
                             {r.location}
