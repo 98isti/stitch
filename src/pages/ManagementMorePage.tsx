@@ -11,9 +11,9 @@ const SECTIONS = [
     title: 'Operations',
     items: [
       { label: 'Pick-Up Calendar', icon: Calendar,    path: '/mgmt-pickup-calendar' },
+      { label: 'Team Performance', icon: TrendingUp,  path: '/mgmt-team-performance' },
       { label: 'Customers',        icon: UserCircle,  path: '/customers' },
       { label: 'Vouchers',         icon: Ticket,      path: '/vouchers' },
-      { label: 'Team Performance', icon: TrendingUp,  path: '/mgmt-team-performance' },
     ],
   },
   {
