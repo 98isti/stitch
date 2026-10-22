@@ -975,7 +975,7 @@ export default function POSPage() {
                     <button key={cat.id}
                       onClick={() => { setPickerCategory(cat.categoryName); setShowPicker(true) }}
                       className="flex items-center justify-center rounded-2xl bg-white border border-gray-200 text-gray-800 hover:bg-navy hover:text-white hover:border-navy active:scale-95 transition-all shadow-sm min-h-[80px] px-2 text-center">
-                      <span className="font-semibold text-sm leading-tight">{cat.categoryName}</span>
+                      <span className="font-semibold text-base leading-tight">{cat.categoryName}</span>
                     </button>
                   ))}
                 </div>
