@@ -158,9 +158,11 @@ export default function ManagementOrdersPage() {
     return merged.sort((a, b) => b.ts - a.ts)
   }, [orders, drawerLogs, selectedLocation])
 
-  // Group by date
+  // Group by date — always include today at the top
   const grouped = useMemo(() => {
     const map: Record<string, Row[]> = {}
+    // Always seed today so it appears even with no orders
+    map[todayLocal()] = []
     for (const row of rows) {
       const date = toLocalDate(row.ts * 1000)
       if (!map[date]) map[date] = []
