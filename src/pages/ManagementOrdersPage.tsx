@@ -3,7 +3,7 @@ import { collection, query, orderBy, limit, startAfter, getDocs, QueryDocumentSn
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
-import { CreditCard, DollarSign, AlertTriangle, ChevronRight, Archive } from 'lucide-react'
+import { CreditCard, DollarSign, AlertTriangle, ChevronRight, Archive, Search, X } from 'lucide-react'
 import { toLocalDate, todayLocal, yesterdayLocal, formatTimeLocal } from '../lib/dateUtils'
 import OrderDetailSheet from '../components/OrderDetailSheet'
 
@@ -75,6 +75,7 @@ export default function ManagementOrdersPage() {
   const [hasMore, setHasMore] = useState(true)
   const [selectedLocation, setSelectedLocation] = useState('All Locations')
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   const PAGE_SIZE = 100
@@ -158,6 +159,19 @@ export default function ManagementOrdersPage() {
     return merged.sort((a, b) => b.ts - a.ts)
   }, [orders, drawerLogs, selectedLocation])
 
+  // Search results — filter by phone or order number
+  const searchResults = useMemo(() => {
+    const t = searchTerm.trim()
+    if (!t) return []
+    const isNum = /^\d+$/.test(t)
+    return orders.filter(o => {
+      const locMatch = selectedLocation === 'All Locations' || o.location === selectedLocation || (o as any).locationName === selectedLocation
+      if (!locMatch) return false
+      if (isNum) return String(o.orderNumber).includes(t) || (o.customerPhone ?? '').includes(t)
+      return (o.customerPhone ?? '').includes(t) || (o.customerName ?? '').toLowerCase().includes(t.toLowerCase())
+    })
+  }, [searchTerm, orders, selectedLocation])
+
   // Group by date — always include today at the top
   const grouped = useMemo(() => {
     const map: Record<string, Row[]> = {}
@@ -174,16 +188,34 @@ export default function ManagementOrdersPage() {
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-5 pb-3 flex items-center justify-between flex-shrink-0">
-        <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
-        <select
-          value={selectedLocation}
-          onChange={e => setSelectedLocation(e.target.value)}
-          className="text-sm font-semibold text-navy bg-transparent border-none outline-none cursor-pointer"
-        >
-          <option>All Locations</option>
-          {locations.map(l => <option key={l.id}>{l.name}</option>)}
-        </select>
+      <div className="bg-white border-b border-gray-100 px-4 pt-5 pb-3 flex-shrink-0">
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
+          <select
+            value={selectedLocation}
+            onChange={e => setSelectedLocation(e.target.value)}
+            className="text-sm font-semibold text-navy bg-transparent border-none outline-none cursor-pointer"
+          >
+            <option>All Locations</option>
+            {locations.map(l => <option key={l.id}>{l.name}</option>)}
+          </select>
+        </div>
+        {/* Search bar */}
+        <div className="relative">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="Search by phone or order number…"
+            className="w-full pl-9 pr-8 py-2 text-sm rounded-xl bg-gray-100 border border-transparent focus:outline-none focus:border-navy/30 focus:bg-white transition-colors"
+          />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <X size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* List */}
@@ -191,6 +223,32 @@ export default function ManagementOrdersPage() {
         {loading ? (
           <div className="flex items-center justify-center h-32">
             <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : searchTerm.trim() ? (
+          /* Search results */
+          <div className="flex flex-col gap-2 py-2">
+            {searchResults.length === 0 ? (
+              <p className="text-center text-gray-400 text-sm mt-12">No orders found</p>
+            ) : searchResults.map(order => {
+              const due = order.stillDueAmount ?? 0
+              const isCancelled = order.status === 'Cancelled'
+              return (
+                <button key={order.id} onClick={() => setSelectedOrderId(order.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 hover:border-gray-200 hover:shadow-md active:scale-[0.99] transition-all text-left ${isCancelled ? 'opacity-50' : ''}`}>
+                  <PaymentIcon order={order} />
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-base font-bold ${due > 0 ? 'text-red-500' : 'text-gray-900'}`}>${order.orderAmount?.toFixed(2)}</p>
+                    <p className="text-xs text-gray-400 truncate">{firstItemName(order.items)}</p>
+                    {(order as any).customerPhone && <p className="text-xs text-gray-400">{(order as any).customerPhone}</p>}
+                  </div>
+                  <div className="text-right flex-shrink-0 mr-1">
+                    <p className="text-xs text-gray-500">{order.location}</p>
+                    <p className="text-xs text-gray-400">#{order.orderNumber}</p>
+                  </div>
+                  <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
+                </button>
+              )
+            })}
           </div>
         ) : grouped.length === 0 ? (
           <p className="text-center text-gray-400 text-sm mt-12">No orders yet</p>
