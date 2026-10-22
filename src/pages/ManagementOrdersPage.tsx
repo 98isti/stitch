@@ -12,6 +12,7 @@ interface Order {
   orderNumber: number
   orderNumberString: string
   customerName: string
+  customerPhone?: string
   orderAmount: number
   paidAmount: number
   stillDueAmount: number
