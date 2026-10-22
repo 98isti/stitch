@@ -8,15 +8,26 @@ import { useNavigate } from 'react-router-dom'
 
 interface Order {
   id: string
-  servedBy?: string
+  completedBy?: string
   orderAmount: number
   locationId?: string
   createdAt?: { seconds: number }
+  jobCompletedDate?: { seconds: number } | string
 }
 
 function toLocalDateStr(seconds: number) {
   const d = new Date(seconds * 1000)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// Extract seconds from jobCompletedDate (Timestamp or ISO string)
+function getCompletedSeconds(jcd: { seconds: number } | string | undefined): number | null {
+  if (!jcd) return null
+  if (typeof jcd === 'string') {
+    const ms = new Date(jcd).getTime()
+    return isNaN(ms) ? null : ms / 1000
+  }
+  return jcd.seconds ?? null
 }
 
 function fmtDate(dateStr: string) {
@@ -54,7 +65,9 @@ export default function TeamPerformancePage() {
       collection(db, 'accounts', accountId, 'orders'),
       orderBy('createdAt', 'desc')
     )).then(snap => {
-      setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Order)))
+      // Only keep orders that have been completed (completedBy + jobCompletedDate set)
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() } as Order))
+      setOrders(all.filter(o => !!o.completedBy && !!o.jobCompletedDate))
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [accountId])
@@ -70,18 +83,18 @@ export default function TeamPerformancePage() {
   const thirtyDaysAgo = new Date(now)
   thirtyDaysAgo.setDate(now.getDate() - 30)
 
-  // This week's orders
+  // This week's orders — based on jobCompletedDate
   const thisWeekOrders = useMemo(() =>
     filteredOrders.filter(o => {
-      const ts = o.createdAt?.seconds
+      const ts = getCompletedSeconds(o.jobCompletedDate)
       if (!ts) return false
       return new Date(ts * 1000) >= weekStart
     }), [filteredOrders, weekStart])
 
-  // Last 30 days orders (for avg)
+  // Last 30 days orders (for avg) — based on jobCompletedDate
   const last30Orders = useMemo(() =>
     filteredOrders.filter(o => {
-      const ts = o.createdAt?.seconds
+      const ts = getCompletedSeconds(o.jobCompletedDate)
       if (!ts) return false
       return new Date(ts * 1000) >= thirtyDaysAgo
     }), [filteredOrders, thirtyDaysAgo])
@@ -90,7 +103,7 @@ export default function TeamPerformancePage() {
   const thirtyDayAvg = useMemo(() => {
     const totals: Record<string, number> = {}
     last30Orders.forEach(o => {
-      const name = o.servedBy || ''
+      const name = (o.completedBy || '').trim()
       if (!name) return
       totals[name] = (totals[name] ?? 0) + (o.orderAmount ?? 0)
     })
@@ -101,15 +114,15 @@ export default function TeamPerformancePage() {
     return avg
   }, [last30Orders])
 
-  // Group this week by date → employee
+  // Group this week by date → employee (using jobCompletedDate)
   const groupedByDate = useMemo(() => {
     const byDate: Record<string, Record<string, { count: number; total: number }>> = {}
 
     thisWeekOrders.forEach(o => {
-      const ts = o.createdAt?.seconds
+      const ts = getCompletedSeconds(o.jobCompletedDate)
       if (!ts) return
       const date = toLocalDateStr(ts)
-      const name = o.servedBy || '(Unknown)'
+      const name = (o.completedBy || '').trim() || '(Unknown)'
       if (!byDate[date]) byDate[date] = {}
       if (!byDate[date][name]) byDate[date][name] = { count: 0, total: 0 }
       byDate[date][name].count++
