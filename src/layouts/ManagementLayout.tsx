@@ -3,6 +3,7 @@ import { ManagementContext } from '../context/ManagementContext'
 import { LayoutDashboard, List, BarChart2, ClipboardList, MoreHorizontal } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
+import { useState, useEffect, useRef } from 'react'
 
 const NAV = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -12,11 +13,28 @@ const NAV = [
   { path: '/mgmt-more', label: 'More',      icon: MoreHorizontal },
 ]
 
+const REFRESH_COOLDOWN_MS = 30_000 // don't re-fetch if last refresh was <30s ago
+
 export default function ManagementLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { accountId } = useAuth()
   useLocations(accountId) // keep subscription active for location data
+
+  const [refreshKey, setRefreshKey] = useState(0)
+  const lastRefreshRef = useRef<number>(Date.now())
+
+  useEffect(() => {
+    function onVisibilityChange() {
+      if (document.visibilityState !== 'visible') return
+      const now = Date.now()
+      if (now - lastRefreshRef.current < REFRESH_COOLDOWN_MS) return
+      lastRefreshRef.current = now
+      setRefreshKey(k => k + 1)
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [])
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
@@ -28,7 +46,7 @@ export default function ManagementLayout() {
       {/* Page content */}
       <div className="flex-1 overflow-hidden">
         <ManagementContext.Provider value={true}>
-          <Outlet />
+          <Outlet key={refreshKey} />
         </ManagementContext.Provider>
       </div>
 
