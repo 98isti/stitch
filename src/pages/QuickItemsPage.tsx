@@ -20,7 +20,7 @@ const MAX = 8
 export default function QuickItemsPage() {
   const navigate = useNavigate()
   const { accountId } = useAuth()
-  const { activeLocation } = useLocations(accountId)
+  const { locations, activeLocation, setActiveLocation } = useLocations(accountId)
   const { items } = useItems(accountId, activeLocation?.id ?? null)
   const { categories } = useCategories(accountId, activeLocation?.shopType, activeLocation?.id)
 
@@ -35,6 +35,7 @@ export default function QuickItemsPage() {
 
   useEffect(() => {
     if (!accountId || !activeLocation) return
+    setQuickItems([]) // clear while loading new location
     getDoc(doc(db, 'accounts', accountId, 'locations', activeLocation.id)).then(snap => {
       if (snap.exists()) setQuickItems(snap.data().quickItems ?? [])
     })
@@ -102,13 +103,32 @@ export default function QuickItemsPage() {
     <div className="min-h-screen bg-gray-50">
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
-        <button onClick={() => navigate(-1)} className="text-navy font-medium text-sm">← Back</button>
-        <h1 className="flex-1 text-center font-bold text-navy text-base">Quick Items</h1>
-        {saved
-          ? <span className="text-green-500 text-sm font-medium">Saved ✓</span>
-          : saving ? <span className="text-gray-400 text-sm">Saving…</span>
-          : <span className="w-12" />}
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
+        <div className="px-4 py-4 flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="text-navy font-medium text-sm">← Back</button>
+          <h1 className="flex-1 text-center font-bold text-navy text-base">Quick Items</h1>
+          {saving
+            ? <span className="text-gray-400 text-sm">Saving…</span>
+            : saved ? <span className="text-green-500 text-sm font-medium">Saved ✓</span>
+            : <span className="w-12" />}
+        </div>
+        {/* Location selector */}
+        {locations.length > 1 && (
+          <div className="px-4 pb-2 flex items-center justify-center">
+            <select
+              value={activeLocation?.id ?? ''}
+              onChange={e => {
+                const loc = locations.find(l => l.id === e.target.value)
+                if (loc) setActiveLocation(loc)
+              }}
+              className="text-sm font-semibold text-blue-500 bg-transparent border-none outline-none cursor-pointer"
+            >
+              {locations.map(l => (
+                <option key={l.id} value={l.id}>{l.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="max-w-lg mx-auto p-4 space-y-4">
