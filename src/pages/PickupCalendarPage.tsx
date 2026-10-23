@@ -145,27 +145,6 @@ export default function PickupCalendarPage() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="px-4 pb-4 flex-shrink-0">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-4 py-4 flex justify-between items-center">
-          <div className="text-center flex-1">
-            <div className="text-2xl font-bold text-gray-900">{loading ? '—' : pendingCount}</div>
-            <div className="text-xs text-gray-500 mt-0.5">Pending Jobs</div>
-          </div>
-          <div className="w-px h-10 bg-gray-100" />
-          <div className="text-center flex-1">
-            <div className="text-2xl font-bold text-red-500">{loading ? '—' : overdueCount}</div>
-            <div className="text-xs text-gray-500 mt-0.5">Overdue</div>
-          </div>
-          <div className="w-px h-10 bg-gray-100" />
-          <div className="text-center flex-1">
-            <div className="text-2xl font-bold text-gray-900">
-              {loading ? '—' : `$${Math.round(totalValue).toLocaleString()}`}
-            </div>
-            <div className="text-xs text-gray-500 mt-0.5">Total Value</div>
-          </div>
-        </div>
-      </div>
 
       {/* Calendar */}
       <div className="px-4 flex-shrink-0">
@@ -212,13 +191,13 @@ export default function PickupCalendarPage() {
                     {/* Badge */}
                     {data ? (
                       <div className={`rounded-lg px-1 py-0.5 text-center w-full max-w-[52px]
-                        ${isOverdue ? 'bg-red-100' : isToday ? 'bg-gray-200' : 'bg-blue-100'}`}>
+                        ${isOverdue || isToday ? 'bg-red-100' : 'bg-blue-100'}`}>
                         <div className={`text-xs font-semibold leading-tight
-                          ${isOverdue ? 'text-red-500' : isToday ? 'text-gray-600' : 'text-blue-600'}`}>
+                          ${isOverdue || isToday ? 'text-red-500' : 'text-blue-600'}`}>
                           {data.count} {data.count === 1 ? 'job' : 'jobs'}
                         </div>
                         <div className={`text-xs leading-tight
-                          ${isOverdue ? 'text-red-400' : isToday ? 'text-gray-500' : 'text-blue-500'}`}>
+                          ${isOverdue || isToday ? 'text-red-400' : 'text-blue-500'}`}>
                           ${Math.round(data.total).toLocaleString()}
                         </div>
                       </div>
