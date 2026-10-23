@@ -35,7 +35,7 @@ export default function PickupCalendarPage() {
 
   const [selectedLocationId, setSelectedLocationId] = useState<string>('all')
   const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true) // eslint-disable-line
+  const [_loading, setLoading] = useState(true)
 
   // Current month view
   const [viewYear, setViewYear] = useState(() => new Date().getFullYear())
