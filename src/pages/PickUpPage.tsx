@@ -146,7 +146,7 @@ export default function PickUpPage() {
     getDocs(query(
       collection(db, 'accounts', accountId, 'orders'),
       where('location', '==', activeLocation.name),
-      where('status', '==', 'In progress'),
+      where('status', 'in', ['In progress', 'Redo']),
     )).then(snap => {
       const map: CalendarData = {}
       snap.docs.forEach(d => {
@@ -174,7 +174,7 @@ export default function PickUpPage() {
         collection(db, 'accounts', accountId, 'orders'),
         where('location', '==', activeLocation.name),
         where('pickupDate', '==', iso),
-        where('status', '==', 'In progress'),
+        where('status', 'in', ['In progress', 'Redo']),
       ))
       const orders: PickupSheetOrder[] = snap.docs.map(d => {
         const o = d.data()
