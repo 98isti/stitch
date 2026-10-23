@@ -19,7 +19,7 @@ type Step = 'pick' | 'pin' | 'new-location'
 export default function LocationSetupPage() {
   const navigate = useNavigate()
   const { accountId } = useAuth()
-  const { locations, setActiveLocation } = useLocations(accountId)
+  const { locations, loading: locationsLoading, setActiveLocation } = useLocations(accountId)
 
   const [step, setStep] = useState<Step>('pick')
   const [businessName, setBusinessName] = useState('')
@@ -157,8 +157,14 @@ export default function LocationSetupPage() {
             <p className="text-white/50 text-sm mt-1">Select an existing location or set up a new one</p>
           </div>
 
-          <div className="space-y-2 mb-4">
-            {locations.map(loc => (
+          {/* Locations list — show spinner while loading */}
+          <div className="space-y-2 mb-4 min-h-[40px]">
+            {locationsLoading ? (
+              <div className="flex items-center justify-center gap-2 py-4">
+                <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                <span className="text-white/50 text-sm">Loading locations…</span>
+              </div>
+            ) : locations.map(loc => (
               <button key={loc.id} onClick={() => handleLocationSelect(loc.id)}
                 className="w-full flex items-center justify-between bg-white/10 hover:bg-white/20 active:bg-white/30 text-white px-5 py-4 rounded-2xl transition-colors">
                 <div className="text-left">
