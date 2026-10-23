@@ -48,7 +48,7 @@ export default function PickupCalendarPage() {
     getDocs(collection(db, 'accounts', accountId, 'orders')).then(snap => {
       const pending = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as Order))
-        .filter(o => o.status !== 'Picked Up' && o.status !== 'Cancelled')
+        .filter(o => o.status !== 'Picked Up' && o.status !== 'Cancelled' && o.status !== 'Ready for Pick Up')
       setOrders(pending)
       setLoading(false)
     }).catch(() => setLoading(false))
