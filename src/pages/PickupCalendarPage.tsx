@@ -35,7 +35,7 @@ export default function PickupCalendarPage() {
 
   const [selectedLocationId, setSelectedLocationId] = useState<string>('all')
   const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true) // eslint-disable-line
 
   // Current month view
   const [viewYear, setViewYear] = useState(() => new Date().getFullYear())
@@ -61,11 +61,6 @@ export default function PickupCalendarPage() {
   }, [orders, selectedLocationId])
 
   const today = todayYMD()
-
-  // Stats — all pending for this location
-  const pendingCount = filteredOrders.length
-  const overdueCount = filteredOrders.filter(o => o.pickupDate < today).length
-  const totalValue = filteredOrders.reduce((sum, o) => sum + (o.orderAmount ?? 0), 0)
 
   // Group pending orders by pickupDate for current month
   const calendarData = useMemo(() => {
