@@ -79,6 +79,7 @@ export default function POSLayout() {
   const progressPct = revenueTarget > 0 ? Math.min(100, (dailyRevenue / revenueTarget) * 100) : 0
   const [showMore, setShowMore] = useState(false)
   const [showScreenSaver, setShowScreenSaver] = useState(false)
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
 
   const isPos = location.pathname === '/pos'
 
@@ -156,7 +157,7 @@ export default function POSLayout() {
                   </div>
                 ))}
                 <div className="border-t border-gray-100">
-                  <button onClick={() => signOut(auth)}
+                  <button onClick={() => { setShowMore(false); setShowSignOutConfirm(true) }}
                     className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-red-50 transition-colors text-sm font-medium text-red-500">
                     <LogOut size={15} /> Sign Out
                   </button>
@@ -190,6 +191,34 @@ export default function POSLayout() {
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl transition-colors text-sm font-medium ${showMore ? 'bg-navy text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
               <MoreHorizontal size={17} />
               <span>More</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── SIGN OUT CONFIRMATION DIALOG ── */}
+      {showSignOutConfirm && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-6">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 flex flex-col items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+              <LogOut size={24} className="text-red-500" />
+            </div>
+            <div className="text-center">
+              <h2 className="text-lg font-bold text-gray-900 mb-1">Sign Out?</h2>
+              <p className="text-sm text-gray-500">
+                Signing back in requires the business email and password.
+                Only do this if a manager is available.
+              </p>
+            </div>
+            <button
+              onClick={() => { setShowSignOutConfirm(false); signOut(auth) }}
+              className="w-full py-3.5 rounded-2xl bg-red-500 text-white font-bold text-base hover:bg-red-600 transition-colors">
+              Yes, Sign Out
+            </button>
+            <button
+              onClick={() => setShowSignOutConfirm(false)}
+              className="w-full py-3.5 rounded-2xl bg-gray-100 text-gray-700 font-semibold text-base hover:bg-gray-200 transition-colors">
+              Cancel
             </button>
           </div>
         </div>
