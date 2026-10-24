@@ -111,15 +111,15 @@ export default function ManagementLabourPage() {
       else grouped[key].outs.push(ev)
     })
 
-    // Build shifts: date, location, employeeName, hours, cost
-    const shifts: { date: string; location: string; name: string; hours: number; cost: number }[] = []
+    // Build shifts: date, location, employeeName, cost
+    const shifts: { date: string; location: string; name: string; cost: number }[] = []
     Object.values(grouped).forEach(({ ins, outs, name, location }) => {
       const signInTs = ins.length ? Math.min(...ins.map(e => e.timestamp.seconds)) : null
       const signOutTs = outs.length ? Math.max(...outs.map(e => e.timestamp.seconds)) : null
-      const hours = signInTs && signOutTs ? (signOutTs - signInTs) / 3600 : 0
+      const durationHours = (signInTs && signOutTs) ? (signOutTs - signInTs) / 3600 : 0
       const date = ins[0] ? toLocalDateStr(ins[0].timestamp.seconds) : outs[0] ? toLocalDateStr(outs[0].timestamp.seconds) : ''
       const rate = payRateMap[name] ?? 0
-      shifts.push({ date, location, name, hours, cost: hours * rate })
+      shifts.push({ date, location, name, cost: durationHours * rate })
     })
 
     // Build result: location → day → { staffCount, labourCost }
@@ -131,7 +131,7 @@ export default function ManagementLabourPage() {
       })
     })
 
-    shifts.forEach(({ date, location, name, hours, cost }) => {
+    shifts.forEach(({ date, location, name, cost }) => {
       if (!days.find(d => d.date === date)) return
       // specific location
       if (result[location]?.[date]) {
