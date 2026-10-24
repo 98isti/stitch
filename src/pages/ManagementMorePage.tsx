@@ -3,7 +3,7 @@ import { getAuth, signOut } from 'firebase/auth'
 import { DEVICE_MODE_KEY } from './DeviceSetupPage'
 import {
   Users, Settings, Calendar, UserCircle,
-  Ticket, CreditCard, LogOut, RefreshCw, TrendingUp, CalendarDays, UmbrellaOff, DollarSign, BarChart3
+  Ticket, CreditCard, LogOut, RefreshCw, TrendingUp, CalendarDays, UmbrellaOff, DollarSign, BarChart3, ClipboardList
 } from 'lucide-react'
 
 const SECTIONS = [
@@ -12,6 +12,7 @@ const SECTIONS = [
     items: [
       { label: 'Pick-Up Calendar', icon: Calendar,    path: '/mgmt-pickup-calendar' },
       { label: 'Team Performance', icon: TrendingUp,  path: '/mgmt-team-performance' },
+      { label: 'Labour',           icon: ClipboardList, path: '/mgmt-labour' },
       { label: 'Customers',        icon: UserCircle,  path: '/customers' },
       { label: 'Vouchers',         icon: Ticket,      path: '/vouchers' },
     ],
