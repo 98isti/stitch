@@ -135,7 +135,7 @@ export default function ManagementLabourPage() {
 
   // 30-day average labour % per location
   const avgLabourPct = useMemo(() => {
-    const result: Record<string, number | null> = {}
+    const result: Record<string, { pct: number | null; avgStaff: number | null }> = {}
     const locationNames = ['All Locations', ...locations.map(l => l.name)]
 
     // Build cost per location per day from avgEvents
