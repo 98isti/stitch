@@ -189,9 +189,9 @@ export default function ManagementLabourPage() {
                   <span className="text-xs font-bold text-gray-500">Location</span>
                 </div>
                 {grid.locationNames.map(loc => (
-                  <div key={loc} className="px-3 py-3 border-b border-gray-100 min-h-[52px] flex items-center">
-                    <span className={`text-sm leading-tight ${loc === 'All Locations' ? 'text-blue-600 font-bold' : 'text-gray-800'}`}>
-                      {loc}
+                  <div key={loc} className="h-14 px-3 border-b border-gray-100 flex items-center">
+                    <span className={`text-sm truncate ${loc === 'All Locations' ? 'text-blue-600 font-bold' : 'text-gray-800'}`}>
+                      {loc === 'All Locations' ? 'All' : loc}
                     </span>
                   </div>
                 ))}
@@ -210,18 +210,18 @@ export default function ManagementLabourPage() {
 
                 {/* Data rows */}
                 {grid.locationNames.map(loc => (
-                  <div key={loc} className="flex border-b border-gray-100 min-h-[52px]">
+                  <div key={loc} className="flex border-b border-gray-100 h-14">
                     {days.map(d => {
                       const cell = grid.data[loc]?.[d.date]
                       const count = cell?.staffCount ?? 0
                       const cost = cell?.labourCost ?? 0
                       const isTotal = loc === 'All Locations'
                       return (
-                        <div key={d.date} className="w-24 flex-shrink-0 px-2 py-2.5 text-right flex flex-col justify-center">
+                        <div key={d.date} className="w-24 flex-shrink-0 px-2 text-right flex flex-col justify-center">
                           {count > 0 ? (
                             <>
                               <p className={`text-sm font-semibold ${isTotal ? 'text-blue-600' : 'text-gray-900'}`}>
-                                {count} {count === 1 ? 'staff' : 'staff'}
+                                {count} {count === 1 ? 'person' : 'people'}
                               </p>
                               {cost > 0 && (
                                 <p className="text-xs text-gray-400 mt-0.5">${Math.round(cost)}</p>
