@@ -13,7 +13,7 @@ const NAV = [
   { path: '/mgmt-more', label: 'More',      icon: MoreHorizontal },
 ]
 
-const REFRESH_COOLDOWN_MS = 30_000 // don't re-fetch if last refresh was <30s ago
+const REFRESH_COOLDOWN_MS = 5_000 // refresh if returning from background after 5s
 
 export default function ManagementLayout() {
   const navigate = useNavigate()

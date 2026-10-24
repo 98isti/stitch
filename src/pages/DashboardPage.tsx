@@ -63,15 +63,21 @@ function barColor(revenue: number, target: number) {
 // ── Google rating fetch ───────────────────────────────────────────────────────
 async function fetchGoogleRating(placeId: string, apiKey: string): Promise<{ rating: number; count: number } | null> {
   if (!placeId || !apiKey) return null
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 3000)
   try {
     const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`
-    const res = await fetch(url, { headers: { 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': 'rating,userRatingCount' } })
+    const res = await fetch(url, {
+      headers: { 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': 'rating,userRatingCount' },
+      signal: controller.signal,
+    })
+    clearTimeout(timeout)
     if (!res.ok) return null
     const json = await res.json()
     if (json.rating && json.userRatingCount) {
       return { rating: json.rating, count: json.userRatingCount }
     }
-  } catch { /* ignore */ }
+  } catch { clearTimeout(timeout) }
   return null
 }
 
@@ -304,9 +310,8 @@ export default function DashboardPage() {
       const ordersWithRefund = locOrders.filter(o => (o.refundAmount ?? 0) > 0).length
       const refundPct = locOrders.length > 0 ? (ordersWithRefund / locOrders.length) * 100 : 0
 
-      // Google rating
+      // Google rating fetched separately after main load
       const placeId = (loc as any).googlePlaceId ?? ''
-      const googleResult = await fetchGoogleRating(placeId, googleApiKey)
 
       return {
         locationId:         loc.id,
@@ -320,13 +325,26 @@ export default function DashboardPage() {
         sales7d, aov,
         revenue30d, labourPct, pl30d,
         onTimePct, returnCustomerPct, refundPct,
-        googleRating:       googleResult?.rating ?? null,
-        googleReviewCount:  googleResult?.count  ?? null,
+        googleRating:       null,
+        googleReviewCount:  null,
       }
     }))
 
     setMetrics(results)
     setLoading(false)
+
+    // Fetch Google ratings in background — non-blocking, updates cards as they arrive
+    results.forEach((m, i) => {
+      if (!m.googlePlaceId) return
+      fetchGoogleRating(m.googlePlaceId, googleApiKey).then(googleResult => {
+        if (!googleResult) return
+        setMetrics(prev => prev.map((item, idx) =>
+          idx === i
+            ? { ...item, googleRating: googleResult.rating, googleReviewCount: googleResult.count }
+            : item
+        ))
+      })
+    })
   }, [accountId, locations])
 
   useEffect(() => { loadDashboard() }, [loadDashboard])
