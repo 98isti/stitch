@@ -141,7 +141,7 @@ function LocationCard({ m, loading }: { m: LocationMetrics; loading: boolean }) 
           </div>
           <div>
             <p className="text-xs text-gray-400 mb-0.5">AOV</p>
-            <p className="text-sm font-bold text-gray-900">{loading ? '—' : (m.orders7d > 0 ? fmt(m.aov) : '—')}</p>
+            <p className="text-sm font-bold text-gray-900">{loading ? '—' : (m.aov > 0 ? fmt(m.aov) : '—')}</p>
           </div>
         </div>
       </div>
@@ -266,13 +266,6 @@ export default function DashboardPage() {
       const payments7d = locPayments.filter(p => p.paidDate >= day7ago)
       const sales7d    = payments7d.reduce((s, p) => s + (p.amount ?? 0), 0)
 
-      // 30d AOV
-      const aov = locOrders.length > 0 ? revenue30d / locOrders.length : 0
-
-      // Redo %
-      const redoOrders = locOrders.filter(o => o.status === 'Redo').length
-      const redoPct    = locOrders.length > 0 ? (redoOrders / locOrders.length) * 100 : 0
-
       // 30d
       const revenue30d      = locPayments.reduce((s, p) => s + (p.amount ?? 0), 0)
       const dailyRent        = (loc as any).dailyRent  ?? 0
@@ -281,6 +274,13 @@ export default function DashboardPage() {
       const expenses30d      = (dailyRent + dailyOther) * 30 + actualLabourCost
       const pl30d            = revenue30d - expenses30d
       const labourPct        = revenue30d > 0 ? (actualLabourCost / revenue30d) * 100 : 0
+
+      // 30d AOV
+      const aov = locOrders.length > 0 ? revenue30d / locOrders.length : 0
+
+      // Redo %
+      const redoOrders = locOrders.filter(o => o.status === 'Redo').length
+      const redoPct    = locOrders.length > 0 ? (redoOrders / locOrders.length) * 100 : 0
 
       // On-time %
       const completedOrders = locOrders.filter(o => o.jobCompletedDate && o.pickupDate && o.status !== 'Cancelled')
