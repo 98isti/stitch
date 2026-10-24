@@ -63,8 +63,8 @@ export default function ManagementLayout() {
                   active ? 'text-navy' : 'text-gray-400'
                 }`}
               >
-                <item.icon size={22} strokeWidth={active ? 2.5 : 1.8} />
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <item.icon size={26} strokeWidth={active ? 2.5 : 1.8} />
+                <span className="text-xs font-medium">{item.label}</span>
               </button>
             )
           })}
