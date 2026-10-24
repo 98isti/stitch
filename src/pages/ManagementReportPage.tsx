@@ -320,7 +320,7 @@ export default function ManagementReportPage() {
     <div className="flex flex-col h-full bg-white">
       <div className="px-4 pt-5 pb-3 border-b border-gray-100 flex-shrink-0">
         <h1 className="text-2xl font-bold text-gray-900">Report</h1>
-        <p className="text-xs text-gray-400 mt-0.5">Revenue + P/L (rent + other + actual labour)</p>
+        <p className="text-xs text-gray-400 mt-0.5">Revenue + P/L</p>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
