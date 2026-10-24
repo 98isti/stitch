@@ -316,7 +316,7 @@ export default function ManagementLabourPage() {
               <div className="flex-1 overflow-x-auto">
                 {/* Column headers */}
                 <div className="flex border-b border-gray-200">
-                  <div className="w-20 flex-shrink-0 px-2 py-2.5 text-right border-r border-gray-100">
+                  <div className="w-20 flex-shrink-0 px-2 py-2.5 text-right border-r border-indigo-100 bg-indigo-50">
                     <span className="text-xs font-bold text-indigo-400">30D Avg</span>
                   </div>
                   {days.map(d => (
@@ -336,7 +336,7 @@ export default function ManagementLabourPage() {
                       const avgStaff = avg?.avgStaff ?? null
                       const pctColor = pct === null ? '' : pct < 35 ? 'text-emerald-600' : 'text-red-500'
                       return (
-                        <div className="w-20 flex-shrink-0 px-2 text-right flex flex-col justify-center border-r border-gray-100">
+                        <div className="w-20 flex-shrink-0 px-2 text-right flex flex-col justify-center border-r border-indigo-100 bg-indigo-50">
                           {avgStaff !== null ? (
                             <p className="text-xs text-gray-500">{avgStaff.toFixed(1)} staff</p>
                           ) : null}
@@ -363,7 +363,7 @@ export default function ManagementLabourPage() {
                         <div key={d.date} className="w-24 flex-shrink-0 px-2 text-right flex flex-col justify-center">
                           {count > 0 ? (
                             <>
-                              <p className={`text-sm font-semibold ${isTotal ? 'text-blue-600' : 'text-gray-900'}`}>
+                              <p className={`text-sm ${isTotal ? 'text-blue-600' : 'text-gray-700'}`}>
                                 {count} staff
                               </p>
                               {pct !== null && pct > 0 && (
