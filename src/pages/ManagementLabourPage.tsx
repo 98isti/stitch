@@ -3,7 +3,8 @@ import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 interface SignInEvent {
   id: string
@@ -62,6 +63,7 @@ function getWeekLabel(weekOffset: number) {
 
 export default function ManagementLabourPage() {
   const { accountId } = useAuth()
+  const navigate = useNavigate()
   const { locations } = useLocations(accountId)
   const [events, setEvents] = useState<SignInEvent[]>([])
   const [staff, setStaff] = useState<StaffMember[]>([])
@@ -179,6 +181,12 @@ export default function ManagementLabourPage() {
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 pt-4 pb-3 flex-shrink-0">
+        {/* Back button */}
+        <button onClick={() => navigate('/mgmt-more')}
+          className="flex items-center gap-1.5 text-navy text-sm font-medium mb-2 -ml-1">
+          <ArrowLeft size={16} />
+          More
+        </button>
         <h1 className="text-2xl font-bold text-gray-900 mb-3">Labour</h1>
         {/* Week nav */}
         <div className="flex items-center justify-between">
@@ -204,7 +212,7 @@ export default function ManagementLabourPage() {
           <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
             {/* Section label */}
             <div className="bg-gray-100 px-3 py-2 border-b border-gray-200">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Staff · Cost</span>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Staff · Labour %</span>
             </div>
 
             <div className="flex">
@@ -254,12 +262,9 @@ export default function ManagementLabourPage() {
                               <p className={`text-sm font-semibold ${isTotal ? 'text-blue-600' : 'text-gray-900'}`}>
                                 {count} staff
                               </p>
-                              {cost > 0 && (
-                                <p className="text-xs text-gray-400 mt-0.5">
-                                  ${Math.round(cost)}
-                                  {pct !== null && (
-                                    <span className={`ml-1 font-semibold ${pctColor}`}>{Math.round(pct)}%</span>
-                                  )}
+                              {pct !== null && (
+                                <p className={`text-xs font-semibold mt-0.5 ${pctColor}`}>
+                                  Labour {Math.round(pct)}%
                                 </p>
                               )}
                             </>
