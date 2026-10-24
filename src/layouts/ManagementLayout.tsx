@@ -15,7 +15,7 @@ const NAV = [
 
 const REFRESH_COOLDOWN_MS = 5_000 // refresh if returning from background after 5s
 
-import { Component, type ReactNode } from 'react'
+import { Component } from 'react'
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   state = { hasError: false }
