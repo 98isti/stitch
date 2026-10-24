@@ -289,8 +289,17 @@ export default function DashboardPage() {
       const onTimePct = completedOrders.length > 0 ? (onTime / completedOrders.length) * 100 : 100
 
       // Return customer %
-      const repeatCustomers = locCustomers.filter(c => (c.orderCount ?? 1) > 1).length
-      const returnCustomerPct = locCustomers.length > 0 ? (repeatCustomers / locCustomers.length) * 100 : 0
+      // Repeat %: of unique customers who ordered in last 30d, how many are repeats (orderCount > 1)
+      const recentCustomerKeys = new Set(
+        locOrders.map(o => o.customerPhone || o.customerId || o.customerName).filter(Boolean)
+      )
+      const repeatCustomers = locCustomers.filter(c => {
+        const key = c.phone || c.id || c.customerName || c.name
+        return recentCustomerKeys.has(key) && (c.orderCount ?? 1) > 1
+      }).length
+      const returnCustomerPct = recentCustomerKeys.size > 0
+        ? (repeatCustomers / recentCustomerKeys.size) * 100
+        : 0
 
       // Refund %
       const ordersWithRefund = locOrders.filter(o => (o.refundAmount ?? 0) > 0).length
