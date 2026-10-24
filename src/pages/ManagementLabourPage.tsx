@@ -221,7 +221,7 @@ export default function ManagementLabourPage() {
                           {count > 0 ? (
                             <>
                               <p className={`text-sm font-semibold ${isTotal ? 'text-blue-600' : 'text-gray-900'}`}>
-                                {count} {count === 1 ? 'person' : 'people'}
+                                {count} staff
                               </p>
                               {cost > 0 && (
                                 <p className="text-xs text-gray-400 mt-0.5">${Math.round(cost)}</p>
