@@ -68,6 +68,8 @@ export default function ManagementLabourPage() {
   const [events, setEvents] = useState<SignInEvent[]>([])
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [orders, setOrders] = useState<Order[]>([])
+  const [avgEvents, setAvgEvents] = useState<SignInEvent[]>([])
+  const [avgOrders, setAvgOrders] = useState<Order[]>([])
   const [weekOffset, setWeekOffset] = useState(0)
   const [loading, setLoading] = useState(true)
 
@@ -100,6 +102,24 @@ export default function ManagementLabourPage() {
     if (eventsSnap) setEvents(eventsSnap.docs.map(d => ({ id: d.id, ...d.data() } as SignInEvent)))
     if (staffSnap) setStaff(staffSnap.docs.map(d => ({ id: d.id, ...d.data() } as StaffMember)))
     if (ordersSnap) setOrders(ordersSnap.docs.map(d => ({ id: d.id, ...d.data() } as Order)))
+
+    // Fetch 30-day history for average (rolling 30 days before week start)
+    const avg30End = new Date(weekStart); avg30End.setDate(avg30End.getDate() - 1)
+    const avg30Start = new Date(avg30End); avg30Start.setDate(avg30End.getDate() - 29)
+    const [avgEventsSnap, avgOrdersSnap] = await Promise.all([
+      getDocs(query(
+        collection(db, 'accounts', accountId, 'signIns'),
+        where('timestamp', '>=', Timestamp.fromDate(avg30Start)),
+        where('timestamp', '<=', Timestamp.fromDate(avg30End))
+      )).catch(() => null),
+      getDocs(query(
+        collection(db, 'accounts', accountId, 'orders'),
+        where('createdAt', '>=', Timestamp.fromDate(avg30Start)),
+        where('createdAt', '<=', Timestamp.fromDate(avg30End))
+      )).catch(() => null),
+    ])
+    if (avgEventsSnap) setAvgEvents(avgEventsSnap.docs.map(d => ({ id: d.id, ...d.data() } as SignInEvent)))
+    if (avgOrdersSnap) setAvgOrders(avgOrdersSnap.docs.map(d => ({ id: d.id, ...d.data() } as Order)))
     setLoading(false)
   }
 
@@ -112,6 +132,62 @@ export default function ManagementLabourPage() {
     })
     return map
   }, [staff])
+
+  // 30-day average labour % per location
+  const avgLabourPct = useMemo(() => {
+    const result: Record<string, number | null> = {}
+    const locationNames = ['All Locations', ...locations.map(l => l.name)]
+
+    // Build cost per location per day from avgEvents
+    const grouped: Record<string, { ins: SignInEvent[]; outs: SignInEvent[]; name: string; location: string }> = {}
+    avgEvents.forEach(ev => {
+      const date = toLocalDateStr(ev.timestamp.seconds)
+      const key = `${ev.employeeId}__${date}`
+      if (!grouped[key]) grouped[key] = { ins: [], outs: [], name: ev.employeeName, location: ev.location }
+      if (ev.type === 'in') grouped[key].ins.push(ev)
+      else grouped[key].outs.push(ev)
+    })
+    const costByLocDay: Record<string, Record<string, number>> = {}
+    Object.values(grouped).forEach(({ ins, outs, name, location }) => {
+      const signInTs = ins.length ? Math.min(...ins.map(e => e.timestamp.seconds)) : null
+      const signOutTs = outs.length ? Math.max(...outs.map(e => e.timestamp.seconds)) : null
+      const hours = (signInTs && signOutTs) ? (signOutTs - signInTs) / 3600 : 0
+      const date = ins[0] ? toLocalDateStr(ins[0].timestamp.seconds) : outs[0] ? toLocalDateStr(outs[0].timestamp.seconds) : ''
+      const rate = payRateMap[name] ?? 0
+      if (!costByLocDay[location]) costByLocDay[location] = {}
+      costByLocDay[location][date] = (costByLocDay[location][date] || 0) + hours * rate
+    })
+
+    // Revenue per location per day from avgOrders
+    const revByLocDay: Record<string, Record<string, number>> = {}
+    avgOrders.forEach(o => {
+      if (!o.createdAt) return
+      const date = toLocalDateStr(o.createdAt.seconds)
+      const loc = o.location || ''
+      if (!revByLocDay[loc]) revByLocDay[loc] = {}
+      revByLocDay[loc][date] = (revByLocDay[loc][date] || 0) + (o.orderAmount || 0)
+    })
+
+    // Average labour % per location (only days with revenue > 0)
+    locationNames.forEach(loc => {
+      const dates = new Set([
+        ...Object.keys(loc === 'All Locations' ? Object.values(costByLocDay).reduce((a, b) => ({ ...a, ...b }), {}) : (costByLocDay[loc] || {})),
+        ...Object.keys(loc === 'All Locations' ? Object.values(revByLocDay).reduce((a, b) => ({ ...a, ...b }), {}) : (revByLocDay[loc] || {})),
+      ])
+      const pcts: number[] = []
+      dates.forEach(date => {
+        const cost = loc === 'All Locations'
+          ? Object.values(costByLocDay).reduce((s, d) => s + (d[date] || 0), 0)
+          : (costByLocDay[loc]?.[date] || 0)
+        const rev = loc === 'All Locations'
+          ? Object.values(revByLocDay).reduce((s, d) => s + (d[date] || 0), 0)
+          : (revByLocDay[loc]?.[date] || 0)
+        if (rev > 0) pcts.push((cost / rev) * 100)
+      })
+      result[loc] = pcts.length > 0 ? pcts.reduce((a, b) => a + b, 0) / pcts.length : null
+    })
+    return result
+  }, [avgEvents, avgOrders, payRateMap, locations])
 
   // Revenue per location × day from orders
   const revenueGrid = useMemo(() => {
@@ -187,7 +263,7 @@ export default function ManagementLabourPage() {
           <ArrowLeft size={16} />
           More
         </button>
-        <h1 className="text-2xl font-bold text-gray-900 mb-3">Labour</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-3">Labour %</h1>
         {/* Week nav */}
         <div className="flex items-center justify-between">
           <button onClick={() => setWeekOffset(w => w - 1)}
@@ -212,7 +288,7 @@ export default function ManagementLabourPage() {
           <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
             {/* Section label */}
             <div className="bg-gray-100 px-3 py-2 border-b border-gray-200">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Staff · Labour %</span>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Staff count · Labour % of revenue</span>
             </div>
 
             <div className="flex">
@@ -234,6 +310,9 @@ export default function ManagementLabourPage() {
               <div className="flex-1 overflow-x-auto">
                 {/* Column headers */}
                 <div className="flex border-b border-gray-200">
+                  <div className="w-20 flex-shrink-0 px-2 py-2.5 text-right border-r border-gray-100">
+                    <span className="text-xs font-bold text-indigo-400">30D Avg</span>
+                  </div>
                   {days.map(d => (
                     <div key={d.date} className="w-24 flex-shrink-0 px-2 py-2.5 text-right">
                       <span className="text-xs font-bold text-gray-500">{d.short}</span>
@@ -244,6 +323,20 @@ export default function ManagementLabourPage() {
                 {/* Data rows */}
                 {grid.locationNames.map(loc => (
                   <div key={loc} className="flex border-b border-gray-100 h-14">
+                    {/* 30D Avg column */}
+                    {(() => {
+                      const avg = avgLabourPct[loc]
+                      const avgColor = avg === null ? '' : avg < 35 ? 'text-emerald-600' : 'text-red-500'
+                      return (
+                        <div className="w-20 flex-shrink-0 px-2 text-right flex flex-col justify-center border-r border-gray-100">
+                          {avg !== null ? (
+                            <p className={`text-sm font-bold ${avgColor}`}>{Math.round(avg)}%</p>
+                          ) : (
+                            <p className="text-xs text-gray-200">—</p>
+                          )}
+                        </div>
+                      )
+                    })()}
                     {days.map(d => {
                       const cell = grid.data[loc]?.[d.date]
                       const count = cell?.staffCount ?? 0
@@ -262,9 +355,9 @@ export default function ManagementLabourPage() {
                               <p className={`text-sm font-semibold ${isTotal ? 'text-blue-600' : 'text-gray-900'}`}>
                                 {count} staff
                               </p>
-                              {pct !== null && (
+                              {pct !== null && pct > 0 && (
                                 <p className={`text-xs font-semibold mt-0.5 ${pctColor}`}>
-                                  Labour {Math.round(pct)}%
+                                  {Math.round(pct)}%
                                 </p>
                               )}
                             </>
