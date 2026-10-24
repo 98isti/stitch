@@ -12,7 +12,6 @@ interface LocationMetrics {
   orderPrefix: string
   dailyTarget: number
   dailyRent: number
-  dailyWages: number
   dailyOther: number
   googlePlaceId: string
   // computed
@@ -307,7 +306,7 @@ export default function DashboardPage() {
         shopType:           loc.shopType ?? 'alterations',
         orderPrefix:        loc.orderPrefix ?? '',
         dailyTarget:        (loc as any).dailyTarget ?? 0,
-        dailyRent, dailyWages, dailyOther,
+        dailyRent, dailyOther,
         googlePlaceId:      placeId,
         todayRevenue, todayOrders, readyForPickup,
         sales7d, orders7d, aov,
