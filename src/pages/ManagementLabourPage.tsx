@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { collection, query, where, getDocs } from 'firebase/firestore'
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
@@ -76,8 +76,8 @@ export default function ManagementLabourPage() {
     const [eventsSnap, staffSnap] = await Promise.all([
       getDocs(query(
         collection(db, 'accounts', accountId, 'signIns'),
-        where('timestamp', '>=', { seconds: Math.floor(weekStart.getTime() / 1000), nanoseconds: 0 }),
-        where('timestamp', '<=', { seconds: Math.floor(weekEnd.getTime() / 1000), nanoseconds: 0 })
+        where('timestamp', '>=', Timestamp.fromDate(weekStart)),
+        where('timestamp', '<=', Timestamp.fromDate(weekEnd))
       )).catch(() => null),
       getDocs(collection(db, 'accounts', accountId, 'staff')).catch(() => null),
     ])
