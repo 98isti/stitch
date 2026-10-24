@@ -102,12 +102,19 @@ function calcPL(
   start: string,
   end: string,
   expenses: Record<string, { dailyRent: number; dailyOther: number }>
-): number {
-  const days = daysInRange(start, end)
+): number | null {
+  // No revenue = shop wasn't open in this period, skip P/L
+  if (revenue === 0) return null
+
+  // Cap end at today — current periods should show P/L to date, not full projected period
+  const today = toStr(new Date())
+  const effectiveEnd = end > today ? today : end
+
+  const days = daysInRange(start, effectiveEnd)
   const fixedPerDay = locName
     ? (expenses[locName]?.dailyRent ?? 0) + (expenses[locName]?.dailyOther ?? 0)
     : Object.values(expenses).reduce((s, e) => s + e.dailyRent + e.dailyOther, 0)
-  const labour = calcLabourCost(signIns, payRateMap, locName, start, end)
+  const labour = calcLabourCost(signIns, payRateMap, locName, start, effectiveEnd)
   return revenue - fixedPerDay * days - labour
 }
 
