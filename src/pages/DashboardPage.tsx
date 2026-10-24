@@ -214,47 +214,19 @@ export default function DashboardPage() {
     // ── Fetch Google API key from account doc ─────────────────────────────
     const googleApiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY ?? ''
 
-    // ── Load all data in parallel ─────────────────────────────────────────
-    const signInsStart = Timestamp.fromDate(new Date(day30ago + 'T00:00:00'))
-    const [paymentsSnap, ordersSnap, customersSnap, signInsSnap, staffSnap] = await Promise.all([
+    // ── Load core data in parallel (fast — no signIns) ──────────────────────
+    const [paymentsSnap, ordersSnap, customersSnap] = await Promise.all([
       getDocs(query(collection(db, 'accounts', accountId, 'payments'), where('paidDate', '>=', day30ago))),
       getDocs(query(collection(db, 'accounts', accountId, 'orders'), where('orderDate', '>=', day30ago))),
       getDocs(collection(db, 'accounts', accountId, 'customers')),
-      getDocs(query(collection(db, 'accounts', accountId, 'signIns'), where('timestamp', '>=', signInsStart))),
-      getDocs(collection(db, 'accounts', accountId, 'staff')),
     ])
 
     const payments  = paymentsSnap.docs.map(d => ({ ...d.data() } as any))
     const orders    = ordersSnap.docs.map(d => ({ ...d.data() } as any))
     const customers = customersSnap.docs.map(d => ({ ...d.data() } as any))
 
-    // ── Build pay rate map ────────────────────────────────────────────────
-    const payRateMap: Record<string, number> = {}
-    staffSnap.docs.forEach(d => {
-      const { firstName, lastName, payRate } = d.data() as any
-      payRateMap[`${firstName ?? ''} ${lastName ?? ''}`.trim()] = payRate ?? 40
-    })
-
-    // ── Calculate actual labour cost per location (30d) ───────────────────
-    const grouped: Record<string, { ins: number[]; outs: number[]; location: string; name: string }> = {}
-    signInsSnap.docs.forEach(d => {
-      const { employeeId, employeeName, location, type, timestamp } = d.data() as any
-      const seconds = timestamp?.seconds ?? timestamp?._seconds
-      if (!seconds || !location) return
-      const dateStr = new Date(seconds * 1000).toLocaleDateString('en-CA')
-      const key = (employeeId || employeeName) + '__' + dateStr + '__' + location
-      if (!grouped[key]) grouped[key] = { ins: [], outs: [], location, name: employeeName ?? '' }
-      if (type === 'in') grouped[key].ins.push(seconds)
-      else grouped[key].outs.push(seconds)
-    })
+    // Labour cost — computed later in background (non-blocking)
     const labourCostByLoc: Record<string, number> = {}
-    Object.values(grouped).forEach(({ ins, outs, location, name }) => {
-      const inTs  = ins.length  ? Math.min(...ins)  : null
-      const outTs = outs.length ? Math.max(...outs) : null
-      const hours = (inTs && outTs) ? (outTs - inTs) / 3600 : 0
-      const rate  = payRateMap[name] ?? 40
-      labourCostByLoc[location] = (labourCostByLoc[location] || 0) + hours * rate
-    })
 
     // ── Compute metrics per location ──────────────────────────────────────
     const results: LocationMetrics[] = await Promise.all(locations.map(async loc => {
@@ -334,6 +306,48 @@ export default function DashboardPage() {
     if (!_mounted) return
     setMetrics(results)
     setLoading(false)
+
+    // ── Fetch signIns + staff in background for labour % ─────────────────
+    ;(async () => {
+      try {
+        const signInsStart = Timestamp.fromDate(new Date(day30ago + 'T00:00:00'))
+        const [signInsSnap, staffSnap] = await Promise.all([
+          getDocs(query(collection(db, 'accounts', accountId, 'signIns'), where('timestamp', '>=', signInsStart))),
+          getDocs(collection(db, 'accounts', accountId, 'staff')),
+        ])
+        const payRateMap: Record<string, number> = {}
+        staffSnap.docs.forEach(d => {
+          const { firstName, lastName, payRate } = d.data() as any
+          payRateMap[`${firstName ?? ''} ${lastName ?? ''}`.trim()] = payRate ?? 40
+        })
+        const grouped: Record<string, { ins: number[]; outs: number[]; location: string; name: string }> = {}
+        signInsSnap.docs.forEach(d => {
+          const { employeeId, employeeName, location, type, timestamp } = d.data() as any
+          const seconds = timestamp?.seconds ?? timestamp?._seconds
+          if (!seconds || !location) return
+          const dateStr = new Date(seconds * 1000).toLocaleDateString('en-CA')
+          const key = (employeeId || employeeName) + '__' + dateStr + '__' + location
+          if (!grouped[key]) grouped[key] = { ins: [], outs: [], location, name: employeeName ?? '' }
+          if (type === 'in') grouped[key].ins.push(seconds)
+          else grouped[key].outs.push(seconds)
+        })
+        const bgLabourCost: Record<string, number> = {}
+        Object.values(grouped).forEach(({ ins, outs, location, name }) => {
+          const inTs  = ins.length  ? Math.min(...ins)  : null
+          const outTs = outs.length ? Math.max(...outs) : null
+          const hours = (inTs && outTs) ? (outTs - inTs) / 3600 : 0
+          bgLabourCost[location] = (bgLabourCost[location] || 0) + hours * (payRateMap[name] ?? 40)
+        })
+        setMetrics(prev => prev.map(m => {
+          const actualLabourCost = bgLabourCost[m.locationName] ?? 0
+          const labourPct  = m.revenue30d > 0 ? (actualLabourCost / m.revenue30d) * 100 : 0
+          const dailyRent  = (locations.find(l => l.id === m.locationId) as any)?.dailyRent  ?? 0
+          const dailyOther = (locations.find(l => l.id === m.locationId) as any)?.dailyOther ?? 0
+          const pl30d      = m.revenue30d - (dailyRent + dailyOther) * 30 - actualLabourCost
+          return { ...m, labourPct, pl30d }
+        }))
+      } catch { /* ignore — labour will show 0 */ }
+    })()
 
     // Fetch Google ratings in background — non-blocking, updates cards as they arrive
     results.forEach((m, i) => {
