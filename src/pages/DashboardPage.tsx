@@ -37,7 +37,7 @@ function fmt(n: number) {
 function fmtDecimal(n: number) {
   return '$' + n.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
-function pct(n: number) { return n.toFixed(1) + '%' }
+function pct(n: number) { return Math.round(n) + '%' }
 
 function dateOffset(days: number) {
   const d = new Date()
