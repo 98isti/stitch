@@ -184,7 +184,19 @@ export default function ManagementLabourPage() {
           : (revByLocDay[loc]?.[date] || 0)
         if (rev > 0) pcts.push((cost / rev) * 100)
       })
-      result[loc] = pcts.length > 0 ? pcts.reduce((a, b) => a + b, 0) / pcts.length : null
+      // Avg daily staff count (only on days with any staff)
+      const staffByDate: Record<string, Set<string>> = {}
+      avgEvents.forEach(ev => {
+        if (loc !== 'All Locations' && ev.location !== loc) return
+        const date = toLocalDateStr(ev.timestamp.seconds)
+        if (!staffByDate[date]) staffByDate[date] = new Set()
+        const key = loc === 'All Locations' ? `${ev.location}__${ev.employeeName}` : ev.employeeName
+        staffByDate[date].add(key)
+      })
+      const staffCounts = Object.values(staffByDate).map(s => s.size).filter(n => n > 0)
+      const avgStaff = staffCounts.length > 0 ? staffCounts.reduce((a, b) => a + b, 0) / staffCounts.length : null
+
+      result[loc] = { pct: pcts.length > 0 ? pcts.reduce((a, b) => a + b, 0) / pcts.length : null, avgStaff }
     })
     return result
   }, [avgEvents, avgOrders, payRateMap, locations])
@@ -326,14 +338,19 @@ export default function ManagementLabourPage() {
                     {/* 30D Avg column */}
                     {(() => {
                       const avg = avgLabourPct[loc]
-                      const avgColor = avg === null ? '' : avg < 35 ? 'text-emerald-600' : 'text-red-500'
+                      const pct = avg?.pct ?? null
+                      const avgStaff = avg?.avgStaff ?? null
+                      const pctColor = pct === null ? '' : pct < 35 ? 'text-emerald-600' : 'text-red-500'
                       return (
                         <div className="w-20 flex-shrink-0 px-2 text-right flex flex-col justify-center border-r border-gray-100">
-                          {avg !== null ? (
-                            <p className={`text-sm font-bold ${avgColor}`}>{Math.round(avg)}%</p>
-                          ) : (
+                          {avgStaff !== null ? (
+                            <p className="text-xs text-gray-500">{avgStaff.toFixed(1)} staff</p>
+                          ) : null}
+                          {pct !== null ? (
+                            <p className={`text-sm font-bold ${pctColor}`}>{Math.round(pct)}%</p>
+                          ) : avgStaff === null ? (
                             <p className="text-xs text-gray-200">—</p>
-                          )}
+                          ) : null}
                         </div>
                       )
                     })()}
