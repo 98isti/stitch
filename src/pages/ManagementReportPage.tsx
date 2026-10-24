@@ -262,14 +262,26 @@ export default function ManagementReportPage() {
       periods: [string, string][],
       showPL: boolean
     ): Row[] {
-      return locs.map(loc => {
-        const locKey = loc === 'All Locations' ? null : loc
-        const values = periods.map(([s, e]) => sumPayments(activePmts, locKey, null, [s, e]))
+      // Per-location rows first
+      const locRows: Row[] = locationNames.map(loc => {
+        const values = periods.map(([s, e]) => sumPayments(activePmts, loc, null, [s, e]))
         const pl = showPL
-          ? periods.map(([s, e], i) => calcPL(values[i], activeSIs, payRateMap, locKey, s, e, locationExpenses))
+          ? periods.map(([s, e], i) => calcPL(values[i], activeSIs, payRateMap, loc, s, e, locationExpenses))
           : periods.map(() => null)
-        return { name: loc, isTotal: loc === 'All Locations', values, pl }
+        return { name: loc, isTotal: false, values, pl }
       })
+
+      // All Locations: revenue = sum of all; P/L = sum of individual P/Ls
+      // (automatically excludes shops not open — their P/L is null so they don't count)
+      const allValues = periods.map((_, i) => locRows.reduce((s, r) => s + r.values[i], 0))
+      const allPL = showPL
+        ? periods.map((_, i) => {
+            const pls = locRows.map(r => r.pl[i]).filter((p): p is number => p !== null)
+            return pls.length > 0 ? pls.reduce((a, b) => a + b, 0) : null
+          })
+        : periods.map(() => null)
+
+      return [{ name: 'All Locations', isTotal: true, values: allValues, pl: allPL }, ...locRows]
     }
 
     // Daily (no P/L)
