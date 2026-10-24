@@ -221,14 +221,17 @@ export default function ManagementReportPage() {
   async function loadLifetime() {
     if (!accountId || loadingLifetime) return
     setLoadingLifetime(true)
+    try {
     const [pmtSnap, siSnap] = await Promise.all([
       getDocs(collection(db, 'accounts', accountId, 'payments')).catch(() => null),
       getDocs(collection(db, 'accounts', accountId, 'signIns')).catch(() => null),
     ])
     if (pmtSnap) setLifetimePayments(pmtSnap.docs.map(d => d.data() as Payment))
     if (siSnap)  setLifetimeSignIns(siSnap.docs.map(d => d.data() as SignIn))
-    setShowLifetime(true)
-    setLoadingLifetime(false)
+      setShowLifetime(true)
+    } catch { /* ignore */ } finally {
+      setLoadingLifetime(false)
+    }
   }
 
   const locationNames = useMemo(() => locations.map(l => l.name), [locations])

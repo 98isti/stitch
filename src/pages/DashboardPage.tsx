@@ -205,6 +205,7 @@ export default function DashboardPage() {
   const loadDashboard = useCallback(async () => {
     if (!accountId || locations.length === 0) return
     setLoading(true)
+    let _mounted = true
 
     const today   = new Date().toLocaleDateString('en-CA')
     const day7ago = dateOffset(7)
@@ -330,6 +331,7 @@ export default function DashboardPage() {
       }
     }))
 
+    if (!_mounted) return
     setMetrics(results)
     setLoading(false)
 
@@ -337,7 +339,7 @@ export default function DashboardPage() {
     results.forEach((m, i) => {
       if (!m.googlePlaceId) return
       fetchGoogleRating(m.googlePlaceId, googleApiKey).then(googleResult => {
-        if (!googleResult) return
+        if (!googleResult || !_mounted) return
         setMetrics(prev => prev.map((item, idx) =>
           idx === i
             ? { ...item, googleRating: googleResult.rating, googleReviewCount: googleResult.count }
@@ -347,7 +349,15 @@ export default function DashboardPage() {
     })
   }, [accountId, locations])
 
-  useEffect(() => { loadDashboard() }, [loadDashboard])
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      try { await loadDashboard() }
+      catch { if (!cancelled) setLoading(false) }
+    }
+    run()
+    return () => { cancelled = true }
+  }, [loadDashboard])
 
   const totalRevenue = metrics.reduce((s, m) => s + m.todayRevenue, 0)
   const totalTarget  = metrics.reduce((s, m) => s + m.dailyTarget, 0)

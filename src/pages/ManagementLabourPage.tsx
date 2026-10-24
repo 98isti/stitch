@@ -82,7 +82,9 @@ export default function ManagementLabourPage() {
 
   useEffect(() => {
     if (!accountId) return
-    load()
+    let mounted = true
+    load().catch(() => { if (mounted) setLoading(false) })
+    return () => { mounted = false }
   }, [accountId, weekOffset])
 
   async function load() {

@@ -3,7 +3,7 @@ import { ManagementContext } from '../context/ManagementContext'
 import { LayoutDashboard, List, BarChart2, ClipboardList, MoreHorizontal } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
 
 const NAV = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -14,6 +14,30 @@ const NAV = [
 ]
 
 const REFRESH_COOLDOWN_MS = 5_000 // refresh if returning from background after 5s
+
+import { Component, type ReactNode } from 'react'
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false }
+  static getDerivedStateFromError() { return { hasError: true } }
+  componentDidCatch() { this.setState({ hasError: true }) }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
+          <p className="text-gray-500 text-sm">Something went wrong loading this page.</p>
+          <button
+            onClick={() => this.setState({ hasError: false })}
+            className="px-4 py-2 bg-navy text-white text-sm rounded-xl"
+          >
+            Try Again
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 export default function ManagementLayout() {
   const navigate = useNavigate()
@@ -46,7 +70,7 @@ export default function ManagementLayout() {
       {/* Page content */}
       <div className="flex-1 overflow-hidden">
         <ManagementContext.Provider value={true}>
-          <Outlet key={refreshKey} />
+          <ErrorBoundary key={refreshKey}><Outlet /></ErrorBoundary>
         </ManagementContext.Provider>
       </div>
 

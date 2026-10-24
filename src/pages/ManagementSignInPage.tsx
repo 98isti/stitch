@@ -76,7 +76,11 @@ export default function ManagementSignInPage() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [accountId])
+  useEffect(() => {
+    let mounted = true
+    load().catch(() => { if (mounted) setLoading(false) })
+    return () => { mounted = false }
+  }, [accountId])
 
   // Build pay rate map by name
   const payRateMap = useMemo(() => {
