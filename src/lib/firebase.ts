@@ -20,6 +20,6 @@ export const auth = getAuth(app)
 // Note: if admin scripts fix data externally, force-quit the app to clear stale cache.
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({
-    tabManager: persistentSingleTabManager(),
+    tabManager: persistentSingleTabManager({}), // single-tab: no cross-tab locking (safe for Capacitor iOS)
   }),
 })
