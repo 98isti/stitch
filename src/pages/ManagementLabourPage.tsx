@@ -14,6 +14,13 @@ interface SignInEvent {
   timestamp: { seconds: number }
 }
 
+interface Order {
+  id: string
+  location: string
+  orderAmount: number
+  createdAt?: { seconds: number }
+}
+
 interface StaffMember {
   id: string
   firstName: string
@@ -58,6 +65,7 @@ export default function ManagementLabourPage() {
   const { locations } = useLocations(accountId)
   const [events, setEvents] = useState<SignInEvent[]>([])
   const [staff, setStaff] = useState<StaffMember[]>([])
+  const [orders, setOrders] = useState<Order[]>([])
   const [weekOffset, setWeekOffset] = useState(0)
   const [loading, setLoading] = useState(true)
 
@@ -73,17 +81,23 @@ export default function ManagementLabourPage() {
     const weekStart = new Date(days[0].date + 'T00:00:00')
     const weekEnd = new Date(days[6].date + 'T23:59:59')
 
-    const [eventsSnap, staffSnap] = await Promise.all([
+    const [eventsSnap, staffSnap, ordersSnap] = await Promise.all([
       getDocs(query(
         collection(db, 'accounts', accountId, 'signIns'),
         where('timestamp', '>=', Timestamp.fromDate(weekStart)),
         where('timestamp', '<=', Timestamp.fromDate(weekEnd))
       )).catch(() => null),
       getDocs(collection(db, 'accounts', accountId, 'staff')).catch(() => null),
+      getDocs(query(
+        collection(db, 'accounts', accountId, 'orders'),
+        where('createdAt', '>=', Timestamp.fromDate(weekStart)),
+        where('createdAt', '<=', Timestamp.fromDate(weekEnd))
+      )).catch(() => null),
     ])
 
     if (eventsSnap) setEvents(eventsSnap.docs.map(d => ({ id: d.id, ...d.data() } as SignInEvent)))
     if (staffSnap) setStaff(staffSnap.docs.map(d => ({ id: d.id, ...d.data() } as StaffMember)))
+    if (ordersSnap) setOrders(ordersSnap.docs.map(d => ({ id: d.id, ...d.data() } as Order)))
     setLoading(false)
   }
 
@@ -96,6 +110,19 @@ export default function ManagementLabourPage() {
     })
     return map
   }, [staff])
+
+  // Revenue per location × day from orders
+  const revenueGrid = useMemo(() => {
+    const map: Record<string, Record<string, number>> = {}
+    orders.forEach(o => {
+      if (!o.createdAt) return
+      const date = toLocalDateStr(o.createdAt.seconds)
+      const loc = o.location || ''
+      if (!map[loc]) map[loc] = {}
+      map[loc][date] = (map[loc][date] || 0) + (o.orderAmount || 0)
+    })
+    return map
+  }, [orders])
 
   // For each location × day: { staffCount, labourCost }
   const grid = useMemo(() => {
@@ -133,13 +160,11 @@ export default function ManagementLabourPage() {
 
     shifts.forEach(({ date, location, name, cost }) => {
       if (!days.find(d => d.date === date)) return
-      // specific location
       if (result[location]?.[date]) {
         result[location][date].names.add(name)
         result[location][date].staffCount = result[location][date].names.size
         result[location][date].labourCost += cost
       }
-      // All Locations
       if (result['All Locations']?.[date]) {
         result['All Locations'][date].names.add(`${location}__${name}`)
         result['All Locations'][date].staffCount = result['All Locations'][date].names.size
@@ -215,6 +240,12 @@ export default function ManagementLabourPage() {
                       const cell = grid.data[loc]?.[d.date]
                       const count = cell?.staffCount ?? 0
                       const cost = cell?.labourCost ?? 0
+                      // Revenue: sum across all sub-locations if 'All'
+                      const revenue = loc === 'All Locations'
+                        ? Object.values(revenueGrid).reduce((sum, byDate) => sum + (byDate[d.date] || 0), 0)
+                        : (revenueGrid[loc]?.[d.date] ?? 0)
+                      const pct = revenue > 0 ? (cost / revenue) * 100 : null
+                      const pctColor = pct === null ? '' : pct < 35 ? 'text-emerald-600' : 'text-red-500'
                       const isTotal = loc === 'All Locations'
                       return (
                         <div key={d.date} className="w-24 flex-shrink-0 px-2 text-right flex flex-col justify-center">
@@ -224,7 +255,12 @@ export default function ManagementLabourPage() {
                                 {count} staff
                               </p>
                               {cost > 0 && (
-                                <p className="text-xs text-gray-400 mt-0.5">${Math.round(cost)}</p>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                  ${Math.round(cost)}
+                                  {pct !== null && (
+                                    <span className={`ml-1 font-semibold ${pctColor}`}>{Math.round(pct)}%</span>
+                                  )}
+                                </p>
                               )}
                             </>
                           ) : (
