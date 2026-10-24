@@ -144,13 +144,13 @@ function TableSection({ label, rows, columns, showPL = true }: {
 }) {
   return (
     <div className="mb-4 bg-white rounded-xl overflow-hidden border border-gray-100">
-      <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
+      <div className="sticky top-0 z-20 bg-gray-100 px-4 py-3 border-b border-gray-200">
         <span className="text-base font-bold text-gray-500 uppercase tracking-widest">{label}</span>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse" style={{ minWidth: `${140 + columns.length * 110}px` }}>
-          <thead>
-            <tr className="border-b border-gray-200 bg-white">
+          <thead className="sticky top-[44px] z-10">
+            <tr className="border-b border-gray-200 bg-white shadow-sm">
               <th className="sticky left-0 z-10 bg-white px-3 py-2.5 text-left border-r border-gray-200 w-32">
                 <span className="text-base font-bold text-gray-500">Location</span>
               </th>
