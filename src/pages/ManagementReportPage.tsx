@@ -256,8 +256,6 @@ export default function ManagementReportPage() {
   const activeSIs  = showLifetime ? lifetimeSignIns  : signIns
 
   const data = useMemo(() => {
-    const locs = ['All Locations', ...locationNames]
-
     function buildRows(
       periods: [string, string][],
       showPL: boolean
