@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { initializeFirestore, persistentLocalCache, persistentSingleTabManager } from 'firebase/firestore'
+import { getFirestore } from 'firebase/firestore'
 
 // Firebase config for StitchApp project (stitchapp-31192)
 // These are safe to be public — security is enforced by Firestore rules
@@ -15,11 +15,7 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
-// Firestore IndexedDB persistence — caches query results on device for instant repeat loads.
-// Syncs with server in background. Safe for Capacitor WebView (one tab per device).
-// Note: if admin scripts fix data externally, force-quit the app to clear stale cache.
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentSingleTabManager({}), // single-tab: no cross-tab locking (safe for Capacitor iOS)
-  }),
-})
+// Memory-only cache — no IndexedDB persistence.
+// IndexedDB causes hangs on iOS when WKWebView is killed/resumed by the OS.
+// Memory cache is fast enough on shop WiFi; data re-fetches on each app open.
+export const db = getFirestore(app)
