@@ -22,6 +22,13 @@ interface Order {
   createdAt?: { seconds: number }
 }
 
+interface Payment {
+  id: string
+  location: string
+  amount: number
+  paidDate?: string
+}
+
 interface StaffMember {
   id: string
   firstName: string
@@ -69,7 +76,7 @@ export default function ManagementLabourPage() {
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [orders, setOrders] = useState<Order[]>([])
   const [avgEvents, setAvgEvents] = useState<SignInEvent[]>([])
-  const [avgOrders, setAvgOrders] = useState<Order[]>([])
+  const [avgPayments, setAvgPayments] = useState<Payment[]>([])
   const [weekOffset, setWeekOffset] = useState(0)
   const [loading, setLoading] = useState(true)
 
@@ -85,7 +92,9 @@ export default function ManagementLabourPage() {
     const weekStart = new Date(days[0].date + 'T00:00:00')
     const weekEnd = new Date(days[6].date + 'T23:59:59')
 
-    const [eventsSnap, staffSnap, ordersSnap] = await Promise.all([
+    const weekStartStr = days[0].date
+    const weekEndStr   = days[6].date
+    const [eventsSnap, staffSnap, paymentsSnap] = await Promise.all([
       getDocs(query(
         collection(db, 'accounts', accountId, 'signIns'),
         where('timestamp', '>=', Timestamp.fromDate(weekStart)),
@@ -93,33 +102,32 @@ export default function ManagementLabourPage() {
       )).catch(() => null),
       getDocs(collection(db, 'accounts', accountId, 'staff')).catch(() => null),
       getDocs(query(
-        collection(db, 'accounts', accountId, 'orders'),
-        where('createdAt', '>=', Timestamp.fromDate(weekStart)),
-        where('createdAt', '<=', Timestamp.fromDate(weekEnd))
+        collection(db, 'accounts', accountId, 'payments'),
+        where('paidDate', '>=', weekStartStr),
+        where('paidDate', '<=', weekEndStr)
       )).catch(() => null),
     ])
 
     if (eventsSnap) setEvents(eventsSnap.docs.map(d => ({ id: d.id, ...d.data() } as SignInEvent)))
     if (staffSnap) setStaff(staffSnap.docs.map(d => ({ id: d.id, ...d.data() } as StaffMember)))
-    if (ordersSnap) setOrders(ordersSnap.docs.map(d => ({ id: d.id, ...d.data() } as Order)))
+    if (paymentsSnap) setOrders(paymentsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Order)))
 
-    // Fetch 30-day history for average (rolling 30 days before week start)
-    const avg30End = new Date(weekStart); avg30End.setDate(avg30End.getDate() - 1)
-    const avg30Start = new Date(avg30End); avg30Start.setDate(avg30End.getDate() - 29)
-    const [avgEventsSnap, avgOrdersSnap] = await Promise.all([
+    // 30D Avg — rolling 30 days from TODAY (same window as Dashboard)
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const avg30Start = new Date(today); avg30Start.setDate(today.getDate() - 30)
+    const avg30StartStr = avg30Start.toLocaleDateString('en-CA')
+    const [avgEventsSnap, avgPaymentsSnap] = await Promise.all([
       getDocs(query(
         collection(db, 'accounts', accountId, 'signIns'),
-        where('timestamp', '>=', Timestamp.fromDate(avg30Start)),
-        where('timestamp', '<=', Timestamp.fromDate(avg30End))
+        where('timestamp', '>=', Timestamp.fromDate(avg30Start))
       )).catch(() => null),
       getDocs(query(
-        collection(db, 'accounts', accountId, 'orders'),
-        where('createdAt', '>=', Timestamp.fromDate(avg30Start)),
-        where('createdAt', '<=', Timestamp.fromDate(avg30End))
+        collection(db, 'accounts', accountId, 'payments'),
+        where('paidDate', '>=', avg30StartStr)
       )).catch(() => null),
     ])
     if (avgEventsSnap) setAvgEvents(avgEventsSnap.docs.map(d => ({ id: d.id, ...d.data() } as SignInEvent)))
-    if (avgOrdersSnap) setAvgOrders(avgOrdersSnap.docs.map(d => ({ id: d.id, ...d.data() } as Order)))
+    if (avgPaymentsSnap) setAvgPayments(avgPaymentsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Payment)))
     setLoading(false)
   }
 
@@ -158,14 +166,11 @@ export default function ManagementLabourPage() {
       costByLocDay[location][date] = (costByLocDay[location][date] || 0) + hours * rate
     })
 
-    // Revenue per location per day from avgOrders
-    const revByLocDay: Record<string, Record<string, number>> = {}
-    avgOrders.forEach(o => {
-      if (!o.createdAt) return
-      const date = toLocalDateStr(o.createdAt.seconds)
-      const loc = o.location || ''
-      if (!revByLocDay[loc]) revByLocDay[loc] = {}
-      revByLocDay[loc][date] = (revByLocDay[loc][date] || 0) + (o.orderAmount || 0)
+    // Revenue per location from payments (same as Dashboard — paidDate based)
+    const revByLoc: Record<string, number> = {}
+    avgPayments.forEach(p => {
+      const loc = p.location || ''
+      revByLoc[loc] = (revByLoc[loc] || 0) + (p.amount || 0)
     })
 
     // Correct 30D Labour % = total labour cost / total revenue (not average of daily %s)
@@ -174,8 +179,8 @@ export default function ManagementLabourPage() {
         ? Object.values(costByLocDay).reduce((sum, byDate) => sum + Object.values(byDate).reduce((a, b) => a + b, 0), 0)
         : Object.values(costByLocDay[loc] || {}).reduce((a, b) => a + b, 0)
       const totalRev = loc === 'All Locations'
-        ? Object.values(revByLocDay).reduce((sum, byDate) => sum + Object.values(byDate).reduce((a, b) => a + b, 0), 0)
-        : Object.values(revByLocDay[loc] || {}).reduce((a, b) => a + b, 0)
+        ? Object.values(revByLoc).reduce((a, b) => a + b, 0)
+        : (revByLoc[loc] || 0)
       const pct = totalRev > 0 ? (totalCost / totalRev) * 100 : null
 
       // Avg daily staff count (only on days with any staff)
@@ -193,17 +198,17 @@ export default function ManagementLabourPage() {
       result[loc] = { pct, avgStaff }
     })
     return result
-  }, [avgEvents, avgOrders, payRateMap, locations])
+  }, [avgEvents, avgPayments, payRateMap, locations])
 
   // Revenue per location × day from orders
   const revenueGrid = useMemo(() => {
     const map: Record<string, Record<string, number>> = {}
-    orders.forEach(o => {
-      if (!o.createdAt) return
-      const date = toLocalDateStr(o.createdAt.seconds)
-      const loc = o.location || ''
+    orders.forEach((p: any) => {
+      const date = p.paidDate || ''
+      const loc  = p.location || ''
+      if (!date || !loc) return
       if (!map[loc]) map[loc] = {}
-      map[loc][date] = (map[loc][date] || 0) + (o.orderAmount || 0)
+      map[loc][date] = (map[loc][date] || 0) + (p.amount || 0)
     })
     return map
   }, [orders])
