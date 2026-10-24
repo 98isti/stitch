@@ -143,17 +143,14 @@ function TableSection({ label, rows, columns, showPL = true }: {
   showPL?: boolean
 }) {
   return (
-    <div className="mb-4">
-      {/* Section label — sticky, outside overflow-hidden */}
-      <div className="sticky top-0 z-20 bg-gray-100 px-4 py-3 border border-gray-100 rounded-t-xl border-b border-gray-200">
+    <div className="mb-4 bg-white rounded-xl overflow-hidden border border-gray-100">
+      <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
         <span className="text-base font-bold text-gray-500 uppercase tracking-widest">{label}</span>
       </div>
-      {/* overflow: clip clips visually without creating a scroll container, so sticky still works */}
-      <div className="bg-white rounded-b-xl border border-t-0 border-gray-100" style={{ overflow: 'clip' }}>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse" style={{ minWidth: `${140 + columns.length * 110}px` }}>
-            <thead className="sticky top-[44px] z-10">
-              <tr className="border-b border-gray-200 bg-white shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse" style={{ minWidth: `${140 + columns.length * 110}px` }}>
+          <thead>
+            <tr className="border-b border-gray-200 bg-white">
               <th className="sticky left-0 z-10 bg-white px-3 py-2.5 text-left border-r border-gray-200 w-32">
                 <span className="text-base font-bold text-gray-500">Location</span>
               </th>
@@ -186,7 +183,6 @@ function TableSection({ label, rows, columns, showPL = true }: {
         </table>
       </div>
     </div>
-  </div>
   )
 }
 
