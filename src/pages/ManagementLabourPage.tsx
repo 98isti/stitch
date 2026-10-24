@@ -168,35 +168,29 @@ export default function ManagementLabourPage() {
       revByLocDay[loc][date] = (revByLocDay[loc][date] || 0) + (o.orderAmount || 0)
     })
 
-    // Average labour % per location (only days with revenue > 0)
+    // Correct 30D Labour % = total labour cost / total revenue (not average of daily %s)
     locationNames.forEach(loc => {
-      const dates = new Set([
-        ...Object.keys(loc === 'All Locations' ? Object.values(costByLocDay).reduce((a, b) => ({ ...a, ...b }), {}) : (costByLocDay[loc] || {})),
-        ...Object.keys(loc === 'All Locations' ? Object.values(revByLocDay).reduce((a, b) => ({ ...a, ...b }), {}) : (revByLocDay[loc] || {})),
-      ])
-      const pcts: number[] = []
-      dates.forEach(date => {
-        const cost = loc === 'All Locations'
-          ? Object.values(costByLocDay).reduce((s, d) => s + (d[date] || 0), 0)
-          : (costByLocDay[loc]?.[date] || 0)
-        const rev = loc === 'All Locations'
-          ? Object.values(revByLocDay).reduce((s, d) => s + (d[date] || 0), 0)
-          : (revByLocDay[loc]?.[date] || 0)
-        if (rev > 0) pcts.push((cost / rev) * 100)
-      })
+      const totalCost = loc === 'All Locations'
+        ? Object.values(costByLocDay).reduce((sum, byDate) => sum + Object.values(byDate).reduce((a, b) => a + b, 0), 0)
+        : Object.values(costByLocDay[loc] || {}).reduce((a, b) => a + b, 0)
+      const totalRev = loc === 'All Locations'
+        ? Object.values(revByLocDay).reduce((sum, byDate) => sum + Object.values(byDate).reduce((a, b) => a + b, 0), 0)
+        : Object.values(revByLocDay[loc] || {}).reduce((a, b) => a + b, 0)
+      const pct = totalRev > 0 ? (totalCost / totalRev) * 100 : null
+
       // Avg daily staff count (only on days with any staff)
       const staffByDate: Record<string, Set<string>> = {}
       avgEvents.forEach(ev => {
         if (loc !== 'All Locations' && ev.location !== loc) return
         const date = toLocalDateStr(ev.timestamp.seconds)
         if (!staffByDate[date]) staffByDate[date] = new Set()
-        const key = loc === 'All Locations' ? `${ev.location}__${ev.employeeName}` : ev.employeeName
+        const key = loc === 'All Locations' ? `${ev.location}__${ev.employeeName}` : (ev.employeeId || ev.employeeName)
         staffByDate[date].add(key)
       })
       const staffCounts = Object.values(staffByDate).map(s => s.size).filter(n => n > 0)
       const avgStaff = staffCounts.length > 0 ? staffCounts.reduce((a, b) => a + b, 0) / staffCounts.length : null
 
-      result[loc] = { pct: pcts.length > 0 ? pcts.reduce((a, b) => a + b, 0) / pcts.length : null, avgStaff }
+      result[loc] = { pct, avgStaff }
     })
     return result
   }, [avgEvents, avgOrders, payRateMap, locations])
