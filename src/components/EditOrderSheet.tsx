@@ -179,7 +179,7 @@ export default function EditOrderSheet({ orderId, accountId, onClose, onBack }: 
         paidAmount: existingPaid,
         stillDueAmount: newDue,
         isPaid: newDue === 0,
-        subTotalAmount: Math.round(total / 1.1 * 100) / 100,
+        subTotalAmount: Math.round((total + (order.discountApplied ?? 0)) * 100) / 100,
         updatedAt: serverTimestamp(),
       })
       onBack() // go back to detail sheet after save
