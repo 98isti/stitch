@@ -241,7 +241,7 @@ export default function ManagementPayrollPage() {
                       <thead>
                         <tr className="bg-red-50 border-b border-red-100">
                           {/* Day column header */}
-                          <th className="text-left px-3 py-3 font-medium text-gray-500 w-36 min-w-36" />
+                          <th className="text-left px-3 py-3 font-medium text-gray-500 w-36 min-w-36 sticky left-0 z-10 bg-red-50" />
                           {/* Staff columns */}
                           {activeEmployeeIds.map(id => {
                             const rate = rateMap[id]
@@ -260,7 +260,7 @@ export default function ManagementPayrollPage() {
                           const anyWorked = activeEmployeeIds.some(id => (hoursMap[id]?.[day] ?? 0) > 0)
                           return (
                             <tr key={day} className={`border-b border-gray-100 ${weekend ? 'bg-gray-50' : ''}`}>
-                              <td className={`px-3 py-2.5 text-xs ${weekend ? 'text-gray-500 font-medium' : 'text-gray-600'}`}>
+                              <td className={`px-3 py-2.5 text-xs sticky left-0 z-10 ${weekend ? 'text-gray-500 font-medium bg-gray-50' : 'text-gray-600 bg-white'}`}>
                                 <div>{fmtDayLabel(day).weekday}</div>
                                 <div className="text-gray-400 font-normal">{fmtDayLabel(day).date}</div>
                               </td>
