@@ -88,6 +88,7 @@ function buildHoursMap(events: SignInEvent[]) {
     const [empId, date] = key.split('__')
     const signIn  = ins.length  ? Math.min(...ins)  : null
     const signOut = outs.length ? Math.max(...outs) : null
+    // Both present → calculate hours; only one present → 0 (worked but incomplete record)
     const h = (signIn && signOut) ? Math.round(((signOut - signIn) / 3600) * 10) / 10 : 0
     if (!hours[empId]) hours[empId] = {}
     hours[empId][date] = h
@@ -268,7 +269,9 @@ export default function ManagementPayrollPage() {
                                 const h = hoursMap[id]?.[day]
                                 return (
                                   <td key={id} className="px-3 py-2.5 text-center text-base text-gray-700">
-                                    {h != null && h > 0 ? h.toFixed(1) : anyWorked ? <span className="text-gray-300">—</span> : ''}
+                                    {h !== undefined
+                                      ? (h > 0 ? h.toFixed(1) : <span className="text-amber-500 font-semibold">0</span>)
+                                      : anyWorked ? <span className="text-gray-300">—</span> : ''}
                                   </td>
                                 )
                               })}
