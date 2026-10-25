@@ -241,7 +241,7 @@ export default function ManagementPayrollPage() {
                       <thead>
                         <tr className="bg-red-50 border-b border-red-100">
                           {/* Day column header */}
-                          <th className="text-left px-3 py-3 font-medium text-gray-500 w-36 min-w-36 sticky left-0 z-10 bg-red-50" />
+                          <th className="text-left px-3 py-3 font-medium text-gray-500 w-24 min-w-24 sticky left-0 z-10 bg-red-50" />
                           {/* Staff columns */}
                           {activeEmployeeIds.map(id => {
                             const rate = rateMap[id]
