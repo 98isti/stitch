@@ -4,7 +4,7 @@ import { useIsManagement } from '../context/ManagementContext'
 import { useNavigate } from 'react-router-dom'
 import OrderDetailSheet from '../components/OrderDetailSheet'
 import EditOrderSheet from '../components/EditOrderSheet'
-import { collection, query, orderBy, getDocs, Timestamp } from 'firebase/firestore'
+import { collection, query, orderBy, where, limit, getDocs, Timestamp } from 'firebase/firestore'
 
 
 // Simple cash drawer SVG icon
@@ -68,13 +68,17 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('All')
-
   async function fetchOrders() {
-    if (!accountId) return
+    if (!accountId || !activeLocation) return
     setLoading(true)
     try {
       const [ordersSnap, drawerSnap] = await Promise.all([
-        getDocs(query(collection(db, 'accounts', accountId, 'orders'), orderBy('orderNumber', 'desc'))),
+        getDocs(query(
+          collection(db, 'accounts', accountId, 'orders'),
+          where('locationId', '==', activeLocation.id),
+          orderBy('orderNumber', 'desc'),
+          limit(300)
+        )),
         getDocs(query(collection(db, 'accounts', accountId, 'drawerLogs'), orderBy('openedAt', 'desc'))),
       ])
       setOrders(ordersSnap.docs.map(d => ({ id: d.id, ...d.data() } as Order)))
@@ -83,17 +87,16 @@ export default function OrdersPage() {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { fetchOrders() }, [accountId])
+  useEffect(() => { fetchOrders() }, [accountId, activeLocation?.id])
 
   const filtered = orders.filter(o => {
-    const matchLocation = !activeLocation || o.location === activeLocation.name
     const matchFilter = filter === 'All' || o.status === filter
     const term = search.toLowerCase()
     const matchSearch = !search ||
       o.customerName?.toLowerCase().includes(term) ||
       o.orderNumberString?.toLowerCase().includes(term) ||
       o.customerPhone?.includes(search)
-    return matchLocation && matchFilter && matchSearch
+    return matchFilter && matchSearch
   })
 
   // Merge orders + drawer logs into one list sorted by date (newest first)
@@ -169,6 +172,7 @@ export default function OrdersPage() {
             <p className="text-sm">No orders found</p>
           </div>
         ) : (
+          <>
           <table className="w-full text-sm border-collapse">
             <thead className="sticky top-0 bg-gray-50 z-10">
               <tr className="border-b border-gray-200">
@@ -249,6 +253,7 @@ export default function OrdersPage() {
               })}
             </tbody>
           </table>
+          </>
         )}
       </div>
       <OrderDetailSheet
