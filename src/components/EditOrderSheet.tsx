@@ -169,13 +169,16 @@ export default function EditOrderSheet({ orderId, accountId, onClose, onBack }: 
     if (!accountId || !orderId || !order) return
     setSaving(true)
     try {
-      const total = items.reduce((s, it) => s + it.unitPrice * it.quantity, 0)
+      const total = Math.round(items.reduce((s, it) => s + it.unitPrice * it.quantity, 0) * 100) / 100
+      const existingPaid = Math.round((order.paidAmount ?? 0) * 100) / 100
+      const newDue = Math.max(0, Math.round((total - existingPaid) * 100) / 100)
       await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), {
         customerName, customerPhone, pickupDate,
         items: JSON.stringify(items),
-        orderAmount: Math.round(total * 100) / 100,
-        stillDueAmount: order.isPaid ? 0 : Math.round(total * 100) / 100,
-        paidAmount: order.isPaid ? Math.round(total * 100) / 100 : 0,
+        orderAmount: total,
+        paidAmount: existingPaid,
+        stillDueAmount: newDue,
+        isPaid: newDue === 0,
         subTotalAmount: Math.round(total / 1.1 * 100) / 100,
         updatedAt: serverTimestamp(),
       })
