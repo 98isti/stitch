@@ -57,7 +57,9 @@ function fmtWeekLabel(start: Date, end: Date) {
 
 function fmtDayLabel(dateStr: string) {
   const d = new Date(dateStr + 'T00:00:00')
-  return d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })
+  const weekday = d.toLocaleDateString('en-AU', { weekday: 'long' })
+  const date    = d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+  return { weekday, date }
 }
 
 function getDaysInWeek(weekStart: Date): string[] {
@@ -259,7 +261,8 @@ export default function ManagementPayrollPage() {
                           return (
                             <tr key={day} className={`border-b border-gray-100 ${weekend ? 'bg-gray-50' : ''}`}>
                               <td className={`px-3 py-2.5 text-xs ${weekend ? 'text-gray-500 font-medium' : 'text-gray-600'}`}>
-                                {fmtDayLabel(day)}
+                                <div>{fmtDayLabel(day).weekday}</div>
+                                <div className="text-gray-400 font-normal">{fmtDayLabel(day).date}</div>
                               </td>
                               {activeEmployeeIds.map(id => {
                                 const h = hoursMap[id]?.[day]
