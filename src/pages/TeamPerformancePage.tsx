@@ -8,26 +8,26 @@ import { useNavigate } from 'react-router-dom'
 
 interface Order {
   id: string
-  completedBy?: string
+  servedBy?: string
   orderAmount: number
   locationId?: string
   createdAt?: { seconds: number }
-  jobCompletedDate?: { seconds: number } | string
+  jobCompletedDate?: { seconds: number } | string | null
 }
 
-function toLocalDateStr(seconds: number) {
-  const d = new Date(seconds * 1000)
+function dateStrFromWeekStart(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-// Extract seconds from jobCompletedDate (Timestamp or ISO string)
-function getCompletedSeconds(jcd: { seconds: number } | string | undefined): number | null {
-  if (!jcd) return null
-  if (typeof jcd === 'string') {
-    const ms = new Date(jcd).getTime()
-    return isNaN(ms) ? null : ms / 1000
+// Resolve jobCompletedDate (Timestamp or string) → YYYY-MM-DD, or null
+function resolveCompletedDate(val: any): string | null {
+  if (!val) return null
+  if (typeof val === 'string') return val.slice(0, 10)
+  if (val.seconds) {
+    const d = new Date(val.seconds * 1000)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   }
-  return jcd.seconds ?? null
+  return null
 }
 
 function fmtDate(dateStr: string) {
@@ -65,9 +65,7 @@ export default function TeamPerformancePage() {
       collection(db, 'accounts', accountId, 'orders'),
       orderBy('createdAt', 'desc')
     )).then(snap => {
-      // Only keep orders that have been completed (completedBy + jobCompletedDate set)
-      const all = snap.docs.map(d => ({ id: d.id, ...d.data() } as Order))
-      setOrders(all.filter(o => !!o.completedBy && !!o.jobCompletedDate))
+      setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Order)))
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [accountId])
@@ -83,27 +81,29 @@ export default function TeamPerformancePage() {
   const thirtyDaysAgo = new Date(now)
   thirtyDaysAgo.setDate(now.getDate() - 30)
 
-  // This week's orders — based on jobCompletedDate
-  const thisWeekOrders = useMemo(() =>
-    filteredOrders.filter(o => {
-      const ts = getCompletedSeconds(o.jobCompletedDate)
-      if (!ts) return false
-      return new Date(ts * 1000) >= weekStart
-    }), [filteredOrders, weekStart])
+  const weekStartStr  = dateStrFromWeekStart(weekStart)
+  const thirtyDaysStr = dateStrFromWeekStart(thirtyDaysAgo)
 
-  // Last 30 days orders (for avg) — based on jobCompletedDate
+  // Completed orders only — completedBy is set when staff mark job as Ready for Pickup
+  const completedOrders = useMemo(() =>
+    filteredOrders.filter(o => !!(o as any).completedBy)
+  , [filteredOrders])
+
+  // This week: completed this week
+  const thisWeekOrders = useMemo(() =>
+    completedOrders.filter(o => (resolveCompletedDate(o.jobCompletedDate) ?? '') >= weekStartStr)
+  , [completedOrders, weekStartStr])
+
+  // Last 30 days completed (for avg)
   const last30Orders = useMemo(() =>
-    filteredOrders.filter(o => {
-      const ts = getCompletedSeconds(o.jobCompletedDate)
-      if (!ts) return false
-      return new Date(ts * 1000) >= thirtyDaysAgo
-    }), [filteredOrders, thirtyDaysAgo])
+    completedOrders.filter(o => (resolveCompletedDate(o.jobCompletedDate) ?? '') >= thirtyDaysStr)
+  , [completedOrders, thirtyDaysStr])
 
   // 30-day total per employee → weekly avg (÷ 4.3 weeks)
   const thirtyDayAvg = useMemo(() => {
     const totals: Record<string, number> = {}
     last30Orders.forEach(o => {
-      const name = (o.completedBy || '').trim()
+      const name = (o as any).completedBy || ''
       if (!name) return
       totals[name] = (totals[name] ?? 0) + (o.orderAmount ?? 0)
     })
@@ -114,15 +114,13 @@ export default function TeamPerformancePage() {
     return avg
   }, [last30Orders])
 
-  // Group this week by date → employee (using jobCompletedDate)
+  // Group this week by job completion date → employee
   const groupedByDate = useMemo(() => {
     const byDate: Record<string, Record<string, { count: number; total: number }>> = {}
 
     thisWeekOrders.forEach(o => {
-      const ts = getCompletedSeconds(o.jobCompletedDate)
-      if (!ts) return
-      const date = toLocalDateStr(ts)
-      const name = (o.completedBy || '').trim() || '(Unknown)'
+      const date = resolveCompletedDate(o.jobCompletedDate)!
+      const name = (o as any).completedBy || '(Unknown)'
       if (!byDate[date]) byDate[date] = {}
       if (!byDate[date][name]) byDate[date][name] = { count: 0, total: 0 }
       byDate[date][name].count++
