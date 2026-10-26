@@ -79,7 +79,7 @@ export default function ManagementOrdersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
-  const PAGE_SIZE = 100
+  const PAGE_SIZE = 250
 
   useEffect(() => {
     if (!accountId) return
