@@ -131,7 +131,7 @@ export default function OrdersPage() {
           collection(db, 'accounts', accountId, 'orders'),
           where('locationId', '==', activeLocation.id),
           orderBy('orderNumber', 'desc'),
-          limit(500)
+          limit(2000)
         )),
         getDocs(query(collection(db, 'accounts', accountId, 'drawerLogs'), orderBy('openedAt', 'desc'))),
       ])
