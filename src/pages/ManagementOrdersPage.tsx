@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
-import { collection, query, orderBy, limit, startAfter, getDocs, QueryDocumentSnapshot } from 'firebase/firestore'
+import { collection, query, orderBy, limit, startAfter, getDocs, QueryDocumentSnapshot, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
@@ -77,6 +77,9 @@ export default function ManagementOrdersPage() {
   const [selectedLocation, setSelectedLocation] = useState('All Locations')
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [serverResults, setServerResults] = useState<Order[] | null>(null)
+  const [searching, setSearching] = useState(false)
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   const PAGE_SIZE = 250
@@ -160,18 +163,62 @@ export default function ManagementOrdersPage() {
     return merged.sort((a, b) => b.ts - a.ts)
   }, [orders, drawerLogs, selectedLocation])
 
-  // Search results — filter by phone or order number
-  const searchResults = useMemo(() => {
-    const t = searchTerm.trim()
-    if (!t) return []
-    const isNum = /^\d+$/.test(t)
-    return orders.filter(o => {
-      const locMatch = selectedLocation === 'All Locations' || o.location === selectedLocation || (o as any).locationName === selectedLocation
-      if (!locMatch) return false
-      if (isNum) return String(o.orderNumber).includes(t) || (o.customerPhone ?? '').includes(t)
-      return (o.customerPhone ?? '').includes(t) || (o.customerName ?? '').toLowerCase().includes(t.toLowerCase())
-    })
-  }, [searchTerm, orders, selectedLocation])
+  // Server-side search: fires Firestore queries when user types
+  useEffect(() => {
+    const term = searchTerm.trim()
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    if (!term || term.length < 2) {
+      setServerResults(null)
+      return
+    }
+    searchTimerRef.current = setTimeout(async () => {
+      if (!accountId) return
+      setSearching(true)
+      try {
+        const upper = term.toUpperCase()
+        const [orderSnap, phoneSnap] = await Promise.all([
+          getDocs(query(
+            collection(db, 'accounts', accountId, 'orders'),
+            where('orderNumberString', '>=', upper),
+            where('orderNumberString', '<=', upper + '\uf8ff'),
+            limit(50)
+          )),
+          /\d{3,}/.test(term) ? getDocs(query(
+            collection(db, 'accounts', accountId, 'orders'),
+            where('customerPhone', '>=', term),
+            where('customerPhone', '<=', term + '\uf8ff'),
+            limit(50)
+          )) : Promise.resolve(null),
+        ])
+        const seen = new Set<string>()
+        const merged: Order[] = []
+        for (const snap of [orderSnap, phoneSnap]) {
+          if (!snap) continue
+          for (const doc of snap.docs) {
+            if (!seen.has(doc.id)) {
+              seen.add(doc.id)
+              merged.push({ id: doc.id, ...doc.data() } as Order)
+            }
+          }
+        }
+        // Apply location filter client-side
+        const locFiltered = selectedLocation === 'All Locations'
+          ? merged
+          : merged.filter(o => o.location === selectedLocation || (o as any).locationName === selectedLocation)
+        locFiltered.sort((a, b) => (b.orderNumber ?? 0) - (a.orderNumber ?? 0))
+        setServerResults(locFiltered)
+      } catch (e) {
+        console.error('Search error:', e)
+        setServerResults([])
+      } finally {
+        setSearching(false)
+      }
+    }, 350)
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current) }
+  }, [searchTerm, accountId, selectedLocation])
+
+  // Keep alias for render compatibility
+  const searchResults = serverResults ?? []
 
   // Group by date — always include today at the top
   const grouped = useMemo(() => {
@@ -222,6 +269,10 @@ export default function ManagementOrdersPage() {
       {/* List */}
       <div className="flex-1 overflow-y-auto px-3 py-2">
         {loading ? (
+          <div className="flex items-center justify-center h-32">
+            <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : searching ? (
           <div className="flex items-center justify-center h-32">
             <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
           </div>
