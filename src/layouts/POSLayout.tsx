@@ -190,11 +190,11 @@ export default function POSLayout() {
           <div className="relative h-7 bg-gray-100 overflow-hidden">
             <div
               className="absolute inset-y-0 left-0 transition-all duration-700"
-              style={{ width: `${progressPct}%`, background: progressPct >= 100 ? '#16a34a' : '#1B2A4A' }}
+              style={{ width: `${progressPct}%`, background: progressPct >= 100 ? '#0d9488' : '#1B2A4A' }}
             />
             <div className="absolute inset-0 flex items-center justify-between px-4">
-              <span className="text-xs font-semibold text-white mix-blend-difference">Today: ${dailyRevenue.toFixed(0)}</span>
-              <span className="text-xs font-semibold text-white mix-blend-difference">${revenueTarget.toFixed(0)} target</span>
+              <span className="text-xs font-semibold text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>Today: ${dailyRevenue.toFixed(0)}</span>
+              <span className="text-xs font-semibold text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>${revenueTarget.toFixed(0)} target</span>
             </div>
           </div>
         </div>
