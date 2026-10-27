@@ -21,6 +21,7 @@ const FILTERS = ['All', 'In progress', 'Ready for Pick Up', 'Picked Up', 'Redo']
 const COL_STYLE: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: '90px 130px 1fr 80px 72px 90px 160px 100px',
+  columnGap: '12px',
 }
 
 function CashDrawerIcon({ size = 20, className = '' }: { size?: number; className?: string }) {
