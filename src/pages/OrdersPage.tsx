@@ -437,9 +437,8 @@ export default function OrdersPage() {
               const isCancelled = order.status === 'Cancelled'
 
               return (
-                <div key={virtualItem.key} style={baseStyle}
+                <div key={virtualItem.key} style={{ ...baseStyle, ...COL_STYLE }}
                   onClick={() => setSelectedOrderId(order.id)}
-                  style={COL_STYLE}
                   className={`px-5 items-center border-b border-gray-100 cursor-pointer transition-colors ${
                     isCancelled ? 'opacity-50 bg-gray-50 hover:bg-gray-100' : 'hover:bg-gray-50'
                   }`}>
