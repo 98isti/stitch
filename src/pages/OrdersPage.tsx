@@ -217,17 +217,21 @@ export default function OrdersPage() {
   useEffect(() => { fetchOrders() }, [accountId, activeLocation?.id])
 
   // ── IntersectionObserver — infinite scroll trigger ─────────────────────────
+  // root must be parentRef (the inner scroll container), not the window.
+  // loading is in deps so the effect re-runs once the scroll container mounts.
 
   useEffect(() => {
-    const sentinel = sentinelRef.current
-    if (!sentinel) return
+    if (loading) return
+    const sentinel  = sentinelRef.current
+    const scrollEl  = parentRef.current
+    if (!sentinel || !scrollEl) return
     const observer = new IntersectionObserver(
       entries => { if (entries[0].isIntersecting && hasMore && !loadingMore) fetchMore() },
-      { rootMargin: '300px' },   // fire 300px before the sentinel hits viewport
+      { root: scrollEl, rootMargin: '300px' },
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [fetchMore, hasMore, loadingMore])
+  }, [fetchMore, hasMore, loadingMore, loading])
 
   // ── Server-side search ─────────────────────────────────────────────────────
 
