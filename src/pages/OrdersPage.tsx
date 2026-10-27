@@ -157,9 +157,7 @@ export default function OrdersPage() {
       setHasMore(snap.docs.length === INITIAL_LOAD)
 
       if (fetched.length > 0) {
-        const newest = fetched[0].createdAt
-          ? new Date(fetched[0].createdAt.seconds * 1000)
-          : new Date()
+        const newest = new Date() // use now so drawer logs after the last order are included
         const oldest = fetched[fetched.length - 1].createdAt
           ? new Date(fetched[fetched.length - 1].createdAt!.seconds * 1000)
           : new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
