@@ -5,6 +5,7 @@ import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { ChevronRight, Phone } from 'lucide-react'
+import { todayLocal } from '../lib/dateUtils'
 
 interface Order {
   id: string
@@ -25,7 +26,7 @@ export default function TodaysDuePage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayLocal()
 
   useEffect(() => {
     if (!accountId) return

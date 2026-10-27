@@ -7,6 +7,7 @@ import { useLocations } from '../hooks/useLocations'
 import { useAccountProfile } from '../hooks/useAccountProfile'
 import { useNavigate } from 'react-router-dom'
 import { Plus, X, RefreshCw, Printer } from 'lucide-react'
+import { todayLocal, dateToLocalISO } from '../lib/dateUtils'
 
 interface Voucher {
   id: string; code: string; amount: number; balance: number
@@ -31,7 +32,7 @@ function fmtDate(iso: string) {
 }
 
 function isExpired(expiryDate: string) {
-  return expiryDate < new Date().toISOString().slice(0, 10)
+  return expiryDate < todayLocal()
 }
 
 export default function VouchersPage() {
@@ -51,7 +52,7 @@ export default function VouchersPage() {
 
   function defaultExpiry() {
     const d = new Date(); d.setMonth(d.getMonth() + 3)
-    return d.toISOString().slice(0, 10)
+    return dateToLocalISO(d)
   }
 
   const [form, setForm] = useState<FormState>({
@@ -95,7 +96,7 @@ export default function VouchersPage() {
     if (!accountId || !form.amount || !form.customerPhone.trim()) return
     setSaving(true)
     try {
-      const issueDate = new Date().toISOString().slice(0, 10)
+      const issueDate = todayLocal()
       const newVoucher: Omit<Voucher, 'id'> = {
         code: form.code, amount: parseFloat(form.amount), balance: parseFloat(form.amount),
         customerName: form.customerName, customerPhone: form.customerPhone,
@@ -282,7 +283,7 @@ export default function VouchersPage() {
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Expiry Date (default 3 months)</label>
                 <input type="date" value={form.expiryDate} onChange={e => set('expiryDate', e.target.value)}
-                  min={new Date().toISOString().slice(0, 10)}
+                  min={todayLocal()}
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-navy" />
               </div>
 

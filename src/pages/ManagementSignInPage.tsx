@@ -76,7 +76,11 @@ export default function ManagementSignInPage() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [accountId])
+  useEffect(() => {
+    let mounted = true
+    load().catch(() => { if (mounted) setLoading(false) })
+    return () => { mounted = false }
+  }, [accountId])
 
   // Build pay rate map by name
   const payRateMap = useMemo(() => {
@@ -180,38 +184,35 @@ export default function ManagementSignInPage() {
           <p className="text-center text-gray-400 text-sm mt-12">No sign-in records this week</p>
         ) : (
           /* Card wrapping the whole table */
-          <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-            {/* "This Week" section header */}
-            <div className="bg-gray-100 px-4 py-2 text-center border-b border-gray-200">
+          <div className="rounded-xl border border-gray-200 shadow-sm" style={{ overflow: 'clip' }}>
+            {/* "This Week" section header — sticky at very top */}
+            <div className="sticky top-0 z-30 bg-gray-100 px-4 py-2 text-center border-b border-gray-200">
               <span className="text-sm font-semibold text-gray-700">This Week</span>
             </div>
 
-            {/* Horizontally scrollable table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm" style={{ minWidth: 420 }}>
-                {/* Column headers */}
+            <table className="w-full text-sm">
+                {/* Column headers — sticky below "This Week" bar */}
                 <thead>
-                  <tr className="bg-gray-500 text-white">
-                    <th className="px-3 py-2 text-left font-semibold w-24">Name</th>
+                  <tr className="bg-gray-500 text-white sticky top-[37px] z-20">
+                    <th className="px-2 py-2 text-left font-semibold w-28">Name</th>
                     <th className="px-2 py-2 text-center font-semibold w-20 leading-tight">
-                      Sign<br />in Time
+                      Sign in<br />Time
                     </th>
                     <th className="px-2 py-2 text-center font-semibold w-20 leading-tight">
                       Sign out<br />Time
                     </th>
-                    <th className="px-2 py-2 text-right font-semibold w-16">Pay</th>
-                    <th className="px-2 py-2 text-right font-semibold w-20">Sign-in Loc</th>
+                    <th className="px-2 py-2 text-right font-semibold">Location</th>
                   </tr>
                 </thead>
                 <tbody>
                   {grouped.map(([date, rows]) => (
                     <>
-                      {/* Date separator */}
-                      <tr key={`date-${date}`} className="bg-gray-100 border-t border-gray-200">
+                      {/* Date separator — sticky below column headers */}
+                      <tr key={`date-${date}`} className="bg-gray-100 border-t border-gray-200 sticky top-[85px] z-10">
                         <td colSpan={2} className="px-3 py-2 font-bold text-gray-800 text-sm">
                           {fmtDate(date)}
                         </td>
-                        <td colSpan={3} className="px-2 py-2 font-bold text-gray-800 text-sm text-right">
+                        <td colSpan={2} className="px-2 py-2 font-bold text-gray-800 text-sm text-right">
                           {fmtDayName(date)}
                         </td>
                       </tr>
@@ -219,19 +220,16 @@ export default function ManagementSignInPage() {
                       {/* Record rows */}
                       {rows.map((r, i) => (
                         <tr key={`${date}-${i}`} className="border-t border-gray-100 hover:bg-gray-50">
-                          <td className="px-3 py-2.5 text-gray-900 font-medium truncate max-w-[96px]">
+                          <td className="px-2 py-2.5 text-gray-900 font-medium truncate max-w-[112px]">
                             {r.employeeName.split(' ')[0]}
                           </td>
-                          <td className="px-2 py-2.5 text-gray-600 text-center">
+                          <td className="px-2 py-2.5 text-gray-600 text-center whitespace-nowrap">
                             {r.signInTs ? fmtTime(r.signInTs) : ''}
                           </td>
-                          <td className="px-2 py-2.5 text-gray-600 text-center">
+                          <td className="px-2 py-2.5 text-gray-600 text-center whitespace-nowrap">
                             {r.signOutTs ? fmtTime(r.signOutTs) : ''}
                           </td>
-                          <td className="px-2 py-2.5 text-gray-900 font-medium text-right">
-                            ${r.pay}
-                          </td>
-                          <td className="px-2 py-2.5 text-gray-500 text-right truncate max-w-[80px]">
+                          <td className="px-2 py-2.5 text-gray-500 text-right truncate">
                             {r.location}
                           </td>
                         </tr>
@@ -239,8 +237,7 @@ export default function ManagementSignInPage() {
                     </>
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </table>
           </div>
         )}
       </div>

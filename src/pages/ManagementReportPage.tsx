@@ -5,41 +5,45 @@ import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 
 interface Payment { amount: number; paidDate: string; location: string }
+interface SignIn {
+  employeeId: string
+  employeeName: string
+  location: string
+  type: 'in' | 'out'
+  timestamp: { seconds: number }
+}
+interface StaffMember { firstName: string; lastName: string; payRate: number }
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
 function toStr(d: Date) {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0')
 }
-function addDays(d: Date, n: number) { const r = new Date(d); r.setDate(r.getDate()+n); return r }
-
-function dayStr(daysAgo: number) {
-  return toStr(addDays(new Date(), -daysAgo))
-}
+function addDays(d: Date, n: number) { const r = new Date(d); r.setDate(r.getDate() + n); return r }
+function dayStr(daysAgo: number) { return toStr(addDays(new Date(), -daysAgo)) }
 
 function weekRange(weeksAgo: number): [string, string] {
   const now = new Date()
-  const dow = now.getDay() // 0=Sun
-  const monday = addDays(now, -(((dow + 6) % 7) + weeksAgo * 7))
-  const sunday = addDays(monday, 6)
-  return [toStr(monday), toStr(sunday)]
+  const monday = addDays(now, -(((now.getDay() + 6) % 7) + weeksAgo * 7))
+  return [toStr(monday), toStr(addDays(monday, 6))]
 }
 
 function monthRange(monthsAgo: number): [string, string] {
   const now = new Date()
-  const y = now.getFullYear()
-  const m = now.getMonth() - monthsAgo
-  const start = new Date(y, m, 1)
-  const end = new Date(y, m + 1, 0)
+  const start = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1)
+  const end   = new Date(now.getFullYear(), now.getMonth() - monthsAgo + 1, 0)
   return [toStr(start), toStr(end)]
+}
+
+function daysInRange(start: string, end: string): number {
+  return Math.round((new Date(end + 'T00:00:00').getTime() - new Date(start + 'T00:00:00').getTime()) / 86400000) + 1
 }
 
 // ── Revenue calculator ────────────────────────────────────────────────────────
 
-function sumPayments(payments: Payment[], location: string | null, dates: string[] | null, range: [string,string] | null): number {
+function sumPayments(payments: Payment[], location: string | null, dates: string[] | null, range: [string, string] | null): number {
   return payments.reduce((sum, p) => {
     if (location && p.location !== location) return sum
     if (dates && !dates.includes(p.paidDate)) return sum
@@ -48,76 +52,135 @@ function sumPayments(payments: Payment[], location: string | null, dates: string
   }, 0)
 }
 
+// ── Labour cost calculator ────────────────────────────────────────────────────
+
+function calcLabourCost(
+  signIns: SignIn[],
+  payRateMap: Record<string, number>,
+  location: string | null,
+  start: string,
+  end: string
+): number {
+  const toDateStr = (s: number) => {
+    const d = new Date(s * 1000)
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0')
+  }
+
+  const filtered = signIns.filter(ev => {
+    if (location && ev.location !== location) return false
+    const date = toDateStr(ev.timestamp?.seconds ?? 0)
+    return date >= start && date <= end
+  })
+
+  const grouped: Record<string, { ins: number[]; outs: number[]; name: string }> = {}
+  filtered.forEach(ev => {
+    const sec = ev.timestamp?.seconds ?? 0
+    const date = toDateStr(sec)
+    const key = (ev.employeeId || ev.employeeName) + '__' + date + '__' + ev.location
+    if (!grouped[key]) grouped[key] = { ins: [], outs: [], name: ev.employeeName ?? '' }
+    if (ev.type === 'in') grouped[key].ins.push(sec)
+    else grouped[key].outs.push(sec)
+  })
+
+  let total = 0
+  Object.values(grouped).forEach(({ ins, outs, name }) => {
+    const inTs  = ins.length  ? Math.min(...ins)  : null
+    const outTs = outs.length ? Math.max(...outs) : null
+    const hours = (inTs && outTs) ? (outTs - inTs) / 3600 : 0
+    total += hours * (payRateMap[name] ?? 40)
+  })
+  return total
+}
+
+// ── P/L calculator ────────────────────────────────────────────────────────────
+
+function calcPL(
+  revenue: number,
+  signIns: SignIn[],
+  payRateMap: Record<string, number>,
+  locName: string | null,
+  start: string,
+  end: string,
+  expenses: Record<string, { dailyRent: number; dailyOther: number }>
+): number | null {
+  // No revenue = shop wasn't open in this period, skip P/L
+  if (revenue === 0) return null
+
+  // Cap end at today — current periods should show P/L to date, not full projected period
+  const today = toStr(new Date())
+  const effectiveEnd = end > today ? today : end
+
+  const days = daysInRange(start, effectiveEnd)
+  const fixedPerDay = locName
+    ? (expenses[locName]?.dailyRent ?? 0) + (expenses[locName]?.dailyOther ?? 0)
+    : Object.values(expenses).reduce((s, e) => s + e.dailyRent + e.dailyOther, 0)
+  const labour = calcLabourCost(signIns, payRateMap, locName, start, effectiveEnd)
+  return revenue - fixedPerDay * days - labour
+}
+
 // ── Format helpers ────────────────────────────────────────────────────────────
 
-function fmt(n: number) { return '$' + Math.round(n).toLocaleString('en-AU') }
+function fmt(n: number) { return '$' + Math.abs(Math.round(n)).toLocaleString('en-AU') }
 
-
-function Delta({ current, prev }: { current: number; prev: number }) {
-  if (prev === 0 && current === 0) return null
-  const delta = current - prev
-  if (delta === 0) return null
-  const color = delta >= 0 ? 'text-emerald-600' : 'text-red-500'
-  return <p className={`text-xs ${color} mt-0.5`}>({delta >= 0 ? '+' : ''}{fmt(delta)})</p>
+function PLBadge({ pl }: { pl: number | null }) {
+  if (pl === null) return null
+  const pos = pl >= 0
+  return (
+    <p className={`text-sm mt-0.5 ${pos ? 'text-emerald-600' : 'text-red-500'}`}>
+      ({pos ? '+' : '-'}{fmt(pl)})
+    </p>
+  )
 }
 
 // ── Table section ─────────────────────────────────────────────────────────────
 
-function TableSection({ label, rows, columns }: {
+interface Row { name: string; isTotal: boolean; values: number[]; pl: (number | null)[] }
+
+function TableSection({ label, rows, columns, showPL = true }: {
   label: string
-  rows: Array<{ name: string; isTotal: boolean; values: number[] }>
+  rows: Row[]
   columns: { label: string }[]
+  showPL?: boolean
 }) {
-  // Two-panel layout: fixed location column + independently scrollable value columns
   return (
     <div className="mb-4 bg-white rounded-xl overflow-hidden border border-gray-100">
-      {/* Section label */}
-      <div className="bg-gray-100 px-3 py-2 border-b border-gray-200">
-        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{label}</span>
+      <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
+        <span className="text-base font-bold text-gray-500 uppercase tracking-widest">{label}</span>
       </div>
-
-      <div className="flex">
-        {/* Fixed left: location names */}
-        <div className="flex-shrink-0 w-28 border-r border-gray-200">
-          <div className="px-3 py-2.5 border-b border-gray-200">
-            <span className="text-xs font-bold text-gray-500">Location</span>
-          </div>
-          {rows.map(row => (
-            <div key={row.name} className="px-3 py-3 border-b border-gray-100 min-h-[52px] flex items-center">
-              <span className={`text-sm leading-tight ${row.isTotal ? 'text-blue-600 font-bold' : 'text-gray-800'}`}>
-                {row.name}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* Scrollable right: value columns */}
-        <div className="flex-1 overflow-x-auto">
-          {/* Column headers */}
-          <div className="flex border-b border-gray-200">
-            {columns.map((col, i) => (
-              <div key={i} className="w-28 flex-shrink-0 px-2 py-2.5 text-right">
-                <span className="text-xs font-bold text-gray-500">{col.label}</span>
-              </div>
-            ))}
-          </div>
-          {/* Value rows */}
-          {rows.map(row => (
-            <div key={row.name} className="flex border-b border-gray-100 min-h-[52px]">
-              {row.values.map((val, i) => {
-                const prev = i < row.values.length - 1 ? row.values[i + 1] : 0
-                return (
-                  <div key={i} className="w-28 flex-shrink-0 px-2 py-2.5 text-right flex flex-col justify-center">
-                    <p className={`text-sm font-semibold ${row.isTotal ? 'text-blue-600' : val === 0 ? 'text-gray-300' : 'text-gray-900'}`}>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse" style={{ minWidth: `${140 + columns.length * 110}px` }}>
+          <thead>
+            <tr className="border-b border-gray-200 bg-white">
+              <th className="sticky left-0 z-10 bg-white px-3 py-2.5 text-left border-r border-gray-200 w-32">
+                <span className="text-base font-bold text-gray-500">Location</span>
+              </th>
+              {columns.map((col, i) => (
+                <th key={i} className="px-2 py-2.5 text-right min-w-[110px]">
+                  <span className="text-base font-bold text-gray-500 whitespace-nowrap">{col.label}</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(row => (
+              <tr key={row.name} className="border-b border-gray-100">
+                <td className="sticky left-0 z-10 bg-white px-3 py-2.5 border-r border-gray-200 w-32">
+                  <span className={`text-lg leading-snug whitespace-nowrap ${row.isTotal ? 'text-blue-600 font-bold' : 'text-gray-800 font-medium'}`}>
+                    {row.name}
+                  </span>
+                </td>
+                {row.values.map((val, i) => (
+                  <td key={i} className="px-2 py-2.5 text-right align-top min-w-[110px]">
+                    <p className={`text-lg ${row.isTotal ? 'text-blue-600 font-bold' : val === 0 ? 'text-gray-300' : 'text-gray-900'}`}>
                       {fmt(val)}
                     </p>
-                    {val > 0 && <Delta current={val} prev={prev} />}
-                  </div>
-                )
-              })}
-            </div>
-          ))}
-        </div>
+                    {showPL && <PLBadge pl={row.pl[i] ?? null} />}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )
@@ -128,21 +191,29 @@ function TableSection({ label, rows, columns }: {
 export default function ManagementReportPage() {
   const { accountId } = useAuth()
   const { locations } = useLocations(accountId)
-  const [payments, setPayments] = useState<Payment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showLifetime, setShowLifetime] = useState(false)
+  const [payments, setPayments]   = useState<Payment[]>([])
+  const [signIns, setSignIns]     = useState<SignIn[]>([])
+  const [staff, setStaff]         = useState<StaffMember[]>([])
+  const [loading, setLoading]     = useState(true)
+  const [showLifetime, setShowLifetime]         = useState(false)
   const [lifetimePayments, setLifetimePayments] = useState<Payment[]>([])
-  const [loadingLifetime, setLoadingLifetime] = useState(false)
+  const [lifetimeSignIns, setLifetimeSignIns]   = useState<SignIn[]>([])
+  const [loadingLifetime, setLoadingLifetime]   = useState(false)
 
   useEffect(() => {
     if (!accountId) return
-    // Load last 5 months of payments (enough for 4 month columns)
     const cutoff = toStr(addDays(new Date(), -150))
-    getDocs(query(
-      collection(db, 'accounts', accountId, 'payments'),
-      where('paidDate', '>=', cutoff)
-    )).then(snap => {
-      setPayments(snap.docs.map(d => d.data() as Payment))
+    Promise.all([
+      getDocs(query(collection(db, 'accounts', accountId, 'payments'), where('paidDate', '>=', cutoff))),
+      getDocs(collection(db, 'accounts', accountId, 'staff')),
+      // sign-ins: Firestore Timestamp comparison — use ISO date cutoff via string workaround:
+      // fetch all and filter client-side to avoid Timestamp import
+      getDocs(collection(db, 'accounts', accountId, 'signIns')),
+    ]).then(([pmtSnap, staffSnap, siSnap]) => {
+      setPayments(pmtSnap.docs.map(d => d.data() as Payment))
+      setStaff(staffSnap.docs.map(d => d.data() as StaffMember))
+      const cutoffSec = new Date(cutoff + 'T00:00:00').getTime() / 1000
+      setSignIns(siSnap.docs.map(d => d.data() as SignIn).filter(s => (s.timestamp?.seconds ?? 0) >= cutoffSec))
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [accountId])
@@ -150,50 +221,97 @@ export default function ManagementReportPage() {
   async function loadLifetime() {
     if (!accountId || loadingLifetime) return
     setLoadingLifetime(true)
-    const snap = await getDocs(collection(db, 'accounts', accountId, 'payments')).catch(() => null)
-    if (snap) setLifetimePayments(snap.docs.map(d => d.data() as Payment))
-    setShowLifetime(true)
-    setLoadingLifetime(false)
+    try {
+    const [pmtSnap, siSnap] = await Promise.all([
+      getDocs(collection(db, 'accounts', accountId, 'payments')).catch(() => null),
+      getDocs(collection(db, 'accounts', accountId, 'signIns')).catch(() => null),
+    ])
+    if (pmtSnap) setLifetimePayments(pmtSnap.docs.map(d => d.data() as Payment))
+    if (siSnap)  setLifetimeSignIns(siSnap.docs.map(d => d.data() as SignIn))
+      setShowLifetime(true)
+    } catch { /* ignore */ } finally {
+      setLoadingLifetime(false)
+    }
   }
 
   const locationNames = useMemo(() => locations.map(l => l.name), [locations])
 
-  // Build rows for each section
-  const data = useMemo(() => {
-    const allPmts = showLifetime ? lifetimePayments : payments
-    const locs = ['All Locations', ...locationNames]
+  const payRateMap = useMemo(() => {
+    const map: Record<string, number> = {}
+    staff.forEach(s => {
+      map[`${s.firstName ?? ''} ${s.lastName ?? ''}`.trim()] = s.payRate ?? 40
+    })
+    return map
+  }, [staff])
 
-    function rowValues(fn: (loc: string | null) => number[]) {
-      return locs.map(loc => ({
-        name: loc,
-        isTotal: loc === 'All Locations',
-        values: fn(loc === 'All Locations' ? null : loc),
-      }))
+  const locationExpenses = useMemo(() => {
+    const map: Record<string, { dailyRent: number; dailyOther: number }> = {}
+    locations.forEach(loc => {
+      map[loc.name] = {
+        dailyRent:  (loc as any).dailyRent  ?? 0,
+        dailyOther: (loc as any).dailyOther ?? 0,
+      }
+    })
+    return map
+  }, [locations])
+
+  const activePmts = showLifetime ? lifetimePayments : payments
+  const activeSIs  = showLifetime ? lifetimeSignIns  : signIns
+
+  const data = useMemo(() => {
+    function buildRows(
+      periods: [string, string][],
+      showPL: boolean
+    ): Row[] {
+      // Per-location rows first
+      const locRows: Row[] = locationNames.map(loc => {
+        const values = periods.map(([s, e]) => sumPayments(activePmts, loc, null, [s, e]))
+        const pl = showPL
+          ? periods.map(([s, e], i) => calcPL(values[i], activeSIs, payRateMap, loc, s, e, locationExpenses))
+          : periods.map(() => null)
+        return { name: loc, isTotal: false, values, pl }
+      })
+
+      // All Locations: revenue = sum of all; P/L = sum of individual P/Ls
+      // (automatically excludes shops not open — their P/L is null so they don't count)
+      const allValues = periods.map((_, i) => locRows.reduce((s, r) => s + r.values[i], 0))
+      const allPL = showPL
+        ? periods.map((_, i) => {
+            const pls = locRows.map(r => r.pl[i]).filter((p): p is number => p !== null)
+            return pls.length > 0 ? pls.reduce((a, b) => a + b, 0) : null
+          })
+        : periods.map(() => null)
+
+      return [{ name: 'All Locations', isTotal: true, values: allValues, pl: allPL }, ...locRows]
     }
 
-    // Daily: Today, Yesterday, 2 days ago, 3 days ago
-    const dailyRows = rowValues(loc => [0,1,2,3].map(d => sumPayments(payments, loc, [dayStr(d)], null)))
-    const dailyCols = [{ label: 'Today' }, { label: 'Yesterday' }, { label: '2 days ago' }, { label: '3 days ago' }]
+    // Daily (no P/L)
+    const dailyPeriods: [string, string][] = [0,1,2,3].map(d => [dayStr(d), dayStr(d)])
+    const dailyRows = buildRows(dailyPeriods, false)
+    const dailyCols = [{ label: 'Today' }, { label: 'Yesterday' }, { label: '2 Days Ago' }, { label: '3 Days Ago' }]
 
-    // Weekly: This Week, Last Week, Week 3, Week 4
-    const weeklyRows = rowValues(loc => [0,1,2,3].map(w => sumPayments(payments, loc, null, weekRange(w))))
-    const weeklyCols = [{ label: 'This Week' }, { label: 'Last Week' }, { label: 'Week 3' }, { label: 'Week 4' }]
+    // Weekly
+    const weeklyPeriods: [string, string][] = [0,1,2,3].map(w => weekRange(w))
+    const weeklyRows = buildRows(weeklyPeriods, true)
+    const weeklyCols = [{ label: 'This Week' }, { label: 'Last Week' }, { label: '2 Weeks Ago' }, { label: '3 Weeks Ago' }]
 
-    // Monthly: This Month, Last Month, Month 3, Month 4
-    const monthlyRows = rowValues(loc => [0,1,2,3].map(m => sumPayments(payments, loc, null, monthRange(m))))
-    const monthlyCols = [{ label: 'This Month' }, { label: 'Last Month' }, { label: 'Month 3' }, { label: 'Month 4' }]
+    // Monthly
+    const monthlyPeriods: [string, string][] = [0,1,2,3].map(m => monthRange(m))
+    const monthlyRows = buildRows(monthlyPeriods, true)
+    const monthlyCols = [{ label: 'This Month' }, { label: 'Last Month' }, { label: '2 Months Ago' }, { label: '3 Months Ago' }]
 
-    // Yearly + Lifetime
-    const yearlyRows = rowValues(loc => {
-      const now = new Date()
-      const years = [0,1,2].map(y => sumPayments(allPmts, loc, null, [`${now.getFullYear()-y}-01-01`, `${now.getFullYear()-y}-12-31`]))
-      const lifetime = sumPayments(allPmts, loc, null, ['2000-01-01', '2099-12-31'])
-      return [...years, lifetime]
-    })
-    const yearlyCols = [{ label: 'This Year' }, { label: 'Last Year' }, { label: '3 Years Ago' }, { label: 'Lifetime' }]
+    // Yearly
+    const now = new Date()
+    const yearlyPeriods: [string, string][] = [0,1,2].map(y => [
+      `${now.getFullYear()-y}-01-01`,
+      `${now.getFullYear()-y}-12-31`,
+    ])
+    yearlyPeriods.push(['2000-01-01', '2099-12-31']) // lifetime
+    const yearlyRows = buildRows(yearlyPeriods, true)
+    const yearlyCols = [{ label: 'This Year' }, { label: 'Last Year' }, { label: '2 Years Ago' }, { label: 'Lifetime' }]
 
     return { dailyRows, dailyCols, weeklyRows, weeklyCols, monthlyRows, monthlyCols, yearlyRows, yearlyCols }
-  }, [payments, locationNames, showLifetime, lifetimePayments])
+  }, [activePmts, activeSIs, locationNames, payRateMap, locationExpenses])
 
   if (loading) return (
     <div className="flex items-center justify-center h-full">
@@ -205,27 +323,25 @@ export default function ManagementReportPage() {
     <div className="flex flex-col h-full bg-white">
       <div className="px-4 pt-5 pb-3 border-b border-gray-100 flex-shrink-0">
         <h1 className="text-2xl font-bold text-gray-900">Report</h1>
+        <p className="text-xs text-gray-400 mt-0.5">Revenue + P/L</p>
       </div>
 
-      {/* Vertically scrollable page, inner panels scroll horizontally */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        <div>
-          <TableSection label="Daily" rows={data.dailyRows} columns={data.dailyCols} />
-          <TableSection label="Weekly" rows={data.weeklyRows} columns={data.weeklyCols} />
-          <TableSection label="Monthly" rows={data.monthlyRows} columns={data.monthlyCols} />
+        <TableSection label="Daily"   rows={data.dailyRows}   columns={data.dailyCols}   showPL={false} />
+        <TableSection label="Weekly"  rows={data.weeklyRows}  columns={data.weeklyCols}  showPL={true} />
+        <TableSection label="Monthly" rows={data.monthlyRows} columns={data.monthlyCols} showPL={true} />
 
-          {showLifetime ? (
-            <TableSection label="Yearly" rows={data.yearlyRows} columns={data.yearlyCols} />
-          ) : (
-            <div className="mt-2 pb-8">
-              <button onClick={loadLifetime} disabled={loadingLifetime}
-                className="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl disabled:opacity-50">
-                {loadingLifetime ? 'Loading…' : 'Load Lifetime Data'}
-              </button>
-              <p className="text-xs text-red-500 mt-2">⚠️ This will take some time and may slow the app.</p>
-            </div>
-          )}
-        </div>
+        {showLifetime ? (
+          <TableSection label="Yearly" rows={data.yearlyRows} columns={data.yearlyCols} showPL={true} />
+        ) : (
+          <div className="mt-2 pb-8">
+            <button onClick={loadLifetime} disabled={loadingLifetime}
+              className="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl disabled:opacity-50">
+              {loadingLifetime ? 'Loading…' : 'Load Lifetime Data'}
+            </button>
+            <p className="text-xs text-red-500 mt-2">⚠️ This will take some time and may slow the app.</p>
+          </div>
+        )}
       </div>
     </div>
   )

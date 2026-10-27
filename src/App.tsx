@@ -15,6 +15,7 @@ import DashboardPage from './pages/DashboardPage'
 import ManagementOrdersPage from './pages/ManagementOrdersPage'
 import ManagementReportPage from './pages/ManagementReportPage'
 import ManagementSignInPage from './pages/ManagementSignInPage'
+import ManagementLabourPage from './pages/ManagementLabourPage'
 import ManagementMorePage from './pages/ManagementMorePage'
 import ManagementLayout from './layouts/ManagementLayout'
 import POSLayout from './layouts/POSLayout'
@@ -51,7 +52,10 @@ function AppRoutes() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-navy flex items-center justify-center">
+      <div className="min-h-screen bg-navy flex flex-col items-center justify-center gap-6">
+        <div className="bg-white rounded-2xl px-8 py-5 shadow-lg">
+          <img src="/stitch-logo.png" alt="Stitch" className="h-10 object-contain" />
+        </div>
         <div className="w-8 h-8 border-2 border-tan border-t-transparent rounded-full animate-spin" />
       </div>
     )
@@ -93,6 +97,7 @@ function AppRoutes() {
         <Route path="/mgmt-orders" element={<ManagementOrdersPage />} />
         <Route path="/mgmt-report" element={<ManagementReportPage />} />
         <Route path="/mgmt-team" element={<ManagementSignInPage />} />
+        <Route path="/mgmt-labour" element={<ManagementLabourPage />} />
         <Route path="/mgmt-more" element={<ManagementMorePage />} />
         <Route path="/mgmt-pickup-calendar" element={<PickupCalendarPage />} />
         <Route path="/mgmt-team-performance" element={<TeamPerformancePage />} />

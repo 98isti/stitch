@@ -1,9 +1,10 @@
-import { useEffect, useState, useMemo } from 'react'
-import { collection, query, orderBy, limit, getDocs, startAfter, QueryDocumentSnapshot } from 'firebase/firestore'
+import { useEffect, useState, useMemo, useRef } from 'react'
+import { collection, query, orderBy, limit, startAfter, getDocs, QueryDocumentSnapshot, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
-import { CreditCard, DollarSign, AlertTriangle, ChevronRight, Archive } from 'lucide-react'
+import { CreditCard, DollarSign, AlertTriangle, ChevronRight, Archive, Search, X } from 'lucide-react'
+import { toLocalDate, todayLocal, yesterdayLocal, formatTimeLocal } from '../lib/dateUtils'
 import OrderDetailSheet from '../components/OrderDetailSheet'
 
 interface Order {
@@ -11,6 +12,7 @@ interface Order {
   orderNumber: number
   orderNumberString: string
   customerName: string
+  customerPhone?: string
   orderAmount: number
   paidAmount: number
   stillDueAmount: number
@@ -33,16 +35,12 @@ interface DrawerLog {
 
 type Row = { type: 'order'; data: Order; ts: number } | { type: 'drawer'; data: DrawerLog; ts: number }
 
-function formatTime(seconds: number) {
-  return new Date(seconds * 1000).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true })
-}
-
 function formatDateHeader(dateStr: string) {
-  const d = new Date(dateStr)
-  const today = new Date().toISOString().slice(0, 10)
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+  const today = todayLocal()
+  const yesterday = yesterdayLocal()
   if (dateStr === today) return 'Today'
   if (dateStr === yesterday) return 'Yesterday'
+  const d = new Date(dateStr + 'T12:00:00')
   return d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
@@ -60,34 +58,12 @@ function PaymentIcon({ order }: { order: Order }) {
   const unpaid = (order.stillDueAmount ?? 0) > 0
   const partial = (order.paidAmount ?? 0) > 0 && unpaid
 
-  if (isDrawer) return (
-    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-      <Archive size={18} className="text-amber-500" />
-    </div>
-  )
-  if (order.paidAmount === 0) return (
-    <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-      <AlertTriangle size={18} className="text-red-500" />
-    </div>
-  )
-  if (partial) return (
-    <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-      <AlertTriangle size={18} className="text-orange-500" />
-    </div>
-  )
-  if (order.paymentMethod === 'Card') return (
-    <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-      <CreditCard size={18} className="text-emerald-600" />
-    </div>
-  )
-  return (
-    <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-      <DollarSign size={18} className="text-emerald-600" />
-    </div>
-  )
+  if (isDrawer) return <Archive size={18} className="text-gray-400 flex-shrink-0" />
+  if (order.paidAmount === 0) return <AlertTriangle size={18} className="text-red-400 flex-shrink-0" />
+  if (partial) return <AlertTriangle size={18} className="text-orange-400 flex-shrink-0" />
+  if (order.paymentMethod === 'Card') return <CreditCard size={18} className="text-gray-400 flex-shrink-0" />
+  return <DollarSign size={18} className="text-gray-400 flex-shrink-0" />
 }
-
-const PAGE_SIZE = 40
 
 export default function ManagementOrdersPage() {
   const { accountId } = useAuth()
@@ -100,6 +76,13 @@ export default function ManagementOrdersPage() {
   const [hasMore, setHasMore] = useState(true)
   const [selectedLocation, setSelectedLocation] = useState('All Locations')
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [serverResults, setServerResults] = useState<Order[] | null>(null)
+  const [searching, setSearching] = useState(false)
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+
+  const PAGE_SIZE = 250
 
   useEffect(() => {
     if (!accountId) return
@@ -107,16 +90,36 @@ export default function ManagementOrdersPage() {
     loadDrawerLogs()
   }, [accountId])
 
+  // Infinite scroll
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasMore && !loadingMore && !loading) {
+          loadOrders(false)
+        }
+      },
+      { rootMargin: '200px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore, loadingMore, loading, lastDoc])
+
   async function loadOrders(reset = false) {
     if (!accountId) return
-    if (reset) setLoading(true)
+    if (reset) { setLoading(true); setLastDoc(null) }
     else setLoadingMore(true)
 
-    const q = reset
-      ? query(collection(db, 'accounts', accountId, 'orders'), orderBy('createdAt', 'desc'), limit(PAGE_SIZE))
-      : query(collection(db, 'accounts', accountId, 'orders'), orderBy('createdAt', 'desc'), limit(PAGE_SIZE), startAfter(lastDoc))
+    const constraints: any[] = [
+      orderBy('createdAt', 'desc'),
+      limit(PAGE_SIZE),
+    ]
+    if (!reset && lastDoc) constraints.push(startAfter(lastDoc))
 
-    const snap = await getDocs(q).catch(() => null)
+    const snap = await getDocs(
+      query(collection(db, 'accounts', accountId, 'orders'), ...constraints)
+    ).catch(() => null)
     if (!snap) { setLoading(false); setLoadingMore(false); return }
 
     const loaded = snap.docs.map(d => ({ id: d.id, ...d.data() } as Order))
@@ -130,7 +133,7 @@ export default function ManagementOrdersPage() {
   async function loadDrawerLogs() {
     if (!accountId) return
     const snap = await getDocs(
-      query(collection(db, 'accounts', accountId, 'drawerLogs'), orderBy('openedAt', 'desc'), limit(100))
+      query(collection(db, 'accounts', accountId, 'drawerLogs'), orderBy('openedAt', 'desc'), limit(50))
     ).catch(() => null)
     if (snap) setDrawerLogs(snap.docs.map(d => ({ id: d.id, ...d.data() } as DrawerLog)))
   }
@@ -145,18 +148,85 @@ export default function ManagementOrdersPage() {
       ? drawerLogs
       : drawerLogs.filter(d => d.location === selectedLocation)
 
+    // Only show drawer logs on dates that have real orders loaded
+    const loadedOrderDates = new Set(
+      filteredOrders.map(o => toLocalDate((o.createdAt?.seconds ?? 0) * 1000))
+    )
+    const matchedDrawer = filteredDrawer.filter(
+      d => loadedOrderDates.has(toLocalDate((d.openedAt?.seconds ?? 0) * 1000))
+    )
+
     const merged: Row[] = [
       ...filteredOrders.map(o => ({ type: 'order' as const, data: o, ts: o.createdAt?.seconds ?? 0 })),
-      ...filteredDrawer.map(d => ({ type: 'drawer' as const, data: d, ts: d.openedAt?.seconds ?? 0 })),
+      ...matchedDrawer.map(d => ({ type: 'drawer' as const, data: d, ts: d.openedAt?.seconds ?? 0 })),
     ]
     return merged.sort((a, b) => b.ts - a.ts)
   }, [orders, drawerLogs, selectedLocation])
 
-  // Group by date
+  // Server-side search: fires Firestore queries when user types
+  useEffect(() => {
+    const term = searchTerm.trim()
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    if (!term || term.length < 2) {
+      setServerResults(null)
+      return
+    }
+    searchTimerRef.current = setTimeout(async () => {
+      if (!accountId) return
+      setSearching(true)
+      try {
+        const upper = term.toUpperCase()
+        const [orderSnap, phoneSnap] = await Promise.all([
+          getDocs(query(
+            collection(db, 'accounts', accountId, 'orders'),
+            where('orderNumberString', '>=', upper),
+            where('orderNumberString', '<=', upper + '\uf8ff'),
+            limit(50)
+          )),
+          /\d{3,}/.test(term) ? getDocs(query(
+            collection(db, 'accounts', accountId, 'orders'),
+            where('customerPhone', '>=', term),
+            where('customerPhone', '<=', term + '\uf8ff'),
+            limit(50)
+          )) : Promise.resolve(null),
+        ])
+        const seen = new Set<string>()
+        const merged: Order[] = []
+        for (const snap of [orderSnap, phoneSnap]) {
+          if (!snap) continue
+          for (const doc of snap.docs) {
+            if (!seen.has(doc.id)) {
+              seen.add(doc.id)
+              merged.push({ id: doc.id, ...doc.data() } as Order)
+            }
+          }
+        }
+        // Apply location filter client-side
+        const locFiltered = selectedLocation === 'All Locations'
+          ? merged
+          : merged.filter(o => o.location === selectedLocation || (o as any).locationName === selectedLocation)
+        locFiltered.sort((a, b) => (b.orderNumber ?? 0) - (a.orderNumber ?? 0))
+        setServerResults(locFiltered)
+      } catch (e) {
+        console.error('Search error:', e)
+        setServerResults([])
+      } finally {
+        setSearching(false)
+      }
+    }, 350)
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current) }
+  }, [searchTerm, accountId, selectedLocation])
+
+  // Keep alias for render compatibility
+  const searchResults = serverResults ?? []
+
+  // Group by date — always include today at the top
   const grouped = useMemo(() => {
     const map: Record<string, Row[]> = {}
+    // Always seed today so it appears even with no orders
+    map[todayLocal()] = []
     for (const row of rows) {
-      const date = new Date(row.ts * 1000).toISOString().slice(0, 10)
+      const date = toLocalDate(row.ts * 1000)
       if (!map[date]) map[date] = []
       map[date].push(row)
     }
@@ -166,16 +236,34 @@ export default function ManagementOrdersPage() {
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-5 pb-3 flex items-center justify-between flex-shrink-0">
-        <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
-        <select
-          value={selectedLocation}
-          onChange={e => setSelectedLocation(e.target.value)}
-          className="text-sm font-semibold text-navy bg-transparent border-none outline-none cursor-pointer"
-        >
-          <option>All Locations</option>
-          {locations.map(l => <option key={l.id}>{l.name}</option>)}
-        </select>
+      <div className="bg-white border-b border-gray-100 px-4 pt-5 pb-3 flex-shrink-0">
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
+          <select
+            value={selectedLocation}
+            onChange={e => setSelectedLocation(e.target.value)}
+            className="text-sm font-semibold text-navy bg-transparent border-none outline-none cursor-pointer"
+          >
+            <option>All Locations</option>
+            {locations.map(l => <option key={l.id}>{l.name}</option>)}
+          </select>
+        </div>
+        {/* Search bar */}
+        <div className="relative">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="Search by phone or order number…"
+            className="w-full pl-9 pr-8 py-2 text-sm rounded-xl bg-gray-100 border border-transparent focus:outline-none focus:border-navy/30 focus:bg-white transition-colors"
+          />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <X size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* List */}
@@ -184,31 +272,59 @@ export default function ManagementOrdersPage() {
           <div className="flex items-center justify-center h-32">
             <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
           </div>
+        ) : searching ? (
+          <div className="flex items-center justify-center h-32">
+            <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : searchTerm.trim() ? (
+          /* Search results */
+          <div className="flex flex-col gap-2 py-2">
+            {searchResults.length === 0 ? (
+              <p className="text-center text-gray-400 text-sm mt-12">No orders found</p>
+            ) : searchResults.map(order => {
+              const due = order.stillDueAmount ?? 0
+              const isCancelled = order.status === 'Cancelled'
+              return (
+                <button key={order.id} onClick={() => setSelectedOrderId(order.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 hover:border-gray-200 hover:shadow-md active:scale-[0.99] transition-all text-left ${isCancelled ? 'opacity-50' : ''}`}>
+                  <PaymentIcon order={order} />
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-base font-bold ${due > 0 ? 'text-red-500' : 'text-gray-900'}`}>${order.orderAmount?.toFixed(2)}</p>
+                    <p className="text-xs text-gray-400 truncate">{firstItemName(order.items)}</p>
+                    {(order as any).customerPhone && <p className="text-xs text-gray-400">{(order as any).customerPhone}</p>}
+                  </div>
+                  <div className="text-right flex-shrink-0 mr-1">
+                    <p className="text-xs text-gray-500">{order.location}</p>
+                    <p className="text-xs text-gray-400">#{order.orderNumber}</p>
+                  </div>
+                  <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
+                </button>
+              )
+            })}
+          </div>
         ) : grouped.length === 0 ? (
           <p className="text-center text-gray-400 text-sm mt-12">No orders yet</p>
         ) : (
           <>
             {grouped.map(([date, dateRows]) => (
               <div key={date} className="mb-3">
-                {/* Date header */}
-                <p className="text-sm font-semibold text-gray-500 px-1 mb-2 mt-3">{formatDateHeader(date)}</p>
+                {/* Date header — sticky */}
+                <p className="sticky top-0 z-10 text-sm font-semibold text-gray-500 px-1 mb-2 mt-3 bg-gray-100 py-1">{formatDateHeader(date)}</p>
 
-                {/* Rows */}
-                <div className="bg-white rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-50">
+                {/* Rows — each row is its own card */}
+                <div className="flex flex-col gap-2">
                   {dateRows.map(row => {
                     if (row.type === 'drawer') {
                       return (
-                        <div key={row.data.id} className="flex items-center gap-3 px-4 py-3">
-                          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                            <Archive size={18} className="text-amber-500" />
-                          </div>
+                        <div key={row.data.id} className="flex items-center gap-3 px-4 py-3 bg-white rounded-2xl shadow-sm border border-gray-100">
+                          <Archive size={18} className="text-amber-600 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-amber-500">Drawer Opened</p>
+                            <p className="text-sm font-semibold text-amber-700">Drawer Opened</p>
                             <p className="text-xs text-gray-400">by {row.data.openedBy}</p>
                           </div>
                           <div className="text-right flex-shrink-0">
                             <p className="text-xs text-gray-400">{row.data.location}</p>
-                            <p className="text-xs text-gray-400">{formatTime(row.data.openedAt.seconds)}</p>
+                            <p className="text-xs text-gray-400">{formatTimeLocal(row.data.openedAt.seconds)}</p>
                           </div>
                         </div>
                       )
@@ -218,9 +334,19 @@ export default function ManagementOrdersPage() {
                     const isDrawerOrder = order.customerName === 'Drawer Opened'
                     const due = order.stillDueAmount ?? 0
 
+                    const isCancelled = order.status === 'Cancelled'
+
                     return (
                       <button key={order.id} onClick={() => setSelectedOrderId(order.id)}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left">
+                        className={`w-full flex items-center gap-3 px-4 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 hover:border-gray-200 hover:shadow-md active:scale-[0.99] transition-all text-left ${
+                          isCancelled ? 'opacity-50' : ''
+                        }`}
+                        style={isCancelled ? {
+                          backgroundImage: 'linear-gradient(to right, #9ca3af, #9ca3af)',
+                          backgroundSize: '100% 1px',
+                          backgroundPosition: 'center',
+                          backgroundRepeat: 'no-repeat',
+                        } : undefined}>
                         <PaymentIcon order={order} />
                         <div className="flex-1 min-w-0">
                           {isDrawerOrder ? (
@@ -236,7 +362,7 @@ export default function ManagementOrdersPage() {
                         </div>
                         <div className="text-right flex-shrink-0 mr-1">
                           <p className="text-xs text-gray-500">{order.location}</p>
-                          <p className="text-xs text-gray-400">{row.ts ? formatTime(row.ts) : ''}</p>
+                          <p className="text-xs text-gray-400">{row.ts ? formatTimeLocal(row.ts) : ''}</p>
                         </div>
                         <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
                       </button>
@@ -246,12 +372,12 @@ export default function ManagementOrdersPage() {
               </div>
             ))}
 
-            {hasMore && (
-              <button onClick={() => loadOrders(false)} disabled={loadingMore}
-                className="w-full py-3 text-sm font-semibold text-navy hover:opacity-70 disabled:opacity-40 mt-2">
-                {loadingMore ? 'Loading…' : 'Load More'}
-              </button>
-            )}
+            {/* Infinite scroll sentinel */}
+            <div ref={sentinelRef} className="flex justify-center py-4">
+              {loadingMore && (
+                <div className="w-5 h-5 border-2 border-navy border-t-transparent rounded-full animate-spin" />
+              )}
+            </div>
           </>
         )}
       </div>

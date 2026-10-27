@@ -3,16 +3,25 @@ import { getAuth, signOut } from 'firebase/auth'
 import { DEVICE_MODE_KEY } from './DeviceSetupPage'
 import {
   Users, Settings, Calendar, UserCircle,
-  Ticket, CreditCard, LogOut, RefreshCw, TrendingUp, CalendarDays, UmbrellaOff, DollarSign, BarChart3
+  Ticket, CreditCard, LogOut, RefreshCw, TrendingUp, CalendarDays, UmbrellaOff, DollarSign, BarChart3, ClipboardList
 } from 'lucide-react'
 
 const SECTIONS = [
+  {
+    title: 'Operations',
+    items: [
+      { label: 'Pick-Up Calendar', icon: Calendar,    path: '/mgmt-pickup-calendar' },
+      { label: 'Team Performance', icon: TrendingUp,  path: '/mgmt-team-performance' },
+      { label: 'Labour %',         icon: ClipboardList, path: '/mgmt-labour' },
+      { label: 'Customers',        icon: UserCircle,  path: '/customers' },
+      { label: 'Vouchers',         icon: Ticket,      path: '/vouchers' },
+    ],
+  },
   {
     title: 'Team',
     items: [
       { label: 'Staff',            icon: Users,        path: '/staff' },
       { label: 'Payroll',          icon: DollarSign,   path: '/mgmt-payroll' },
-      { label: 'Team Performance', icon: TrendingUp,   path: '/mgmt-team-performance' },
       { label: 'Roster',           icon: CalendarDays, path: '/mgmt-roster' },
       { label: 'Leave Requests',   icon: UmbrellaOff,  path: '/mgmt-leave' },
     ],
@@ -24,14 +33,6 @@ const SECTIONS = [
       { label: 'Avg by Day',       icon: BarChart3,    path: '/mgmt-avg-by-day' },
       { label: 'Monthly Averages', icon: BarChart3,    path: '/mgmt-monthly-avg' },
       { label: 'OCR',              icon: BarChart3,    path: '/mgmt-ocr' },
-    ],
-  },
-  {
-    title: 'Operations',
-    items: [
-      { label: 'Pick-Up Calendar', icon: Calendar,    path: '/mgmt-pickup-calendar' },
-      { label: 'Customers',        icon: UserCircle,  path: '/customers' },
-      { label: 'Vouchers',         icon: Ticket,      path: '/vouchers' },
     ],
   },
   {

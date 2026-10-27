@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { collection, getDocs, addDoc, serverTimestamp, query } from 'firebase/firestore'
+import { seedItemsForLocation } from '../lib/seedItemsForLocation'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
@@ -18,7 +19,7 @@ type Step = 'pick' | 'pin' | 'new-location'
 export default function LocationSetupPage() {
   const navigate = useNavigate()
   const { accountId } = useAuth()
-  const { locations, setActiveLocation } = useLocations(accountId)
+  const { locations, loading: locationsLoading, setActiveLocation } = useLocations(accountId)
 
   const [step, setStep] = useState<Step>('pick')
   const [businessName, setBusinessName] = useState('')
@@ -33,7 +34,8 @@ export default function LocationSetupPage() {
 
   // New location form
   const [locForm, setLocForm] = useState({
-    name: '', streetAddress: '', suburb: '', state: 'NSW', country: 'Australia', phone: '', dailyTarget: '1000'
+    name: '', shopNumber: '', shoppingCentre: '', streetAddress: '', suburb: '',
+    postCode: '', state: 'NSW', country: 'Australia', phone: '', dailyTarget: '1000', shopType: ''
   })
   const [savingLoc, setSavingLoc] = useState(false)
 
@@ -109,20 +111,25 @@ export default function LocationSetupPage() {
   }
 
   async function handleSaveNewLocation() {
-    if (!accountId || !locForm.name.trim()) return
+    if (!accountId || !locForm.name.trim() || !locForm.shopType) return
     setSavingLoc(true)
     try {
       const docRef = await addDoc(collection(db, 'accounts', accountId, 'locations'), {
-        name: locForm.name.trim(),
-        streetAddress: locForm.streetAddress.trim(),
-        suburb: locForm.suburb.trim(),
-        state: locForm.state,
-        country: locForm.country,
-        phone: locForm.phone.trim(),
-        dailyTarget: parseFloat(locForm.dailyTarget) || 1000,
-        shopType: 'alterations',
-        createdAt: serverTimestamp(),
+        name:           locForm.name.trim(),
+        shopNumber:     locForm.shopNumber.trim(),
+        shoppingCentre: locForm.shoppingCentre.trim(),
+        streetAddress:  locForm.streetAddress.trim(),
+        suburb:         locForm.suburb.trim(),
+        postCode:       locForm.postCode.trim(),
+        state:          locForm.state,
+        country:        locForm.country,
+        phone:          locForm.phone.trim(),
+        dailyTarget:    parseFloat(locForm.dailyTarget) || 1000,
+        shopType:       locForm.shopType,
+        createdAt:      serverTimestamp(),
       })
+      // Seed categories + items from template
+      await seedItemsForLocation(accountId, docRef.id, locForm.shopType as 'alterations' | 'dryCleaning', locForm.name.trim())
       setActiveLocation({ id: docRef.id, ...locForm, name: locForm.name.trim(), dailyTarget: parseFloat(locForm.dailyTarget) || 1000 })
       navigate('/pin')
     } catch (e) {
@@ -150,8 +157,14 @@ export default function LocationSetupPage() {
             <p className="text-white/50 text-sm mt-1">Select an existing location or set up a new one</p>
           </div>
 
-          <div className="space-y-2 mb-4">
-            {locations.map(loc => (
+          {/* Locations list — show spinner while loading */}
+          <div className="space-y-2 mb-4 min-h-[40px]">
+            {locationsLoading ? (
+              <div className="flex items-center justify-center gap-2 py-4">
+                <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                <span className="text-white/50 text-sm">Loading locations…</span>
+              </div>
+            ) : locations.map(loc => (
               <button key={loc.id} onClick={() => handleLocationSelect(loc.id)}
                 className="w-full flex items-center justify-between bg-white/10 hover:bg-white/20 active:bg-white/30 text-white px-5 py-4 rounded-2xl transition-colors">
                 <div className="text-left">
@@ -250,21 +263,48 @@ export default function LocationSetupPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 max-w-lg mx-auto w-full space-y-4">
+        {/* Shop Type — required, shown first */}
+        <div className="bg-white rounded-2xl p-4 border border-gray-100">
+          <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Shop Type *</label>
+          <div className="grid grid-cols-2 gap-2">
+            {[['alterations', 'Alterations'], ['dryCleaning', 'Dry Cleaning']].map(([val, label]) => (
+              <button key={val} type="button"
+                onClick={() => setLocForm(f => ({ ...f, shopType: val }))}
+                className={`py-3 rounded-xl font-semibold text-sm border-2 transition-colors ${
+                  locForm.shopType === val
+                    ? 'bg-navy text-white border-navy'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-navy/40'
+                }`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {!locForm.shopType && <p className="text-xs text-red-400 mt-2">Required — select a shop type</p>}
+        </div>
+
         <div className="bg-white rounded-2xl p-4 border border-gray-100 space-y-3">
           {[
-            ['Location Name *', 'name', 'e.g. Bondi Junction'],
-            ['Street Address', 'streetAddress', 'e.g. 500 Oxford Street'],
-            ['Suburb', 'suburb', 'e.g. Bondi Junction'],
-            ['Phone', 'phone', 'e.g. 02 9387 1234'],
+            ['Location Name *', 'name', 'e.g. Bondi Junction', false],
+            ['Shopping Centre', 'shoppingCentre', 'e.g. Westfield Bondi Junction', false],
+            ['Shop Number', 'shopNumber', 'e.g. Shop G-12', false],
+            ['Street Address', 'streetAddress', 'e.g. 500 Oxford Street', false],
+            ['Suburb', 'suburb', 'e.g. Bondi Junction', false],
+            ['Phone', 'phone', 'e.g. 02 9387 1234', false],
           ].map(([label, key, placeholder]) => (
-            <div key={key}>
+            <div key={key as string}>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">{label}</label>
-              <input value={(locForm as any)[key]} onChange={e => setLocForm(f => ({ ...f, [key]: e.target.value }))}
-                placeholder={placeholder}
+              <input value={(locForm as any)[key as string]} onChange={e => setLocForm(f => ({ ...f, [key as string]: e.target.value }))}
+                placeholder={placeholder as string}
                 className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-navy" />
             </div>
           ))}
           <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Post Code</label>
+              <input value={locForm.postCode} onChange={e => setLocForm(f => ({ ...f, postCode: e.target.value }))}
+                placeholder="e.g. 2022"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
+            </div>
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">State</label>
               <select value={locForm.state} onChange={e => setLocForm(f => ({ ...f, state: e.target.value }))}
@@ -272,11 +312,11 @@ export default function LocationSetupPage() {
                 {STATES.map(s => <option key={s}>{s}</option>)}
               </select>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Daily Target ($)</label>
-              <input type="number" value={locForm.dailyTarget} onChange={e => setLocForm(f => ({ ...f, dailyTarget: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
-            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Daily Target ($)</label>
+            <input type="number" value={locForm.dailyTarget} onChange={e => setLocForm(f => ({ ...f, dailyTarget: e.target.value }))}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-navy" />
           </div>
         </div>
 

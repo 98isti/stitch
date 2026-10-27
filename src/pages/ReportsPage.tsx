@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
+import { toLocalDate } from '../lib/dateUtils'
 import { useIsManagement } from '../context/ManagementContext'
 
 interface DaySummary {
@@ -31,7 +32,7 @@ export default function ReportsPage() {
 
     const since = new Date()
     since.setDate(since.getDate() - 30)
-    const sinceIso = since.toISOString().split('T')[0]
+    const sinceIso = toLocalDate(since.getTime())
 
     getDocs(query(
       collection(db, 'accounts', accountId, 'payments'),
@@ -105,7 +106,7 @@ export default function ReportsPage() {
                   const day = dt.getDay() // 0=Sun,1=Mon...6=Sat
                   const diff = day === 0 ? -6 : 1 - day // back to Monday
                   dt.setDate(dt.getDate() + diff)
-                  return dt.toISOString().split('T')[0]
+                  return toLocalDate(dt.getTime())
                 }
 
                 const elements: React.ReactNode[] = []

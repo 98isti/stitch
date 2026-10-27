@@ -3,6 +3,7 @@ import { ManagementContext } from '../context/ManagementContext'
 import { LayoutDashboard, List, BarChart2, ClipboardList, MoreHorizontal } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
 
 const NAV = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -12,11 +13,52 @@ const NAV = [
   { path: '/mgmt-more', label: 'More',      icon: MoreHorizontal },
 ]
 
+const REFRESH_COOLDOWN_MS = 30_000 // don't re-fetch if last refresh was <30s ago
+
+import { Component } from 'react'
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false }
+  static getDerivedStateFromError() { return { hasError: true } }
+  componentDidCatch() { this.setState({ hasError: true }) }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
+          <p className="text-gray-500 text-sm">Something went wrong loading this page.</p>
+          <button
+            onClick={() => this.setState({ hasError: false })}
+            className="px-4 py-2 bg-navy text-white text-sm rounded-xl"
+          >
+            Try Again
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 export default function ManagementLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { accountId } = useAuth()
   useLocations(accountId) // keep subscription active for location data
+
+  const [refreshKey, setRefreshKey] = useState(0)
+  const lastRefreshRef = useRef<number>(Date.now())
+
+  useEffect(() => {
+    function onVisibilityChange() {
+      if (document.visibilityState !== 'visible') return
+      const now = Date.now()
+      if (now - lastRefreshRef.current < REFRESH_COOLDOWN_MS) return
+      lastRefreshRef.current = now
+      setRefreshKey(k => k + 1)
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [])
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
@@ -28,7 +70,7 @@ export default function ManagementLayout() {
       {/* Page content */}
       <div className="flex-1 overflow-hidden">
         <ManagementContext.Provider value={true}>
-          <Outlet />
+          <ErrorBoundary key={refreshKey}><Outlet /></ErrorBoundary>
         </ManagementContext.Provider>
       </div>
 
@@ -45,8 +87,8 @@ export default function ManagementLayout() {
                   active ? 'text-navy' : 'text-gray-400'
                 }`}
               >
-                <item.icon size={22} strokeWidth={active ? 2.5 : 1.8} />
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <item.icon size={26} strokeWidth={active ? 2.5 : 1.8} />
+                <span className="text-xs font-medium">{item.label}</span>
               </button>
             )
           })}

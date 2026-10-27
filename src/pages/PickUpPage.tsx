@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, Printer, X } from 'lucide-react'
+import { todayLocal } from '../lib/dateUtils'
 import { usePrinter } from '../context/PrinterContext'
 import type { PickupSheetOrder } from '../lib/buildPickupSheet'
 
@@ -14,7 +15,7 @@ type CalendarData = Record<string, DayData> // key: "YYYY-MM-DD"
 const DAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 function isoToday() {
-  return new Date().toISOString().split('T')[0]
+  return todayLocal()
 }
 
 function monthLabel(year: number, month: number) {
@@ -145,7 +146,7 @@ export default function PickUpPage() {
     getDocs(query(
       collection(db, 'accounts', accountId, 'orders'),
       where('location', '==', activeLocation.name),
-      where('status', '==', 'In progress'),
+      where('status', 'in', ['In progress', 'Redo']),
     )).then(snap => {
       const map: CalendarData = {}
       snap.docs.forEach(d => {
@@ -173,7 +174,7 @@ export default function PickUpPage() {
         collection(db, 'accounts', accountId, 'orders'),
         where('location', '==', activeLocation.name),
         where('pickupDate', '==', iso),
-        where('status', '==', 'In progress'),
+        where('status', 'in', ['In progress', 'Redo']),
       ))
       const orders: PickupSheetOrder[] = snap.docs.map(d => {
         const o = d.data()

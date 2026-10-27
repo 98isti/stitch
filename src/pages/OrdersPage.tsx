@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Search, RefreshCw, ChevronLeft } from 'lucide-react'
 import { useIsManagement } from '../context/ManagementContext'
 import { useNavigate } from 'react-router-dom'
 import OrderDetailSheet from '../components/OrderDetailSheet'
 import EditOrderSheet from '../components/EditOrderSheet'
-import { collection, query, orderBy, getDocs, Timestamp } from 'firebase/firestore'
-
+import { collection, query, orderBy, where, limit, getDocs, Timestamp } from 'firebase/firestore'
+import { db } from '../lib/firebase'
+import { useAuth } from '../context/AuthContext'
+import { useLocations } from '../hooks/useLocations'
 
 // Simple cash drawer SVG icon
 function CashDrawerIcon({ size = 20, className = '' }: { size?: number; className?: string }) {
@@ -13,20 +15,13 @@ function CashDrawerIcon({ size = 20, className = '' }: { size?: number; classNam
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
       className={className}>
-      {/* Main body of the POS unit */}
       <rect x="2" y="3" width="20" height="11" rx="2" />
-      {/* Drawer slot / separation line */}
       <line x1="2" y1="10" x2="22" y2="10" />
-      {/* Drawer pulling out at the bottom */}
       <rect x="4" y="14" width="16" height="7" rx="1.5" />
-      {/* Drawer handle */}
       <line x1="9" y1="17.5" x2="15" y2="17.5" strokeWidth="2" strokeLinecap="round" />
     </svg>
   )
 }
-import { db } from '../lib/firebase'
-import { useAuth } from '../context/AuthContext'
-import { useLocations } from '../hooks/useLocations'
 
 export interface Order {
   id: string
@@ -42,6 +37,7 @@ export interface Order {
   isPaid: boolean
   status: string
   location: string
+  locationId?: string
   paymentMethod: string
   items: string
   createdAt?: Timestamp
@@ -68,13 +64,75 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('All')
+  const [serverResults, setServerResults] = useState<Order[] | null>(null)
+  const [searching, setSearching] = useState(false)
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Server-side search: fires Firestore queries when user types
+  useEffect(() => {
+    const term = search.trim()
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    if (!term || term.length < 2) {
+      setServerResults(null)
+      return
+    }
+    searchTimerRef.current = setTimeout(async () => {
+      if (!accountId || !activeLocation) return
+      setSearching(true)
+      try {
+        const upper = term.toUpperCase()
+        const [orderSnap, phoneSnap] = await Promise.all([
+          // Search by order number string (e.g. "KRG 417", "BON", "417")
+          getDocs(query(
+            collection(db, 'accounts', accountId, 'orders'),
+            where('orderNumberString', '>=', upper),
+            where('orderNumberString', '<=', upper + '\uf8ff'),
+            limit(50)
+          )),
+          // Search by phone number (only when input has 3+ digits)
+          /\d{3,}/.test(term) ? getDocs(query(
+            collection(db, 'accounts', accountId, 'orders'),
+            where('customerPhone', '>=', term),
+            where('customerPhone', '<=', term + '\uf8ff'),
+            limit(50)
+          )) : Promise.resolve(null),
+        ])
+        const seen = new Set<string>()
+        const merged: Order[] = []
+        for (const snap of [orderSnap, phoneSnap]) {
+          if (!snap) continue
+          for (const doc of snap.docs) {
+            if (!seen.has(doc.id)) {
+              seen.add(doc.id)
+              const o = { id: doc.id, ...doc.data() } as Order
+              // Only show results from the active location
+              if (o.locationId === activeLocation.id) merged.push(o)
+            }
+          }
+        }
+        merged.sort((a, b) => (b.orderNumber ?? 0) - (a.orderNumber ?? 0))
+        setServerResults(merged)
+      } catch (e) {
+        console.error('Search error:', e)
+        setServerResults([])
+      } finally {
+        setSearching(false)
+      }
+    }, 350)
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current) }
+  }, [search, accountId, activeLocation?.id])
 
   async function fetchOrders() {
-    if (!accountId) return
+    if (!accountId || !activeLocation) return
     setLoading(true)
     try {
       const [ordersSnap, drawerSnap] = await Promise.all([
-        getDocs(query(collection(db, 'accounts', accountId, 'orders'), orderBy('orderNumber', 'desc'))),
+        getDocs(query(
+          collection(db, 'accounts', accountId, 'orders'),
+          where('locationId', '==', activeLocation.id),
+          orderBy('orderNumber', 'desc'),
+          limit(2000)
+        )),
         getDocs(query(collection(db, 'accounts', accountId, 'drawerLogs'), orderBy('openedAt', 'desc'))),
       ])
       setOrders(ordersSnap.docs.map(d => ({ id: d.id, ...d.data() } as Order)))
@@ -83,22 +141,17 @@ export default function OrdersPage() {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { fetchOrders() }, [accountId])
+  useEffect(() => { fetchOrders() }, [accountId, activeLocation?.id])
 
-  const filtered = orders.filter(o => {
-    const matchLocation = !activeLocation || o.location === activeLocation.name
-    const matchFilter = filter === 'All' || o.status === filter
-    const term = search.toLowerCase()
-    const matchSearch = !search ||
-      o.customerName?.toLowerCase().includes(term) ||
-      o.orderNumberString?.toLowerCase().includes(term) ||
-      o.customerPhone?.includes(search)
-    return matchLocation && matchFilter && matchSearch
-  })
+  // When search is active: use server results (with optional status filter)
+  // When no search: use locally loaded orders with status filter
+  const displayOrders = serverResults ?? orders
+  const filtered = displayOrders.filter(o =>
+    filter === 'All' || o.status === filter
+  )
 
-  // Merge orders + drawer logs into one list sorted by date (newest first)
-  // Drawer logs only show when filter is 'All' and no search term
-  const filteredDrawerLogs = (filter === 'All' && !search)
+  // Drawer logs only show when not searching
+  const filteredDrawerLogs = (!search.trim() && filter === 'All')
     ? drawerLogs.filter(d => !activeLocation || d.location === activeLocation.name)
     : []
 
@@ -107,7 +160,6 @@ export default function OrdersPage() {
     ...filtered.map(o => ({ type: 'order' as const, data: o, ts: o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000).toISOString() : o.orderDate || '' })),
     ...filteredDrawerLogs.map(d => ({ type: 'drawer' as const, data: d, ts: d.openedAt?.seconds ? new Date(d.openedAt.seconds * 1000).toISOString() : '' })),
   ].sort((a, b) => b.ts.localeCompare(a.ts)) as Row[]
-
 
   return (
     <div className="flex flex-col h-full bg-gray-50 overflow-hidden">
@@ -125,8 +177,6 @@ export default function OrdersPage() {
 
       {/* Search + filters */}
       <div className="bg-white border-b border-gray-200 px-5 pt-3 pb-3 shrink-0">
-
-        {/* Search + filters */}
         <div className="flex items-center gap-3">
           <div className="relative flex-1">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -152,23 +202,24 @@ export default function OrdersPage() {
             </button>
           ))}
           <span className="ml-auto text-sm text-gray-400 self-center">
-            {filtered.length} orders · {activeLocation?.name ?? 'All locations'}
+            {searching ? 'Searching…' : `${filtered.length} orders · ${activeLocation?.name ?? 'All locations'}`}
           </span>
         </div>
       </div>
 
       {/* Table */}
       <div className="flex-1 overflow-auto">
-        {loading ? (
+        {(loading || searching) ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
           </div>
         ) : rows.length === 0 ? (
           <div className="text-center py-20 text-gray-400">
             <p className="text-4xl mb-3">🧵</p>
-            <p className="text-sm">No orders found</p>
+            <p className="text-sm">{search.trim() ? 'No orders found for that search' : 'No orders found'}</p>
           </div>
         ) : (
+          <>
           <table className="w-full text-sm border-collapse">
             <thead className="sticky top-0 bg-gray-50 z-10">
               <tr className="border-b border-gray-200">
@@ -249,6 +300,7 @@ export default function OrdersPage() {
               })}
             </tbody>
           </table>
+          </>
         )}
       </div>
       <OrderDetailSheet

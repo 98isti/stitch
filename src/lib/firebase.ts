@@ -15,4 +15,7 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
+// Memory-only cache — no IndexedDB persistence.
+// IndexedDB causes hangs on iOS when WKWebView is killed/resumed by the OS.
+// Memory cache is fast enough on shop WiFi; data re-fetches on each app open.
 export const db = getFirestore(app)

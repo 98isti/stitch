@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { collection, query, where, getDocs } from 'firebase/firestore'
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
@@ -12,15 +12,13 @@ interface LocationMetrics {
   orderPrefix: string
   dailyTarget: number
   dailyRent: number
-  dailyWages: number
   dailyOther: number
   googlePlaceId: string
   // computed
   todayRevenue: number
   todayOrders: number
-  readyForPickup: number
+  redoPct: number
   sales7d: number
-  orders7d: number
   aov: number
   revenue30d: number
   labourPct: number
@@ -39,7 +37,7 @@ function fmt(n: number) {
 function fmtDecimal(n: number) {
   return '$' + n.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
-function pct(n: number) { return n.toFixed(1) + '%' }
+function pct(n: number) { return Math.round(n) + '%' }
 
 function dateOffset(days: number) {
   const d = new Date()
@@ -50,30 +48,36 @@ function dateOffset(days: number) {
 function statusColor(revenue: number, target: number) {
   if (target === 0) return 'text-gray-400'
   const ratio = revenue / target
-  if (ratio >= 0.85) return 'text-emerald-600'
-  if (ratio >= 0.6)  return 'text-amber-500'
+  if (ratio >= 1.0) return 'text-emerald-600'
+  if (ratio >= 0.6) return 'text-amber-500'
   return 'text-red-500'
 }
 function barColor(revenue: number, target: number) {
   if (target === 0) return 'bg-gray-300'
   const ratio = revenue / target
-  if (ratio >= 0.85) return 'bg-emerald-500'
-  if (ratio >= 0.6)  return 'bg-amber-400'
+  if (ratio >= 1.0) return 'bg-emerald-500'
+  if (ratio >= 0.6) return 'bg-amber-400'
   return 'bg-red-400'
 }
 
 // ── Google rating fetch ───────────────────────────────────────────────────────
 async function fetchGoogleRating(placeId: string, apiKey: string): Promise<{ rating: number; count: number } | null> {
   if (!placeId || !apiKey) return null
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 3000)
   try {
     const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`
-    const res = await fetch(url, { headers: { 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': 'rating,userRatingCount' } })
+    const res = await fetch(url, {
+      headers: { 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': 'rating,userRatingCount' },
+      signal: controller.signal,
+    })
+    clearTimeout(timeout)
     if (!res.ok) return null
     const json = await res.json()
     if (json.rating && json.userRatingCount) {
       return { rating: json.rating, count: json.userRatingCount }
     }
-  } catch { /* ignore */ }
+  } catch { clearTimeout(timeout) }
   return null
 }
 
@@ -143,7 +147,7 @@ function LocationCard({ m, loading }: { m: LocationMetrics; loading: boolean }) 
           </div>
           <div>
             <p className="text-xs text-gray-400 mb-0.5">AOV</p>
-            <p className="text-sm font-bold text-gray-900">{loading ? '—' : (m.orders7d > 0 ? fmt(m.aov) : '—')}</p>
+            <p className="text-sm font-bold text-gray-900">{loading ? '—' : (m.aov > 0 ? fmt(m.aov) : '—')}</p>
           </div>
         </div>
       </div>
@@ -180,8 +184,8 @@ function LocationCard({ m, loading }: { m: LocationMetrics; loading: boolean }) 
 
       {/* Bottom row */}
       <div className="px-4 py-2.5 flex items-center justify-between text-xs text-gray-500">
-        <span className="flex items-center gap-1">
-          <span className="text-amber-500 font-medium">{loading ? '—' : m.readyForPickup}</span> ready for pickup
+        <span className={`flex items-center gap-1 ${m.redoPct > 5 ? 'text-red-500' : 'text-gray-400'}`}>
+          Redo: {loading ? '—' : pct(m.redoPct)}
         </span>
         <span className={`flex items-center gap-1 ${m.refundPct > 5 ? 'text-red-500' : 'text-gray-400'}`}>
           Refund: {loading ? '—' : pct(m.refundPct)}
@@ -201,6 +205,7 @@ export default function DashboardPage() {
   const loadDashboard = useCallback(async () => {
     if (!accountId || locations.length === 0) return
     setLoading(true)
+    let _mounted = true
 
     const today   = new Date().toLocaleDateString('en-CA')
     const day7ago = dateOffset(7)
@@ -209,16 +214,19 @@ export default function DashboardPage() {
     // ── Fetch Google API key from account doc ─────────────────────────────
     const googleApiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY ?? ''
 
-    // ── Load all data in parallel ─────────────────────────────────────────
+    // ── Load core data in parallel (fast — no signIns) ──────────────────────
     const [paymentsSnap, ordersSnap, customersSnap] = await Promise.all([
       getDocs(query(collection(db, 'accounts', accountId, 'payments'), where('paidDate', '>=', day30ago))),
       getDocs(query(collection(db, 'accounts', accountId, 'orders'), where('orderDate', '>=', day30ago))),
       getDocs(collection(db, 'accounts', accountId, 'customers')),
     ])
 
-    const payments = paymentsSnap.docs.map(d => ({ ...d.data() } as any))
-    const orders   = ordersSnap.docs.map(d => ({ ...d.data() } as any))
+    const payments  = paymentsSnap.docs.map(d => ({ ...d.data() } as any))
+    const orders    = ordersSnap.docs.map(d => ({ ...d.data() } as any))
     const customers = customersSnap.docs.map(d => ({ ...d.data() } as any))
+
+    // Labour cost — computed later in background (non-blocking)
+    const labourCostByLoc: Record<string, number> = {}
 
     // ── Compute metrics per location ──────────────────────────────────────
     const results: LocationMetrics[] = await Promise.all(locations.map(async loc => {
@@ -232,24 +240,26 @@ export default function DashboardPage() {
       const todayOrders   = orders.filter(o =>
         (o.locationId === loc.id || o.location === loc.name) && o.orderDate === today
       ).length
-      const readyForPickup = orders.filter(o =>
-        (o.locationId === loc.id || o.location === loc.name) && o.status === 'Ready for Pick Up'
-      ).length
 
-      // 7d
+      // 7d sales (for 7d card)
       const payments7d = locPayments.filter(p => p.paidDate >= day7ago)
       const sales7d    = payments7d.reduce((s, p) => s + (p.amount ?? 0), 0)
-      const orders7d   = locOrders.filter(o => o.orderDate >= day7ago).length
-      const aov        = orders7d > 0 ? sales7d / orders7d : 0
 
       // 30d
-      const revenue30d = locPayments.reduce((s, p) => s + (p.amount ?? 0), 0)
-      const dailyRent  = (loc as any).dailyRent  ?? 0
-      const dailyWages = (loc as any).dailyWages ?? 0
-      const dailyOther = (loc as any).dailyOther ?? 0
-      const expenses30d = (dailyRent + dailyWages + dailyOther) * 30
-      const pl30d      = revenue30d - expenses30d
-      const labourPct  = revenue30d > 0 ? (dailyWages * 30 / revenue30d) * 100 : 0
+      const revenue30d      = locPayments.reduce((s, p) => s + (p.amount ?? 0), 0)
+      const dailyRent        = (loc as any).dailyRent  ?? 0
+      const dailyOther       = (loc as any).dailyOther ?? 0
+      const actualLabourCost = labourCostByLoc[loc.name] ?? 0
+      const expenses30d      = (dailyRent + dailyOther) * 30 + actualLabourCost
+      const pl30d            = revenue30d - expenses30d
+      const labourPct        = revenue30d > 0 ? (actualLabourCost / revenue30d) * 100 : 0
+
+      // 30d AOV
+      const aov = locOrders.length > 0 ? revenue30d / locOrders.length : 0
+
+      // Redo %
+      const redoOrders = locOrders.filter(o => o.status === 'Redo').length
+      const redoPct    = locOrders.length > 0 ? (redoOrders / locOrders.length) * 100 : 0
 
       // On-time %
       const completedOrders = locOrders.filter(o => o.jobCompletedDate && o.pickupDate && o.status !== 'Cancelled')
@@ -257,16 +267,24 @@ export default function DashboardPage() {
       const onTimePct = completedOrders.length > 0 ? (onTime / completedOrders.length) * 100 : 100
 
       // Return customer %
-      const repeatCustomers = locCustomers.filter(c => (c.orderCount ?? 1) > 1).length
-      const returnCustomerPct = locCustomers.length > 0 ? (repeatCustomers / locCustomers.length) * 100 : 0
+      // Repeat %: of unique customers who ordered in last 30d, how many are repeats (orderCount > 1)
+      const recentCustomerKeys = new Set(
+        locOrders.map(o => o.customerPhone || o.customerId || o.customerName).filter(Boolean)
+      )
+      const repeatCustomers = locCustomers.filter(c => {
+        const key = c.phone || c.id || c.customerName || c.name
+        return recentCustomerKeys.has(key) && (c.orderCount ?? 1) > 1
+      }).length
+      const returnCustomerPct = recentCustomerKeys.size > 0
+        ? (repeatCustomers / recentCustomerKeys.size) * 100
+        : 0
 
       // Refund %
       const ordersWithRefund = locOrders.filter(o => (o.refundAmount ?? 0) > 0).length
       const refundPct = locOrders.length > 0 ? (ordersWithRefund / locOrders.length) * 100 : 0
 
-      // Google rating
+      // Google rating fetched separately after main load
       const placeId = (loc as any).googlePlaceId ?? ''
-      const googleResult = await fetchGoogleRating(placeId, googleApiKey)
 
       return {
         locationId:         loc.id,
@@ -274,22 +292,86 @@ export default function DashboardPage() {
         shopType:           loc.shopType ?? 'alterations',
         orderPrefix:        loc.orderPrefix ?? '',
         dailyTarget:        (loc as any).dailyTarget ?? 0,
-        dailyRent, dailyWages, dailyOther,
+        dailyRent, dailyOther,
         googlePlaceId:      placeId,
-        todayRevenue, todayOrders, readyForPickup,
-        sales7d, orders7d, aov,
+        todayRevenue, todayOrders, redoPct,
+        sales7d, aov,
         revenue30d, labourPct, pl30d,
         onTimePct, returnCustomerPct, refundPct,
-        googleRating:       googleResult?.rating ?? null,
-        googleReviewCount:  googleResult?.count  ?? null,
+        googleRating:       null,
+        googleReviewCount:  null,
       }
     }))
 
+    if (!_mounted) return
     setMetrics(results)
     setLoading(false)
+
+    // ── Fetch signIns + staff in background for labour % ─────────────────
+    ;(async () => {
+      try {
+        const signInsStart = Timestamp.fromDate(new Date(day30ago + 'T00:00:00'))
+        const [signInsSnap, staffSnap] = await Promise.all([
+          getDocs(query(collection(db, 'accounts', accountId, 'signIns'), where('timestamp', '>=', signInsStart))),
+          getDocs(collection(db, 'accounts', accountId, 'staff')),
+        ])
+        const payRateMap: Record<string, number> = {}
+        staffSnap.docs.forEach(d => {
+          const { firstName, lastName, payRate } = d.data() as any
+          payRateMap[`${firstName ?? ''} ${lastName ?? ''}`.trim()] = payRate ?? 40
+        })
+        const grouped: Record<string, { ins: number[]; outs: number[]; location: string; name: string }> = {}
+        signInsSnap.docs.forEach(d => {
+          const { employeeId, employeeName, location, type, timestamp } = d.data() as any
+          const seconds = timestamp?.seconds ?? timestamp?._seconds
+          if (!seconds || !location) return
+          const dateStr = new Date(seconds * 1000).toLocaleDateString('en-CA')
+          const key = (employeeId || employeeName) + '__' + dateStr + '__' + location
+          if (!grouped[key]) grouped[key] = { ins: [], outs: [], location, name: employeeName ?? '' }
+          if (type === 'in') grouped[key].ins.push(seconds)
+          else grouped[key].outs.push(seconds)
+        })
+        const bgLabourCost: Record<string, number> = {}
+        Object.values(grouped).forEach(({ ins, outs, location, name }) => {
+          const inTs  = ins.length  ? Math.min(...ins)  : null
+          const outTs = outs.length ? Math.max(...outs) : null
+          const hours = (inTs && outTs) ? (outTs - inTs) / 3600 : 0
+          bgLabourCost[location] = (bgLabourCost[location] || 0) + hours * (payRateMap[name] ?? 40)
+        })
+        setMetrics(prev => prev.map(m => {
+          const actualLabourCost = bgLabourCost[m.locationName] ?? 0
+          const labourPct  = m.revenue30d > 0 ? (actualLabourCost / m.revenue30d) * 100 : 0
+          const dailyRent  = (locations.find(l => l.id === m.locationId) as any)?.dailyRent  ?? 0
+          const dailyOther = (locations.find(l => l.id === m.locationId) as any)?.dailyOther ?? 0
+          const pl30d      = m.revenue30d - (dailyRent + dailyOther) * 30 - actualLabourCost
+          return { ...m, labourPct, pl30d }
+        }))
+      } catch { /* ignore — labour will show 0 */ }
+    })()
+
+    // Fetch Google ratings in background — non-blocking, updates cards as they arrive
+    results.forEach((m, i) => {
+      if (!m.googlePlaceId) return
+      fetchGoogleRating(m.googlePlaceId, googleApiKey).then(googleResult => {
+        if (!googleResult || !_mounted) return
+        setMetrics(prev => prev.map((item, idx) =>
+          idx === i
+            ? { ...item, googleRating: googleResult.rating, googleReviewCount: googleResult.count }
+            : item
+        ))
+      })
+    })
   }, [accountId, locations])
 
-  useEffect(() => { loadDashboard() }, [loadDashboard])
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      try { await loadDashboard() }
+      catch { if (!cancelled) setLoading(false) }
+    }
+    run()
+    return () => { cancelled = true }
+  }, [loadDashboard])
 
   const totalRevenue = metrics.reduce((s, m) => s + m.todayRevenue, 0)
   const totalTarget  = metrics.reduce((s, m) => s + m.dailyTarget, 0)
@@ -334,8 +416,49 @@ export default function DashboardPage() {
       {/* Per-location cards */}
       <div className="px-4 pb-6">
         {loading && metrics.length === 0
-          ? Array.from({ length: locations.length || 1 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl shadow-sm h-48 mb-4 animate-pulse" />
+          ? Array.from({ length: locations.length || 3 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden mb-4">
+                {/* Header shimmer */}
+                <div className="px-4 pt-4 pb-3 border-b border-gray-100">
+                  <div className="flex justify-between mb-3">
+                    <div>
+                      <div className="h-4 w-28 bg-gray-200 rounded animate-pulse mb-1.5" />
+                      <div className="h-3 w-20 bg-gray-100 rounded animate-pulse" />
+                    </div>
+                    <div className="h-4 w-20 bg-gray-100 rounded animate-pulse" />
+                  </div>
+                  <div className="h-7 w-32 bg-gray-200 rounded animate-pulse mb-2" />
+                  <div className="h-2 w-full bg-gray-100 rounded-full animate-pulse mb-1" />
+                  <div className="h-3 w-24 bg-gray-100 rounded animate-pulse" />
+                </div>
+                {/* Stats shimmer */}
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <div className="grid grid-cols-3 gap-2">
+                    {[1,2,3].map(j => (
+                      <div key={j} className="flex flex-col items-center gap-1">
+                        <div className="h-3 w-12 bg-gray-100 rounded animate-pulse" />
+                        <div className="h-4 w-16 bg-gray-200 rounded animate-pulse" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Metrics shimmer */}
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <div className="grid grid-cols-4 gap-2">
+                    {[1,2,3,4].map(j => (
+                      <div key={j} className="flex flex-col items-center gap-1">
+                        <div className="h-3 w-10 bg-gray-100 rounded animate-pulse" />
+                        <div className="h-4 w-12 bg-gray-200 rounded animate-pulse" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Bottom shimmer */}
+                <div className="px-4 py-2.5 flex justify-between">
+                  <div className="h-3 w-20 bg-gray-100 rounded animate-pulse" />
+                  <div className="h-3 w-20 bg-gray-100 rounded animate-pulse" />
+                </div>
+              </div>
             ))
           : metrics.map(m => <LocationCard key={m.locationId} m={m} loading={loading} />)
         }

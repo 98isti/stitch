@@ -13,6 +13,7 @@ interface QuickItem {
   name: string
   price: number
   category: string
+  components?: string[]
 }
 
 const MAX = 8
@@ -28,12 +29,14 @@ export default function QuickItemsPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  // Picker state: null = closed, '' = category list, 'CategoryName' = items in category
+  // Picker state: null = closed, '' = category list, 'CategoryName' = sub-cat/items in category
   const [pickerCategory, setPickerCategory] = useState<string | null>(null)
+  const [pickerSubCategory, setPickerSubCategory] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
   useEffect(() => {
     if (!accountId || !activeLocation) return
+    setQuickItems([]) // clear while loading new location
     getDoc(doc(db, 'accounts', accountId, 'locations', activeLocation.id)).then(snap => {
       if (snap.exists()) setQuickItems(snap.data().quickItems ?? [])
     })
@@ -50,10 +53,11 @@ export default function QuickItemsPage() {
 
   function addItem(item: { id: string; itemName: string; itemPrice: number; itemCategoryName: string }) {
     if (quickItems.length >= MAX || quickItems.some(q => q.itemId === item.id)) return
-    const updated = [...quickItems, { itemId: item.id, name: item.itemName, price: item.itemPrice, category: item.itemCategoryName }]
+    const updated = [...quickItems, { itemId: item.id, name: item.itemName, price: item.itemPrice, category: item.itemCategoryName, ...(( item as any).components?.length ? { components: (item as any).components } : {}) }]
     setQuickItems(updated)
     save(updated)
     setPickerCategory(null)
+    setPickerSubCategory(null)
     setSearch('')
   }
 
@@ -72,9 +76,17 @@ export default function QuickItemsPage() {
     save(updated)
   }
 
-  // Items in selected category (for picker)
+  // Sub-categories for selected category
+  const pickerSubCategories = pickerCategory
+    ? [...new Set(items
+        .filter(i => i.itemCategoryName === pickerCategory && i.itemSubCategoryName)
+        .map(i => i.itemSubCategoryName!))].sort()
+    : []
+
+  // Items in selected category, optionally filtered by sub-category
   const pickerItems = items
     .filter(i => i.itemCategoryName === pickerCategory && i.itemPrice > 0)
+    .filter(i => !pickerSubCategory || i.itemSubCategoryName === pickerSubCategory)
     .filter(i => !quickItems.some(q => q.itemId === i.id))
     .sort((a, b) => a.itemName.localeCompare(b.itemName))
 
@@ -157,22 +169,26 @@ export default function QuickItemsPage() {
 
       {/* Picker sheet */}
       {pickerOpen && (
-        <div className="fixed inset-0 z-50 flex items-end">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/40" onClick={() => { setPickerCategory(null); setSearch('') }} />
-          <div className="relative w-full bg-white rounded-t-2xl shadow-2xl max-w-lg mx-auto flex flex-col max-h-[85vh]">
+          <div className="relative w-full bg-white rounded-2xl shadow-2xl max-w-lg mx-4 flex flex-col max-h-[85vh]">
 
             {/* Sheet header */}
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-4 mb-3 shrink-0" />
             <div className="px-4 pb-3 shrink-0 space-y-3">
               <div className="flex items-center gap-2">
-                {pickerCategory !== '' && (
-                  <button onClick={() => { setPickerCategory(''); setSearch('') }}
-                    className="text-navy p-1">
+                {(pickerCategory !== '' || pickerSubCategory) && (
+                  <button onClick={() => {
+                    if (pickerSubCategory) { setPickerSubCategory(null); setSearch('') }
+                    else { setPickerCategory(''); setSearch('') }
+                  }} className="text-navy p-1">
                     <ArrowLeft size={18} />
                   </button>
                 )}
                 <h2 className="font-bold text-navy text-base flex-1">
-                  {pickerCategory !== '' ? pickerCategory : 'Choose Category'}
+                  {pickerCategory === '' ? 'Choose Category'
+                    : pickerSubCategory ? `${pickerCategory} › ${pickerSubCategory}`
+                    : pickerCategory}
                 </h2>
                 <button onClick={() => { setPickerCategory(null); setSearch('') }}
                   className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -197,34 +213,53 @@ export default function QuickItemsPage() {
                   ? <p className="text-center text-sm text-gray-400 py-8">No items found</p>
                   : searchResults.map(item => (
                     <button key={item.id} onClick={() => addItem(item)}
-                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left">
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">{item.itemName}</p>
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left gap-3">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-800">
+                          {item.itemName}{(item as any).components?.length ? ` (${(item as any).components.join(' + ')})` : ''}
+                        </p>
                         <p className="text-xs text-gray-400">{item.itemCategoryName}</p>
                       </div>
-                      <span className="text-sm font-semibold text-navy">${item.itemPrice.toFixed(2)}</span>
+                      <span className="text-sm font-semibold text-navy shrink-0">${item.itemPrice.toFixed(2)}</span>
                     </button>
                   ))
 
               ) : pickerCategory === '' ? (
                 /* Category list */
                 categories.map(cat => (
-                  <button key={cat.id} onClick={() => setPickerCategory(cat.categoryName)}
+                  <button key={cat.id} onClick={() => { setPickerCategory(cat.categoryName); setPickerSubCategory(null) }}
                     className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors text-left">
                     <span className="text-sm font-medium text-gray-800">{cat.categoryName}</span>
                     <ChevronRight size={16} className="text-gray-300" />
                   </button>
                 ))
 
+              ) : pickerSubCategories.length > 1 && !pickerSubCategory ? (
+                /* Sub-category list */
+                pickerSubCategories.map(sub => (
+                  <button key={sub} onClick={() => setPickerSubCategory(sub)}
+                    className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors text-left">
+                    <span className="text-sm font-medium text-gray-800">{sub}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400">
+                        {items.filter(i => i.itemCategoryName === pickerCategory && i.itemSubCategoryName === sub && i.itemPrice > 0).length} items
+                      </span>
+                      <ChevronRight size={16} className="text-gray-300" />
+                    </div>
+                  </button>
+                ))
+
               ) : (
-                /* Items in category */
+                /* Items list */
                 pickerItems.length === 0
                   ? <p className="text-center text-sm text-gray-400 py-8">All items from this category already added</p>
                   : pickerItems.map(item => (
                     <button key={item.id} onClick={() => addItem(item)}
-                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left">
-                      <span className="text-sm font-medium text-gray-800">{item.itemName}</span>
-                      <span className="text-sm font-semibold text-navy">${item.itemPrice.toFixed(2)}</span>
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left gap-3">
+                      <span className="text-sm font-medium text-gray-800 flex-1">
+                        {item.itemName}{(item as any).components?.length ? ` (${(item as any).components.join(' + ')})` : ''}
+                      </span>
+                      <span className="text-sm font-semibold text-navy shrink-0">${item.itemPrice.toFixed(2)}</span>
                     </button>
                   ))
               )}

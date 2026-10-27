@@ -24,7 +24,9 @@ interface LeaveRequest {
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10)
+  return new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(d)
 }
 
 function formatDisplay(s: string): string {

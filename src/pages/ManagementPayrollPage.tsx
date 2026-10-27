@@ -57,7 +57,9 @@ function fmtWeekLabel(start: Date, end: Date) {
 
 function fmtDayLabel(dateStr: string) {
   const d = new Date(dateStr + 'T00:00:00')
-  return d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })
+  const weekday = d.toLocaleDateString('en-AU', { weekday: 'long' })
+  const date    = d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+  return { weekday, date }
 }
 
 function getDaysInWeek(weekStart: Date): string[] {
@@ -86,6 +88,7 @@ function buildHoursMap(events: SignInEvent[]) {
     const [empId, date] = key.split('__')
     const signIn  = ins.length  ? Math.min(...ins)  : null
     const signOut = outs.length ? Math.max(...outs) : null
+    // Both present → calculate hours; only one present → 0 (worked but incomplete record)
     const h = (signIn && signOut) ? Math.round(((signOut - signIn) / 3600) * 10) / 10 : 0
     if (!hours[empId]) hours[empId] = {}
     hours[empId][date] = h
@@ -239,7 +242,7 @@ export default function ManagementPayrollPage() {
                       <thead>
                         <tr className="bg-red-50 border-b border-red-100">
                           {/* Day column header */}
-                          <th className="text-left px-3 py-3 font-medium text-gray-500 w-36 min-w-36" />
+                          <th className="text-left px-3 py-3 font-medium text-gray-500 w-24 min-w-24 sticky left-0 z-10 bg-red-50" />
                           {/* Staff columns */}
                           {activeEmployeeIds.map(id => {
                             const rate = rateMap[id]
@@ -258,14 +261,17 @@ export default function ManagementPayrollPage() {
                           const anyWorked = activeEmployeeIds.some(id => (hoursMap[id]?.[day] ?? 0) > 0)
                           return (
                             <tr key={day} className={`border-b border-gray-100 ${weekend ? 'bg-gray-50' : ''}`}>
-                              <td className={`px-3 py-2.5 text-xs ${weekend ? 'text-gray-500 font-medium' : 'text-gray-600'}`}>
-                                {fmtDayLabel(day)}
+                              <td className={`px-3 py-2.5 text-sm sticky left-0 z-10 ${weekend ? 'text-gray-500 font-medium bg-gray-50' : 'text-gray-600 bg-white'}`}>
+                                <div>{fmtDayLabel(day).weekday}</div>
+                                <div className="text-xs text-gray-400 font-normal">{fmtDayLabel(day).date}</div>
                               </td>
                               {activeEmployeeIds.map(id => {
                                 const h = hoursMap[id]?.[day]
                                 return (
-                                  <td key={id} className="px-3 py-2.5 text-center text-sm text-gray-700">
-                                    {h != null && h > 0 ? h.toFixed(1) : anyWorked ? <span className="text-gray-300">—</span> : ''}
+                                  <td key={id} className="px-3 py-2.5 text-center text-base text-gray-700">
+                                    {h !== undefined
+                                      ? (h > 0 ? h.toFixed(1) : <span className="text-amber-500 font-semibold">0</span>)
+                                      : anyWorked ? <span className="text-gray-300">—</span> : ''}
                                   </td>
                                 )
                               })}
@@ -273,25 +279,7 @@ export default function ManagementPayrollPage() {
                           )
                         })}
 
-                        {/* Total Hours row */}
-                        <tr className="border-t-2 border-gray-200 bg-gray-50">
-                          <td className="px-3 py-2.5 text-xs font-bold text-gray-800">Total Weekly Hours</td>
-                          {activeEmployeeIds.map(id => (
-                            <td key={id} className="px-3 py-2.5 text-center text-sm font-bold text-gray-800">
-                              {weeklyHours[id] > 0 ? weeklyHours[id].toFixed(1) : '—'}
-                            </td>
-                          ))}
-                        </tr>
 
-                        {/* Total Pay row */}
-                        <tr className="bg-gray-50">
-                          <td className="px-3 py-3 text-xs font-bold text-gray-800">Total Pay</td>
-                          {activeEmployeeIds.map(id => (
-                            <td key={id} className="px-3 py-3 text-center text-sm font-bold text-gray-900">
-                              {weeklyPay[id] > 0 ? `$${weeklyPay[id].toFixed(2)}` : '—'}
-                            </td>
-                          ))}
-                        </tr>
                       </tbody>
                     </table>
                   </div>
