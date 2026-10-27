@@ -13,6 +13,7 @@
   "dependencies": {
     "@capacitor/core": "^8.5.3",
     "@headlessui/react": "^2.2.10",
+    "@tanstack/react-virtual": "^3.14.23",
     "firebase": "^13.0.0",
     "jsqr": "^1.4.0",
     "lucide-react": "^1.54.0",
