@@ -17,8 +17,11 @@ const INITIAL_LOAD = 600
 const PAGE_SIZE = 300
 const FILTERS = ['All', 'In progress', 'Ready for Pick Up', 'Picked Up', 'Redo']
 
-// Column grid definition — shared between header and rows
-const COL = 'grid-cols-[90px_130px_1fr_80px_72px_90px_160px_100px]'
+// Column grid definition — inline style so it's in the JS bundle (no Tailwind CSS caching issues)
+const COL_STYLE: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '90px 130px 1fr 80px 72px 90px 160px 100px',
+}
 
 function CashDrawerIcon({ size = 20, className = '' }: { size?: number; className?: string }) {
   return (
@@ -365,7 +368,7 @@ export default function OrdersPage() {
       </div>
 
       {/* ── Column header (outside virtual scroll — always visible) ── */}
-      <div className={`grid ${COL} bg-gray-50 border-b border-gray-200 px-5 shrink-0`}>
+      <div style={COL_STYLE} className="bg-gray-50 border-b border-gray-200 px-5 shrink-0">
         {['Order #', 'Date', 'Customer', 'Amount', 'Paid', 'Due', 'Status', 'Pickup'].map((h, i) => (
           <div key={h}
             className={`py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide ${
@@ -436,7 +439,8 @@ export default function OrdersPage() {
               return (
                 <div key={virtualItem.key} style={baseStyle}
                   onClick={() => setSelectedOrderId(order.id)}
-                  className={`grid ${COL} px-5 items-center border-b border-gray-100 cursor-pointer transition-colors ${
+                  style={COL_STYLE}
+                  className={`px-5 items-center border-b border-gray-100 cursor-pointer transition-colors ${
                     isCancelled ? 'opacity-50 bg-gray-50 hover:bg-gray-100' : 'hover:bg-gray-50'
                   }`}>
 
