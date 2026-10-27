@@ -18,7 +18,7 @@ const PAGE_SIZE = 300
 const FILTERS = ['All', 'In progress', 'Ready for Pick Up', 'Picked Up', 'Redo']
 
 // Column grid definition — shared between header and rows
-const COL = 'grid-cols-[90px_100px_1fr_80px_72px_72px_138px_100px]'
+const COL = 'grid-cols-[90px_130px_1fr_80px_72px_90px_160px_100px]'
 
 function CashDrawerIcon({ size = 20, className = '' }: { size?: number; className?: string }) {
   return (
@@ -446,7 +446,7 @@ export default function OrdersPage() {
                   </span>
 
                   {/* Date */}
-                  <span className="text-xs text-gray-500">{formatDate(order.orderDate)}</span>
+                  <span className="text-sm text-gray-500">{formatDate(order.orderDate)}</span>
 
                   {/* Customer */}
                   <div className="min-w-0 pr-3">
