@@ -1087,8 +1087,8 @@ export default function POSPage() {
                   {categories.map(cat => (
                     <button key={cat.id}
                       onClick={() => { setPickerCategory(cat.categoryName); setShowPicker(true) }}
-                      className={`flex items-center justify-center rounded-2xl border active:scale-95 transition-all shadow-sm min-h-[80px] px-2 text-center hover:opacity-80 \${getCategoryStyle(cat.categoryName).bg} \${getCategoryStyle(cat.categoryName).border}`}>
-                      <span className={`font-semibold text-base leading-tight \${getCategoryStyle(cat.categoryName).text}`}>{cat.categoryName}</span>
+                      className={`flex items-center justify-center rounded-2xl border active:scale-95 transition-all shadow-sm min-h-[80px] px-2 text-center hover:opacity-80 ${getCategoryStyle(cat.categoryName).bg} ${getCategoryStyle(cat.categoryName).border}`}>
+                      <span className={`font-semibold text-base leading-tight ${getCategoryStyle(cat.categoryName).text}`}>{cat.categoryName}</span>
                     </button>
                   ))}
                 </div>
