@@ -20,7 +20,7 @@ const FILTERS = ['All', 'In progress', 'Ready for Pick Up', 'Picked Up', 'Redo']
 // Column grid definition — inline style so it's in the JS bundle (no Tailwind CSS caching issues)
 const COL_STYLE: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: '90px 130px 1fr 80px 72px 90px 160px 100px',
+  gridTemplateColumns: '120px 130px 1fr 80px 72px 90px 160px 100px',
   columnGap: '20px',
 }
 
@@ -452,7 +452,7 @@ export default function OrdersPage() {
                   }`}>
 
                   {/* Order # */}
-                  <span className={`font-bold text-sm ${isCancelled ? 'text-gray-400 line-through' : 'text-navy'}`}>
+                  <span className={`font-bold text-sm whitespace-nowrap ${isCancelled ? 'text-gray-400 line-through' : 'text-navy'}`}>
                     {order.orderNumberString}
                   </span>
 
