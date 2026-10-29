@@ -420,31 +420,6 @@ function CustomerSheet({
 
 
 
-function getCategoryEmoji(name: string): string {
-  const n = (name ?? '').toLowerCase()
-  if (n.includes('blazer') || n.includes('jacket') || n.includes('sport')) return '🧥'
-  if (n.includes('coat'))                              return '🥼'
-  if (n.includes('blouse') || n.includes('top'))       return '👚'
-  if (n.includes('button'))                            return '🪡'
-  if (n.includes('dress') || n.includes('frock'))      return '👗'
-  if (n.includes('dry') || n.includes('cleaning'))     return '🧺'
-  if (n.includes('elastic'))                           return '🪢'
-  if (n.includes('evening') || n.includes('formal') || n.includes('gown')) return '🎩'
-  if (n.includes('wedding') || n.includes('bridal'))   return '💍'
-  if (n.includes('measurement') || n.includes('measure')) return '📏'
-  if (n.includes('waist'))                             return '📐'
-  if (n.includes('pant') || n.includes('trouser') || n.includes('jean')) return '👖'
-  if (n.includes('patch'))                             return '🩹'
-  if (n.includes('pocket'))                            return '🔲'
-  if (n.includes('repair') || n.includes('alter') || n.includes('misc')) return '✂️'
-  if (n.includes('school') || n.includes('uniform'))   return '🎒'
-  if (n.includes('shirt') || n.includes('polo'))       return '👔'
-  if (n.includes('skirt'))                             return '👗'
-  if (n.includes('zipper') || n.includes('zip'))       return '🧲'
-  if (n.includes('lining'))                            return '🪡'
-  if (n.includes('curtain') || n.includes('hem'))      return '🪡'
-  return '✂️'
-}
 
 export default function POSPage() {
   const { accountId } = useAuth()
@@ -1074,9 +1049,8 @@ export default function POSPage() {
                   {categories.map(cat => (
                     <button key={cat.id}
                       onClick={() => { setPickerCategory(cat.categoryName); setShowPicker(true) }}
-                      className="flex flex-col items-center justify-center rounded-2xl border border-gray-200 bg-white active:scale-95 transition-all shadow-sm min-h-[80px] px-2 text-center hover:bg-gray-50">
-                      <span className="text-3xl mb-1 leading-none">{getCategoryEmoji(cat.categoryName)}</span>
-                      <span className="font-semibold text-xs leading-tight text-gray-800">{cat.categoryName}</span>
+                      className="flex items-center justify-center rounded-2xl bg-white border border-gray-200 text-gray-800 hover:bg-navy hover:text-white hover:border-navy active:scale-95 transition-all shadow-sm min-h-[80px] px-2 text-center">
+                      <span className="font-semibold text-base leading-tight">{cat.categoryName}</span>
                     </button>
                   ))}
                 </div>
