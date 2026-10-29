@@ -86,6 +86,48 @@ interface Props {
 
 const SMS_WORKER_URL = 'https://stitch-sms.supto98.workers.dev'
 
+// ── Cash Change Calculator (Order Detail) ────────────────────────────────────
+function CashChangePanelDetail({ due, onConfirm, onBack }: {
+  due: number; onConfirm: () => void; onBack: () => void
+}) {
+  const [received, setReceived] = React.useState('')
+  const amount = parseFloat(received) || 0
+  const change = amount - due
+  const short  = due - amount
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="text-center mb-1">
+        <p className="text-gray-400 text-xs">Amount due</p>
+        <p className="text-xl font-bold text-gray-900">${due.toFixed(2)}</p>
+      </div>
+      <input
+        type="number" inputMode="decimal" value={received}
+        onChange={e => setReceived(e.target.value)} placeholder="Cash received"
+        autoFocus
+        className="w-full text-center text-3xl font-bold border-2 border-gray-200 rounded-2xl py-4 focus:outline-none focus:border-navy"
+      />
+      {received !== '' && (
+        change >= 0 ? (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 text-center">
+            <p className="text-xs text-emerald-600 font-medium">Change to return</p>
+            <p className="text-2xl font-bold text-emerald-600">${change.toFixed(2)}</p>
+          </div>
+        ) : (
+          <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-center">
+            <p className="text-xs text-red-500 font-medium">Short by</p>
+            <p className="text-2xl font-bold text-red-500">${short.toFixed(2)}</p>
+          </div>
+        )
+      )}
+      <button onClick={onConfirm} disabled={amount < due}
+        className="w-full py-4 rounded-2xl bg-gray-800 text-white font-bold disabled:opacity-30 transition-opacity">
+        Confirm Cash Payment
+      </button>
+      <button onClick={onBack} className="w-full py-2 text-sm text-gray-400 hover:text-gray-600">← Back</button>
+    </div>
+  )
+}
+
 export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, readOnly = false }: Props) {
   const { staff } = useStaff()
   const accountProfile = useAccountProfile(accountId)
@@ -105,6 +147,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
   const [showCancelSheet, setShowCancelSheet] = useState(false)
   const printer = usePrinter()
   const [showPaymentPrompt, setShowPaymentPrompt] = useState(false)
+  const [showCashChange, setShowCashChange] = useState(false)
   const [showCompletedByPopup, setShowCompletedByPopup] = useState(false)
   const [staffList, setStaffList] = useState<string[]>([])
   const [selectedEmployee, setSelectedEmployee] = useState('Select Your Name')
@@ -115,6 +158,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
     setOrder(null)
     setShowStatusMenu(false)
     setShowPaymentPrompt(false)
+    setShowCashChange(false)
     setShowCompletedByPopup(false)
     setShowConveyorSlotPopup(false)
     setConveyorSlots([''])
@@ -829,13 +873,13 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
         )}
 
         {/* Payment method prompt */}
-        {showPaymentPrompt && order && (
+        {showPaymentPrompt && order && !showCashChange && (
           <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/30 rounded-3xl">
             <div className="bg-white rounded-2xl shadow-xl p-6 mx-6 w-full">
               <p className="text-center font-bold text-gray-900 text-base mb-1">Collect Payment</p>
               <p className="text-center text-gray-500 text-sm mb-5">${order.stillDueAmount.toFixed(2)} due</p>
               <div className="grid grid-cols-3 gap-3 mb-3">
-                <button onClick={() => markPaid('Cash')}
+                <button onClick={() => setShowCashChange(true)}
                   className="py-4 rounded-2xl bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-800 font-bold text-sm transition-all">
                   💵 Cash
                 </button>
@@ -852,6 +896,20 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
                 className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors">
                 Cancel
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Cash change calculator — Order Detail */}
+        {showPaymentPrompt && order && showCashChange && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/30 rounded-3xl">
+            <div className="bg-white rounded-2xl shadow-xl p-6 mx-6 w-full">
+              <p className="text-center font-bold text-gray-900 text-base mb-4">💵 Cash Payment</p>
+              <CashChangePanelDetail
+                due={order.stillDueAmount}
+                onConfirm={() => { setShowCashChange(false); markPaid('Cash') }}
+                onBack={() => setShowCashChange(false)}
+              />
             </div>
           </div>
         )}

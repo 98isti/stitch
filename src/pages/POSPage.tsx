@@ -194,6 +194,62 @@ function SuccessToast({
 }
 
 // ── Payment Sheet ─────────────────────────────────────────────────────────────
+function CashChangePanel({
+  total, onConfirm, onBack,
+}: {
+  total: number
+  onConfirm: () => void
+  onBack: () => void
+}) {
+  const [received, setReceived] = React.useState('')
+  const amount = parseFloat(received) || 0
+  const change = amount - total
+  const short  = total - amount
+
+  return (
+    <div className="flex flex-col gap-4 px-6 pb-2">
+      <div className="text-center">
+        <p className="text-gray-400 text-sm mb-1">Amount due</p>
+        <p className="text-2xl font-bold text-gray-900">${total.toFixed(2)}</p>
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-gray-600 mb-1.5">Cash received</p>
+        <input
+          type="number"
+          inputMode="decimal"
+          value={received}
+          onChange={e => setReceived(e.target.value)}
+          placeholder="0.00"
+          autoFocus
+          className="w-full text-center text-3xl font-bold border-2 border-gray-200 rounded-2xl py-4 focus:outline-none focus:border-navy"
+        />
+      </div>
+      {received !== '' && (
+        change >= 0 ? (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 text-center">
+            <p className="text-sm text-emerald-600 font-medium">Change to return</p>
+            <p className="text-3xl font-bold text-emerald-600">${change.toFixed(2)}</p>
+          </div>
+        ) : (
+          <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-center">
+            <p className="text-sm text-red-500 font-medium">Short by</p>
+            <p className="text-3xl font-bold text-red-500">${short.toFixed(2)}</p>
+          </div>
+        )
+      )}
+      <button
+        onClick={onConfirm}
+        disabled={amount < total}
+        className="w-full py-4 rounded-2xl bg-gray-800 text-white font-bold text-lg disabled:opacity-30 transition-opacity active:scale-95">
+        Confirm Cash Payment
+      </button>
+      <button onClick={onBack} className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors">
+        ← Back
+      </button>
+    </div>
+  )
+}
+
 function PaymentSheet({
   total, onPay, onSplit, onClose,
 }: {
@@ -202,32 +258,42 @@ function PaymentSheet({
   onSplit: () => void
   onClose: () => void
 }) {
+  const [showCash, setShowCash] = React.useState(false)
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/30" />
       <div className="relative z-10 bg-white rounded-t-3xl w-full max-w-sm pb-10 pt-4 shadow-2xl"
         onClick={e => e.stopPropagation()}>
         <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
-        <h3 className="text-center font-bold text-gray-900 text-lg mb-1 px-4">Charge ${total.toFixed(2)}</h3>
-        <p className="text-center text-gray-400 text-sm mb-6 px-4">Select payment method</p>
-        <div className="flex flex-col gap-3 px-6">
-          <button onClick={() => onPay('Cash')}
-            className="w-full py-4 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-lg transition-colors active:scale-95">
-            💵 Cash
-          </button>
-          <button onClick={() => onPay('Card')}
-            className="w-full py-4 rounded-2xl bg-navy text-white font-bold text-lg transition-colors active:scale-95 hover:opacity-90">
-            💳 Card
-          </button>
-          <button onClick={onSplit}
-            className="w-full py-4 rounded-2xl bg-purple-50 border-2 border-purple-200 text-purple-700 font-bold text-lg transition-colors active:scale-95 hover:bg-purple-100">
-            ✂️ Split / Partial
-          </button>
-          <button onClick={() => onPay('Pay Later')}
-            className="w-full py-4 rounded-2xl bg-amber-50 border-2 border-amber-200 text-amber-700 font-bold text-lg transition-colors active:scale-95 hover:bg-amber-100">
-            🕐 Pay Later
-          </button>
-        </div>
+        {showCash ? (
+          <>
+            <h3 className="text-center font-bold text-gray-900 text-lg mb-6 px-4">💵 Cash Payment</h3>
+            <CashChangePanel total={total} onConfirm={() => onPay('Cash')} onBack={() => setShowCash(false)} />
+          </>
+        ) : (
+          <>
+            <h3 className="text-center font-bold text-gray-900 text-lg mb-1 px-4">Charge ${total.toFixed(2)}</h3>
+            <p className="text-center text-gray-400 text-sm mb-6 px-4">Select payment method</p>
+            <div className="flex flex-col gap-3 px-6">
+              <button onClick={() => setShowCash(true)}
+                className="w-full py-4 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-lg transition-colors active:scale-95">
+                💵 Cash
+              </button>
+              <button onClick={() => onPay('Card')}
+                className="w-full py-4 rounded-2xl bg-navy text-white font-bold text-lg transition-colors active:scale-95 hover:opacity-90">
+                💳 Card
+              </button>
+              <button onClick={onSplit}
+                className="w-full py-4 rounded-2xl bg-purple-50 border-2 border-purple-200 text-purple-700 font-bold text-lg transition-colors active:scale-95 hover:bg-purple-100">
+                ✂️ Split / Partial
+              </button>
+              <button onClick={() => onPay('Pay Later')}
+                className="w-full py-4 rounded-2xl bg-amber-50 border-2 border-amber-200 text-amber-700 font-bold text-lg transition-colors active:scale-95 hover:bg-amber-100">
+                🕐 Pay Later
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
