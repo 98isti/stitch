@@ -323,8 +323,10 @@ function CustomerSheet({
     getDocs(query(collection(db, 'accounts', accountId, 'customers'), orderBy('firstName')))
       .then(snap => {
         const all = snap.docs.map(d => ({ id: d.id, ...d.data() } as Customer))
+        const term = search.trim().toLowerCase()
         setResults(all.filter(c =>
-          c.phone?.includes(search.trim())
+          c.phone?.includes(term) ||
+          `${c.firstName} ${c.lastName}`.toLowerCase().includes(term)
         ).slice(0, 8))
         setSearching(false)
       }).catch(() => setSearching(false))
@@ -355,8 +357,8 @@ function CustomerSheet({
           {!addMode && (
             <div className="px-4 pb-3">
               <input ref={inputRef} value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search by phone number…"
-                inputMode="tel"
+                placeholder="Search by phone or name…"
+                inputMode="text"
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-navy" />
             </div>
           )}
