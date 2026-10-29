@@ -104,48 +104,39 @@ export default function ManagementDailySalesPage() {
             <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            {/* Table header */}
-            <div className="grid grid-cols-6 px-4 py-3 bg-gray-50 border-b border-gray-100">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Day</p>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide col-span-2">Date</p>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-right">Cash</p>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-right">Card</p>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-right">Total</p>
+          {rows.length === 0 ? (
+            <div className="text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100">
+              <p className="text-4xl mb-3">📊</p>
+              <p className="text-sm">No sales in the last 30 days</p>
             </div>
-
-            {rows.length === 0 ? (
-              <div className="text-center py-16 text-gray-400">
-                <p className="text-4xl mb-3">📊</p>
-                <p className="text-sm">No sales in the last 30 days</p>
-              </div>
-            ) : (
-              <>
-                {rows.map(row => {
-                  const d = new Date(row.date + 'T00:00:00')
-                  const day  = d.toLocaleDateString('en-AU', { weekday: 'short' })
-                  const date = d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
-                  return (
-                    <div key={row.date} className="grid grid-cols-6 px-4 py-3 border-b border-gray-50 hover:bg-gray-50">
-                      <p className="text-sm font-semibold text-gray-500">{day}</p>
-                      <p className="text-sm text-gray-900 col-span-2">{date}</p>
-                      <p className="text-sm text-gray-600 text-right">{fmt(row.cash)}</p>
-                      <p className="text-sm text-gray-600 text-right">{fmt(row.card)}</p>
-                      <p className="text-sm font-semibold text-gray-900 text-right">{fmt(row.total)}</p>
+          ) : (
+            <div className="space-y-2">
+              {rows.map(row => {
+                const d = new Date(row.date + 'T00:00:00')
+                const dayDate = d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
+                return (
+                  <div key={row.date} className="bg-white rounded-xl px-4 py-3 border border-gray-100 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{dayDate}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Cash {fmt(row.cash)} · Card {fmt(row.card)}
+                      </p>
                     </div>
-                  )
-                })}
+                    <p className="text-base font-bold text-gray-900">{fmt(row.total)}</p>
+                  </div>
+                )
+              })}
 
-                {/* Grand total row */}
-                <div className="grid grid-cols-6 px-4 py-3 bg-navy/5 border-t border-gray-200">
-                  <p className="text-sm font-bold text-gray-700 col-span-3">30-Day Total</p>
-                  <p className="text-sm font-bold text-gray-700 text-right">{fmt(grandCash)}</p>
-                  <p className="text-sm font-bold text-gray-700 text-right">{fmt(grandCard)}</p>
-                  <p className="text-sm font-bold text-navy text-right">{fmt(grandTotal)}</p>
+              {/* Grand total */}
+              <div className="bg-navy/5 rounded-xl px-4 py-3 border border-navy/10 flex items-center justify-between mt-2">
+                <div>
+                  <p className="text-sm font-bold text-navy">30-Day Total</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Cash {fmt(grandCash)} · Card {fmt(grandCard)}</p>
                 </div>
-              </>
-            )}
-          </div>
+                <p className="text-lg font-bold text-navy">{fmt(grandTotal)}</p>
+              </div>
+            </div>
+          )}
         )}
       </div>
     </div>
