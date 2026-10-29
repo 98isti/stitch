@@ -152,6 +152,7 @@ async function saveOrder({
       paymentMethod,
       barcode: savedBarcode,
       orderNote: orderNote || null,
+      pieceCount: totalPieceCount(items),
       completedBy: '',
       jobCompletedDate: null,
       createdAt: serverTimestamp(),

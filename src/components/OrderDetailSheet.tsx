@@ -50,6 +50,7 @@ interface OrderDoc {
   subTotalAmount: number
   discountApplied?: number
   locationId?: string
+  pieceCount?: number
   shopType?: string
   conveyorSlotNumber?: string          // legacy single slot
   conveyorSlotNumbers?: string[]       // multi-slot array (new)
@@ -723,11 +724,14 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
 
                 {/* Totals */}
                 {(() => {
-                  const pieceCount = groups.reduce((sum, g) => {
-                    const maxQty  = g.items.reduce((m, item) => Math.max(m, item.quantity), 0)
-                    const maxComp = g.items.reduce((m, item) => Math.max(m, (item.components?.length ?? 1)), 1)
-                    return sum + maxQty * maxComp
-                  }, 0)
+                  // Prefer stored pieceCount (saved at creation time); calculate as fallback for old orders
+                  const pieceCount = (order.pieceCount != null && order.pieceCount > 0)
+                    ? order.pieceCount
+                    : groups.reduce((sum, g) => {
+                        const maxQty  = g.items.reduce((m, item) => Math.max(m, item.quantity), 0)
+                        const maxComp = g.items.reduce((m, item) => Math.max(m, (item.components?.length ?? 1)), 1)
+                        return sum + maxQty * maxComp
+                      }, 0)
                   return (
                     <div className="px-4 py-3 border-t border-gray-200 bg-white flex items-center gap-4">
                       {/* Piece count circle */}
