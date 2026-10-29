@@ -361,7 +361,7 @@ function CustomerSheet({
             <div className="px-4 pb-3">
               <input ref={inputRef} value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search by phone or name…"
-                inputMode="text"
+                inputMode="tel"
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-navy" />
             </div>
           )}
