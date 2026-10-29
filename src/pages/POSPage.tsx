@@ -1266,7 +1266,11 @@ export default function POSPage() {
           )}
 
           <button onClick={openDatePicker}
-            className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-500 rounded-xl py-2 text-xs font-medium hover:bg-red-100 transition-colors">
+            className={`w-full flex items-center justify-center gap-2 rounded-xl py-2 text-xs font-medium transition-colors ${
+              isoDate(pickupDate) === today
+                ? 'bg-red-50 text-red-500 hover:bg-red-100'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}>
             Pick up: {formatPickupDate(pickupDate)} <ChevronDown size={13} />
           </button>
 
@@ -1371,12 +1375,17 @@ export default function POSPage() {
             </div>
           </div>
           <div className="p-3">
-            <button
-              disabled={!total || saving}
-              onClick={() => setShowPayment(true)}
-              className="w-full py-4 rounded-2xl bg-navy disabled:opacity-40 text-white font-bold text-lg active:scale-95 transition-all hover:opacity-90">
-              Charge ${total.toFixed(2)}
-            </button>
+            <div className="flex flex-col gap-1">
+              {!customerName && total > 0 && (
+                <p className="text-center text-xs text-amber-500 font-medium">⚠️ No customer added</p>
+              )}
+              <button
+                disabled={!total || saving}
+                onClick={() => setShowPayment(true)}
+                className="w-full py-4 rounded-2xl bg-navy disabled:opacity-40 text-white font-bold text-lg active:scale-95 transition-all hover:opacity-90">
+                Charge ${total.toFixed(2)}
+              </button>
+            </div>
           </div>
         </div>
       </div>
