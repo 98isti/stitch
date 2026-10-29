@@ -417,6 +417,48 @@ function CustomerSheet({
 }
 
 // ── Main POS Page ─────────────────────────────────────────────────────────────
+
+// ── Category colour map ────────────────────────────────────────────────────
+function getCategoryStyle(name: string): { bg: string; text: string; border: string } {
+  const n = (name ?? '').toLowerCase()
+  if (n.includes('blazer') || n.includes('jacket') || n.includes('coat'))
+    return { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-200' }
+  if (n.includes('blouse') || n.includes('top'))
+    return { bg: 'bg-pink-100', text: 'text-pink-800', border: 'border-pink-200' }
+  if (n.includes('dress'))
+    return { bg: 'bg-rose-100', text: 'text-rose-800', border: 'border-rose-200' }
+  if (n.includes('dry') || n.includes('cleaning'))
+    return { bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-200' }
+  if (n.includes('elastic'))
+    return { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-200' }
+  if (n.includes('evening') || n.includes('formal') || n.includes('gown'))
+    return { bg: 'bg-violet-100', text: 'text-violet-800', border: 'border-violet-200' }
+  if (n.includes('wedding') || n.includes('bridal'))
+    return { bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-200' }
+  if (n.includes('pant') || n.includes('trouser') || n.includes('jean') || n.includes('denim'))
+    return { bg: 'bg-indigo-100', text: 'text-indigo-800', border: 'border-indigo-200' }
+  if (n.includes('shirt') || n.includes('polo'))
+    return { bg: 'bg-sky-100', text: 'text-sky-800', border: 'border-sky-200' }
+  if (n.includes('skirt'))
+    return { bg: 'bg-fuchsia-100', text: 'text-fuchsia-800', border: 'border-fuchsia-200' }
+  if (n.includes('school') || n.includes('uniform'))
+    return { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-100' }
+  if (n.includes('repair') || n.includes('alter'))
+    return { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-200' }
+  if (n.includes('patch'))
+    return { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-200' }
+  if (n.includes('pocket'))
+    return { bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-200' }
+  if (n.includes('zipper') || n.includes('zip'))
+    return { bg: 'bg-cyan-100', text: 'text-cyan-800', border: 'border-cyan-200' }
+  if (n.includes('button'))
+    return { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-200' }
+  if (n.includes('waist') || n.includes('measurement') || n.includes('measure'))
+    return { bg: 'bg-lime-100', text: 'text-lime-800', border: 'border-lime-200' }
+  // Default — light grey
+  return { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200' }
+}
+
 export default function POSPage() {
   const { accountId } = useAuth()
   const { staff, clearStaff } = useStaff()
@@ -1045,8 +1087,8 @@ export default function POSPage() {
                   {categories.map(cat => (
                     <button key={cat.id}
                       onClick={() => { setPickerCategory(cat.categoryName); setShowPicker(true) }}
-                      className="flex items-center justify-center rounded-2xl bg-white border border-gray-200 text-gray-800 hover:bg-navy hover:text-white hover:border-navy active:scale-95 transition-all shadow-sm min-h-[80px] px-2 text-center">
-                      <span className="font-semibold text-base leading-tight">{cat.categoryName}</span>
+                      className={`flex items-center justify-center rounded-2xl border active:scale-95 transition-all shadow-sm min-h-[80px] px-2 text-center hover:opacity-80 \${getCategoryStyle(cat.categoryName).bg} \${getCategoryStyle(cat.categoryName).border}`}>
+                      <span className={`font-semibold text-base leading-tight \${getCategoryStyle(cat.categoryName).text}`}>{cat.categoryName}</span>
                     </button>
                   ))}
                 </div>
