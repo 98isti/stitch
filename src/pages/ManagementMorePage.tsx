@@ -13,6 +13,7 @@ const SECTIONS = [
       { label: 'Pick-Up Calendar', icon: Calendar,    path: '/mgmt-pickup-calendar' },
       { label: 'Team Performance', icon: TrendingUp,  path: '/mgmt-team-performance' },
       { label: 'Labour %',         icon: ClipboardList, path: '/mgmt-labour' },
+      { label: 'Daily Sales',       icon: BarChart3,     path: '/mgmt-daily-sales' },
       { label: 'Customers',        icon: UserCircle,  path: '/customers' },
       { label: 'Vouchers',         icon: Ticket,      path: '/vouchers' },
     ],

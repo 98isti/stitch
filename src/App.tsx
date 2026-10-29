@@ -15,6 +15,7 @@ import DashboardPage from './pages/DashboardPage'
 import ManagementOrdersPage from './pages/ManagementOrdersPage'
 import ManagementReportPage from './pages/ManagementReportPage'
 import ManagementSignInPage from './pages/ManagementSignInPage'
+import ManagementDailySalesPage from './pages/ManagementDailySalesPage'
 import ManagementLabourPage from './pages/ManagementLabourPage'
 import ManagementMorePage from './pages/ManagementMorePage'
 import ManagementLayout from './layouts/ManagementLayout'
@@ -97,6 +98,7 @@ function AppRoutes() {
         <Route path="/mgmt-orders" element={<ManagementOrdersPage />} />
         <Route path="/mgmt-report" element={<ManagementReportPage />} />
         <Route path="/mgmt-team" element={<ManagementSignInPage />} />
+        <Route path="/mgmt-daily-sales" element={<ManagementDailySalesPage />} />
         <Route path="/mgmt-labour" element={<ManagementLabourPage />} />
         <Route path="/mgmt-more" element={<ManagementMorePage />} />
         <Route path="/mgmt-pickup-calendar" element={<PickupCalendarPage />} />
