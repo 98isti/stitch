@@ -1267,7 +1267,7 @@ export default function POSPage() {
 
           <button onClick={openDatePicker}
             className={`w-full flex items-center justify-center gap-2 rounded-xl py-2 text-xs font-medium transition-colors ${
-              isoDate(pickupDate) === today
+              isoDate(pickupDate) === new Date().toLocaleDateString('en-CA')
                 ? 'bg-red-50 text-red-500 hover:bg-red-100'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}>
