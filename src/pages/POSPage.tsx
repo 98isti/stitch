@@ -324,10 +324,13 @@ function CustomerSheet({
       .then(snap => {
         const all = snap.docs.map(d => ({ id: d.id, ...d.data() } as Customer))
         const term = search.trim().toLowerCase()
-        setResults(all.filter(c =>
-          c.phone?.includes(term) ||
-          `${c.firstName} ${c.lastName}`.toLowerCase().includes(term)
-        ).slice(0, 8))
+        setResults(all.filter(c => {
+          // Phone: partial match anywhere (e.g. "9366" finds "04009366")
+          if (c.phone?.includes(term)) return true
+          // Name: starts-with match at the beginning of each word (industry standard)
+          const nameParts = `${c.firstName ?? ''} ${c.lastName ?? ''}`.toLowerCase().trim().split(/\s+/)
+          return nameParts.some(part => part.startsWith(term))
+        }).slice(0, 8))
         setSearching(false)
       }).catch(() => setSearching(false))
   }, [search, accountId])
