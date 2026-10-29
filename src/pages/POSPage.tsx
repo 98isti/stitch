@@ -1111,9 +1111,9 @@ export default function POSPage() {
                   {categories.map(cat => (
                     <button key={cat.id}
                       onClick={() => { setPickerCategory(cat.categoryName); setShowPicker(true) }}
-                      className={`flex flex-col items-center justify-center rounded-2xl border active:scale-95 transition-all shadow-sm min-h-[80px] px-2 text-center hover:opacity-80 ${getCategoryStyle(cat.categoryName).bg} ${getCategoryStyle(cat.categoryName).border}`}>
+                      className="flex flex-col items-center justify-center rounded-2xl border border-gray-200 bg-white active:scale-95 transition-all shadow-sm min-h-[80px] px-2 text-center hover:bg-gray-50">
                       <span className="text-2xl mb-1 leading-none">{getCategoryEmoji(cat.categoryName)}</span>
-                      <span className={`font-semibold text-xs leading-tight ${getCategoryStyle(cat.categoryName).text}`}>{cat.categoryName}</span>
+                      <span className="font-semibold text-xs leading-tight text-gray-800">{cat.categoryName}</span>
                     </button>
                   ))}
                 </div>
