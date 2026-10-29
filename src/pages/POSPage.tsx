@@ -390,7 +390,17 @@ function CustomerSheet({
               )}
             </div>
             <div className="px-4 mt-3">
-              <button onClick={() => { setAddMode(true); setForm(f => ({ ...f, phone: search.trim() })) }}
+              <button onClick={() => {
+                  const term = search.trim()
+                  // Only pre-fill phone if search looks like a phone number (digits, spaces, +, -)
+                  const isPhone = /^[\d\s+\-()]+$/.test(term)
+                  setAddMode(true)
+                  setForm(f => ({
+                    ...f,
+                    phone: isPhone ? term : '',
+                    firstName: !isPhone && term ? term : f.firstName,
+                  }))
+                }}
                 className="w-full py-3 rounded-xl border-2 border-dashed border-gray-200 text-navy text-sm font-semibold hover:border-navy transition-colors">
                 + Add New Customer
               </button>
