@@ -247,7 +247,8 @@ export default function OrdersPage() {
       setSearching(true)
       try {
         const upper = term.toUpperCase()
-        const [orderSnap, phoneSnap] = await Promise.all([
+        const isNumeric = /^\d+$/.test(term)
+        const [orderSnap, phoneSnap, numericSnap] = await Promise.all([
           getDocs(query(
             collection(db, 'accounts', accountId, 'orders'),
             where('orderNumberString', '>=', upper),
@@ -260,10 +261,16 @@ export default function OrdersPage() {
             where('customerPhone', '<=', term + '\uf8ff'),
             limit(50),
           )) : Promise.resolve(null),
+          // Also search by integer orderNumber — finds PREFIX-NNNN format when user types just the number
+          isNumeric ? getDocs(query(
+            collection(db, 'accounts', accountId, 'orders'),
+            where('orderNumber', '==', parseInt(term, 10)),
+            limit(50),
+          )) : Promise.resolve(null),
         ])
         const seen = new Set<string>()
         const merged: Order[] = []
-        for (const snap of [orderSnap, phoneSnap]) {
+        for (const snap of [orderSnap, phoneSnap, numericSnap]) {
           if (!snap) continue
           for (const doc of snap.docs) {
             if (!seen.has(doc.id)) {
