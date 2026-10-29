@@ -39,9 +39,7 @@ function formatPickupDate(d: Date) {
 }
 
 function defaultPickup() {
-  const d = new Date()
-  d.setDate(d.getDate() + 7)
-  return d
+  return new Date()
 }
 
 function isoDate(d: Date) {
