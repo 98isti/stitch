@@ -20,7 +20,7 @@ const FILTERS = ['All', 'In progress', 'Ready for Pick Up', 'Picked Up', 'Redo']
 // Column grid definition — inline style so it's in the JS bundle (no Tailwind CSS caching issues)
 const COL_STYLE: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: '130px 130px 1fr 80px 72px 90px 160px 100px',
+  gridTemplateColumns: '130px 130px 1fr 80px 72px 100px 160px 100px',
   columnGap: '20px',
 }
 
@@ -380,7 +380,7 @@ export default function OrdersPage() {
         {['Order #', 'Date', 'Customer', 'Amount', 'Paid', 'Due', 'Status', 'Pickup'].map((h, i) => (
           <div key={h}
             className={`py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide ${
-              i >= 3 && i <= 5 ? 'text-right' : ''
+              (i >= 3 && i <= 5) || i === 7 ? 'text-right' : ''
             }`}>
             {h}
           </div>
@@ -497,7 +497,7 @@ export default function OrdersPage() {
                   </span>
 
                   {/* Pickup date */}
-                  <span className="text-xs text-gray-500">{formatDate(order.pickupDate)}</span>
+                  <span className="text-sm text-gray-500 text-right block">{formatDate(order.pickupDate)}</span>
 
                 </div>
               )
