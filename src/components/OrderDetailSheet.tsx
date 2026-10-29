@@ -723,7 +723,11 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
 
                 {/* Totals */}
                 {(() => {
-                  const pieceCount = groups.reduce((sum, g) => sum + g.items.reduce((s, item) => s + item.quantity * Math.max((item.components?.length ?? 1), 1), 0), 0)
+                  const pieceCount = groups.reduce((sum, g) => {
+                    const maxQty  = g.items.reduce((m, item) => Math.max(m, item.quantity), 0)
+                    const maxComp = g.items.reduce((m, item) => Math.max(m, (item.components?.length ?? 1)), 1)
+                    return sum + maxQty * maxComp
+                  }, 0)
                   return (
                     <div className="px-4 py-3 border-t border-gray-200 bg-white flex items-center gap-4">
                       {/* Piece count circle */}
