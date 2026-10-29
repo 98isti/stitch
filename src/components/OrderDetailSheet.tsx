@@ -90,7 +90,7 @@ const SMS_WORKER_URL = 'https://stitch-sms.supto98.workers.dev'
 function CashChangePanelDetail({ due, onConfirm, onBack }: {
   due: number; onConfirm: () => void; onBack: () => void
 }) {
-  const [received, setReceived] = React.useState('')
+  const [received, setReceived] = useState('')
   const amount = parseFloat(received) || 0
   const change = amount - due
   const short  = due - amount
