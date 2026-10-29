@@ -104,7 +104,7 @@ export default function ManagementDailySalesPage() {
             <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-          {rows.length === 0 ? (
+          <>{rows.length === 0 ? (
             <div className="text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100">
               <p className="text-4xl mb-3">📊</p>
               <p className="text-sm">No sales in the last 30 days</p>
@@ -136,7 +136,7 @@ export default function ManagementDailySalesPage() {
                 <p className="text-lg font-bold text-navy">{fmt(grandTotal)}</p>
               </div>
             </div>
-          )}
+          )}</>
         )}
       </div>
     </div>
