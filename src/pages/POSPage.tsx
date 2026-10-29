@@ -459,6 +459,30 @@ function getCategoryStyle(name: string): { bg: string; text: string; border: str
   return { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200' }
 }
 
+function getCategoryEmoji(name: string): string {
+  const n = (name ?? '').toLowerCase()
+  if (n.includes('blazer') || n.includes('jacket'))   return '🧥'
+  if (n.includes('blouse'))                           return '👚'
+  if (n.includes('button'))                           return '🔘'
+  if (n.includes('dress'))                            return '👗'
+  if (n.includes('dry') || n.includes('cleaning'))   return '✨'
+  if (n.includes('elastic'))                         return '〰️'
+  if (n.includes('evening') || n.includes('formal')) return '🎭'
+  if (n.includes('wedding') || n.includes('bridal')) return '💍'
+  if (n.includes('measurement') || n.includes('measure')) return '📏'
+  if (n.includes('pant') || n.includes('trouser'))   return '👖'
+  if (n.includes('patch'))                           return '🩹'
+  if (n.includes('pocket'))                          return '🪡'
+  if (n.includes('repair'))                          return '🔧'
+  if (n.includes('school') || n.includes('uniform')) return '🎒'
+  if (n.includes('shirt') || n.includes('polo'))     return '👔'
+  if (n.includes('skirt'))                           return '💃'
+  if (n.includes('waist'))                           return '📐'
+  if (n.includes('zipper') || n.includes('zip'))     return '🪝'
+  if (n.includes('coat'))                            return '🥼'
+  return '✂️'
+}
+
 export default function POSPage() {
   const { accountId } = useAuth()
   const { staff, clearStaff } = useStaff()
@@ -1087,8 +1111,9 @@ export default function POSPage() {
                   {categories.map(cat => (
                     <button key={cat.id}
                       onClick={() => { setPickerCategory(cat.categoryName); setShowPicker(true) }}
-                      className={`flex items-center justify-center rounded-2xl border active:scale-95 transition-all shadow-sm min-h-[80px] px-2 text-center hover:opacity-80 ${getCategoryStyle(cat.categoryName).bg} ${getCategoryStyle(cat.categoryName).border}`}>
-                      <span className={`font-semibold text-base leading-tight ${getCategoryStyle(cat.categoryName).text}`}>{cat.categoryName}</span>
+                      className={`flex flex-col items-center justify-center rounded-2xl border active:scale-95 transition-all shadow-sm min-h-[80px] px-2 text-center hover:opacity-80 ${getCategoryStyle(cat.categoryName).bg} ${getCategoryStyle(cat.categoryName).border}`}>
+                      <span className="text-2xl mb-1 leading-none">{getCategoryEmoji(cat.categoryName)}</span>
+                      <span className={`font-semibold text-xs leading-tight ${getCategoryStyle(cat.categoryName).text}`}>{cat.categoryName}</span>
                     </button>
                   ))}
                 </div>
