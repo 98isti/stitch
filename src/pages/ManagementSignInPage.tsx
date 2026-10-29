@@ -125,9 +125,11 @@ export default function ManagementSignInPage() {
       result.push({ employeeName, location, date, signInTs, signOutTs, pay, isWeekend })
     })
 
-    return result.sort((a, b) =>
-      a.date === b.date ? a.employeeName.localeCompare(b.employeeName) : b.date.localeCompare(a.date)
-    )
+    return result.sort((a, b) => {
+      if (a.date !== b.date) return b.date.localeCompare(a.date)         // date desc
+      if (a.location !== b.location) return a.location.localeCompare(b.location) // location asc
+      return a.employeeName.localeCompare(b.employeeName)                 // name asc within shop
+    })
   }, [events, payRateMap])
 
   const filtered = useMemo(() =>
