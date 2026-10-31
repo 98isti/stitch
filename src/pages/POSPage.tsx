@@ -245,11 +245,6 @@ function CashChangePanel({
       )}
       <button
         onClick={onConfirm}
-        className="w-full py-4 rounded-2xl bg-emerald-600 text-white font-bold text-lg transition-colors active:scale-95 hover:bg-emerald-700">
-        Exact Change — No change to give
-      </button>
-      <button
-        onClick={onConfirm}
         disabled={amount < total}
         className="w-full py-4 rounded-2xl bg-gray-800 text-white font-bold text-lg disabled:opacity-30 transition-opacity active:scale-95">
         Confirm Cash Payment
