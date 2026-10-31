@@ -1426,8 +1426,10 @@ export default function POSPage() {
           </div>
           <div className="p-3">
             <div className="flex flex-col gap-1">
-              {!customerName && total > 0 && (
-                <p className="text-center text-xs text-amber-500 font-medium">⚠️ No customer added</p>
+              {total > 0 && (!customerName || !pickupDate) && (
+                <p className="text-center text-xs text-amber-500 font-medium">
+                  {!customerName && !pickupDate ? '⚠️ No customer · No pickup date' : !customerName ? '⚠️ No customer added' : '⚠️ Select a pickup date'}
+                </p>
               )}
               <button
                 disabled={!total || saving || !pickupDate}
