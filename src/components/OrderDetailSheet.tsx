@@ -120,9 +120,13 @@ function CashChangePanelDetail({ due, onConfirm, onBack }: {
           </div>
         )
       )}
+      <button onClick={onConfirm}
+        className="w-full py-4 rounded-2xl bg-emerald-600 text-white font-bold transition-colors hover:bg-emerald-700 active:scale-95">
+        Exact Change — No change to give
+      </button>
       <button onClick={onConfirm} disabled={amount < due}
         className="w-full py-4 rounded-2xl bg-gray-800 text-white font-bold disabled:opacity-30 transition-opacity">
-        Confirm Cash Payment
+        Confirm with amount above
       </button>
       <button onClick={onBack} className="w-full py-2 text-sm text-gray-400 hover:text-gray-600">← Back</button>
     </div>
