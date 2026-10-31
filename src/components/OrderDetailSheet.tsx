@@ -51,6 +51,7 @@ interface OrderDoc {
   discountApplied?: number
   locationId?: string
   pieceCount?: number
+  garmentStatuses?: Record<string, string>
   shopType?: string
   conveyorSlotNumber?: string          // legacy single slot
   conveyorSlotNumbers?: string[]       // multi-slot array (new)
@@ -154,6 +155,8 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
   const printer = usePrinter()
   const [showPaymentPrompt, setShowPaymentPrompt] = useState(false)
   const [showCashChange, setShowCashChange] = useState(false)
+  const [garmentStatuses, setGarmentStatuses] = useState<Record<string, string>>({})
+  const [activeGarmentMenu, setActiveGarmentMenu] = useState<string | null>(null)
   const [showCompletedByPopup, setShowCompletedByPopup] = useState(false)
   const [staffList, setStaffList] = useState<string[]>([])
   const [selectedEmployee, setSelectedEmployee] = useState('Select Your Name')
@@ -177,6 +180,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
         if (snap.exists()) {
           const orderData = { id: snap.id, ...snap.data() } as OrderDoc
           setOrder(orderData)
+          setGarmentStatuses(orderData.garmentStatuses ?? {})
           // Fetch location doc for correct businessName + SMS settings.
           // Use locationId if present (new orders), else query by location name (old orders).
           if (orderData.locationId) {
@@ -247,8 +251,16 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
     }
     setSaving(true)
     try {
-      await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), { status, updatedAt: serverTimestamp() })
+      // Sync garment statuses — update all except those already "Cancelled"
+      const newGarmentStatuses = { ...garmentStatuses }
+      Object.keys(newGarmentStatuses).forEach(gid => {
+        if (newGarmentStatuses[gid] !== 'Cancelled') newGarmentStatuses[gid] = status
+      })
+      await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), {
+        status, garmentStatuses: newGarmentStatuses, updatedAt: serverTimestamp(),
+      })
       setOrder(o => o ? { ...o, status } : o)
+      setGarmentStatuses(newGarmentStatuses)
     } finally { setSaving(false) }
   }
 
@@ -532,6 +544,48 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
   let items: OrderItem[] = []
   if (order) { try { items = JSON.parse(order.items) } catch { items = [] } }
 
+  // ── Per-garment status helpers ──────────────────────────────────────────────
+  function getGarmentStatus(garmentId: string) {
+    return garmentStatuses[garmentId] ?? order?.status ?? 'In progress'
+  }
+
+  async function updateGarmentStatus(garmentId: string, status: string) {
+    if (!accountId || !orderId || !order) return
+    const newStatuses = { ...garmentStatuses, [garmentId]: status }
+    setGarmentStatuses(newStatuses)
+    setActiveGarmentMenu(null)
+    // Check if all non-cancelled garments are "Picked Up" → auto-update order
+    const gids = groups.map(g => g.garmentId)
+    const nonCancelled = gids.filter(gid => (newStatuses[gid] ?? order.status) !== 'Cancelled')
+    const allPickedUp = nonCancelled.every(gid => newStatuses[gid] === 'Picked Up')
+    const updates: Record<string, unknown> = { garmentStatuses: newStatuses, updatedAt: serverTimestamp() }
+    if (allPickedUp && order.status !== 'Picked Up') {
+      updates.status = 'Picked Up'
+      setOrder(o => o ? { ...o, status: 'Picked Up' } : o)
+    }
+    await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), updates)
+    // Send SMS if "Ready for Pick Up"
+    if (status === 'Ready for Pick Up' && order.customerPhone && accountProfile) {
+      const smsSettings = locationData?.sms || (accountProfile as any).sms
+      const senderName = smsSettings?.senderName || ''
+      if (senderName) {
+        const template = smsSettings?.template ||
+          'Hi {firstName}, your order at {businessName} is ready for pick-up! Order: {orderNumber}. {balance}'
+        fetch(SMS_WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: order.customerPhone, senderName, template,
+            firstName: order.customerName || 'there',
+            orderNumber: order.orderNumberString,
+            businessName: locationData?.businessName || accountProfile.businessName || 'Us',
+            stillDueAmount: order.stillDueAmount,
+          })
+        }).catch(e => console.error('[SMS garment]', e))
+      }
+    }
+  }
+
   // Group by garmentId
   const groups: { garmentId: string; category: string; items: OrderItem[] }[] = []
   items.forEach(item => {
@@ -703,8 +757,28 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
               <div className="flex flex-col gap-2">
                 {groups.map(group => (
                   <div key={group.garmentId} className="bg-white rounded-2xl overflow-hidden border border-gray-100">
-                    <div className="px-4 py-2 bg-gray-100">
+                    <div className="px-4 py-2 bg-gray-100 flex items-center justify-between">
                       <p className="text-xs font-bold text-navy uppercase tracking-wide">{group.category}</p>
+                      {!readOnly && groups.length > 1 && (
+                        <div className="relative">
+                          <button
+                            onClick={() => setActiveGarmentMenu(m => m === group.garmentId ? null : group.garmentId)}
+                            className={`text-xs font-semibold px-2.5 py-1 rounded-full ${(STATUS_COLOR[getGarmentStatus(group.garmentId)] ?? 'bg-blue-500')} text-white`}>
+                            {getGarmentStatus(group.garmentId)}
+                          </button>
+                          {activeGarmentMenu === group.garmentId && (
+                            <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 min-w-[160px]"
+                              onClick={e => e.stopPropagation()}>
+                              {STATUS_OPTIONS.map(s => (
+                                <button key={s} onClick={() => updateGarmentStatus(group.garmentId, s)}
+                                  className="w-full text-left px-3 py-2.5 text-sm hover:bg-gray-50 first:rounded-t-xl last:rounded-b-xl font-medium text-gray-700">
+                                  {s}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                     {group.items.map((item, i) => (
                       <div key={i} className="flex items-start justify-between pl-7 pr-4 py-3 border-b border-gray-100 last:border-0">
