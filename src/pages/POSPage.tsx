@@ -1289,7 +1289,7 @@ export default function POSPage() {
             className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-2.5 text-sm hover:border-navy hover:text-navy transition-colors">
             {customerName
               ? <><span className="font-semibold text-navy truncate">{customerName}</span>{customerPhone && <span className="text-gray-400 text-xs">{customerPhone}</span>}</>
-              : <><UserPlus size={15} className="text-gray-400" /><span className="text-gray-400">Add Customer +</span></>
+              : <><UserPlus size={17} className="text-gray-400" /><span className="text-gray-400 text-base font-medium">Add Customer +</span></>
             }
           </button>
 
@@ -1321,7 +1321,7 @@ export default function POSPage() {
                 ? 'bg-red-50 text-red-500 hover:bg-red-100'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}>
-            {pickupDate ? <>Pick up: {pickupDate ? formatPickupDate(pickupDate) : ''} <ChevronDown size={13} /></> : <>📅 Select pickup date</>}
+            {pickupDate ? <span className="text-sm">Pick up: {formatPickupDate(pickupDate)} <ChevronDown size={13} className="inline" /></span> : <span className="text-base font-medium">📅 Select pickup date</span>}
           </button>
 
           {items.length === 0 ? (
