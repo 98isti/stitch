@@ -760,24 +760,11 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
                     <div className="px-4 py-2 bg-gray-100 flex items-center justify-between">
                       <p className="text-xs font-bold text-navy uppercase tracking-wide">{group.category}</p>
                       {!readOnly && groups.length > 1 && (
-                        <div className="relative">
-                          <button
-                            onClick={() => setActiveGarmentMenu(m => m === group.garmentId ? null : group.garmentId)}
-                            className={`text-xs font-semibold px-2.5 py-1 rounded-full ${(STATUS_COLOR[getGarmentStatus(group.garmentId)] ?? 'bg-blue-500')} text-white`}>
-                            {getGarmentStatus(group.garmentId)}
-                          </button>
-                          {activeGarmentMenu === group.garmentId && (
-                            <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 min-w-[160px]"
-                              onClick={e => e.stopPropagation()}>
-                              {STATUS_OPTIONS.map(s => (
-                                <button key={s} onClick={() => updateGarmentStatus(group.garmentId, s)}
-                                  className="w-full text-left px-3 py-2.5 text-sm hover:bg-gray-50 first:rounded-t-xl last:rounded-b-xl font-medium text-gray-700">
-                                  {s}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                        <button
+                          onClick={() => setActiveGarmentMenu(group.garmentId)}
+                          className={`text-xs font-semibold px-2.5 py-1 rounded-full ${(STATUS_COLOR[getGarmentStatus(group.garmentId)] ?? 'bg-blue-500')} text-white`}>
+                          {getGarmentStatus(group.garmentId)} ▾
+                        </button>
                       )}
                     </div>
                     {group.items.map((item, i) => (
@@ -1109,6 +1096,31 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
         )}
       </div>
     </div>
+
+      {/* Garment status bottom sheet — rendered at root to avoid overflow clipping */}
+      {activeGarmentMenu && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setActiveGarmentMenu(null)}>
+          <div className="absolute inset-0 bg-black/30" />
+          <div className="relative z-10 bg-white rounded-t-3xl w-full max-w-sm pb-10 pt-4 shadow-2xl"
+            onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+            <p className="text-center font-bold text-gray-900 text-base mb-4 px-4">Update Item Status</p>
+            <div className="flex flex-col px-4 gap-2">
+              {STATUS_OPTIONS.map(s => (
+                <button key={s}
+                  onClick={() => updateGarmentStatus(activeGarmentMenu, s)}
+                  className={`w-full py-3.5 rounded-2xl text-sm font-semibold transition-all active:scale-95 ${
+                    getGarmentStatus(activeGarmentMenu) === s
+                      ? `${STATUS_COLOR[s] ?? 'bg-blue-500'} text-white`
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
     {showSplit && order && (
       <SplitPaymentSheet
