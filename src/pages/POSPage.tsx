@@ -615,7 +615,6 @@ export default function POSPage() {
   const [showDrawerSuccess, setShowDrawerSuccess] = useState(false)
   const printer = usePrinter()
   const [saving, setSaving] = useState(false)
-  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
   const [success, setSuccess] = useState<{ orderNumber: string; total: number; method: string } | null>(null)
 
   const rawTotal = items.reduce((sum, i) => sum + (i.unitPrice + (i.extras ?? []).reduce((s, e) => s + e.price, 0)) * i.quantity, 0)
