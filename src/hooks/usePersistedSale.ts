@@ -35,14 +35,14 @@ function clear() {
   try { localStorage.removeItem(KEY) } catch { /* ignore */ }
 }
 
-export function usePersistedSale(defaultPickupDate: Date) {
+export function usePersistedSale(defaultPickupDate: Date | null) {
   const saved = load()
 
   const [items, setItems] = useState<SaleItem[]>(saved?.items ?? [])
   const [amount, setAmount] = useState(saved?.amount ?? '0')
   const [customerName, setCustomerName] = useState(saved?.customerName ?? '')
   const [customerPhone, setCustomerPhone] = useState(saved?.customerPhone ?? '')
-  const [pickupDate, setPickupDate] = useState<Date>(
+  const [pickupDate, setPickupDate] = useState<Date | null>(
     saved?.pickupDate ? new Date(saved.pickupDate) : defaultPickupDate
   )
   const [discount, setDiscount] = useState<Discount | null>(saved?.discount ?? null)
@@ -50,7 +50,7 @@ export function usePersistedSale(defaultPickupDate: Date) {
 
   // Persist whenever any sale state changes
   useEffect(() => {
-    save({ items, amount, customerName, customerPhone, pickupDate: pickupDate.toISOString(), discount, orderNote })
+    save({ items, amount, customerName, customerPhone, pickupDate: pickupDate ? pickupDate.toISOString() : null, discount, orderNote })
   }, [items, amount, customerName, customerPhone, pickupDate, discount, orderNote])
 
   function clearSale() {
