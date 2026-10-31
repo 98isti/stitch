@@ -39,7 +39,7 @@ function formatPickupDate(d: Date) {
 }
 
 function defaultPickup() {
-  return new Date()
+  return null  // No default — staff must explicitly select
 }
 
 function isoDate(d: Date) {
@@ -94,7 +94,7 @@ async function saveOrder({
   orderPrefix: string
   customerName: string
   customerPhone: string
-  pickupDate: Date
+  pickupDate: Date | null
   items: SaleItem[]
   total: number
   discountAmount: number
@@ -131,7 +131,7 @@ async function saveOrder({
       orderDate: isoDate(new Date()),
       customerName,
       customerPhone,
-      pickupDate: isoDate(pickupDate),
+      pickupDate: pickupDate ? isoDate(pickupDate) : '',
       items: JSON.stringify(items.map(i => ({
         id: i.id, garmentId: i.garmentId, category: i.category, name: i.name,
         quantity: i.quantity, unitPrice: i.unitPrice, note: i.note,
@@ -1315,11 +1315,13 @@ export default function POSPage() {
 
           <button onClick={openDatePicker}
             className={`w-full flex items-center justify-center gap-2 rounded-xl py-2 text-xs font-medium transition-colors ${
-              isoDate(pickupDate) === new Date().toLocaleDateString('en-CA')
+              !pickupDate
+                ? 'bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200'
+                : isoDate(pickupDate) === new Date().toLocaleDateString('en-CA')
                 ? 'bg-red-50 text-red-500 hover:bg-red-100'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}>
-            Pick up: {formatPickupDate(pickupDate)} <ChevronDown size={13} />
+            {pickupDate ? <>Pick up: {formatPickupDate(pickupDate)} <ChevronDown size={13} /></> : <>📅 Select pickup date</>}
           </button>
 
           {items.length === 0 ? (
@@ -1428,7 +1430,7 @@ export default function POSPage() {
                 <p className="text-center text-xs text-amber-500 font-medium">⚠️ No customer added</p>
               )}
               <button
-                disabled={!total || saving}
+                disabled={!total || saving || !pickupDate}
                 onClick={() => setShowPayment(true)}
                 className="w-full py-4 rounded-2xl bg-navy disabled:opacity-40 text-white font-bold text-lg active:scale-95 transition-all hover:opacity-90">
                 Charge ${total.toFixed(2)}
