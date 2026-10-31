@@ -157,6 +157,8 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
   const [showCashChange, setShowCashChange] = useState(false)
   const [garmentStatuses, setGarmentStatuses] = useState<Record<string, string>>({})
   const [activeGarmentMenu, setActiveGarmentMenu] = useState<string | null>(null)
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null)
+  const [garmentReadyId, setGarmentReadyId] = useState<string | null>(null)
   const [showCompletedByPopup, setShowCompletedByPopup] = useState(false)
   const [staffList, setStaffList] = useState<string[]>([])
   const [selectedEmployee, setSelectedEmployee] = useState('Select Your Name')
@@ -309,6 +311,28 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
   async function confirmReadyForPickup() {
     if (!accountId || !orderId || !order || selectedEmployee === 'Select Your Name') return
     setSaving(true)
+    // If triggered by a garment item (not the whole order)
+    if (garmentReadyId) {
+      try {
+        await updateGarmentStatus(garmentReadyId, 'Ready for Pick Up')
+        setGarmentReadyId(null)
+        setShowCompletedByPopup(false)
+        // Send SMS
+        if (order.customerPhone && accountProfile) {
+          const smsSettings = locationData?.sms || (accountProfile as any).sms
+          const senderName = smsSettings?.senderName || ''
+          if (senderName) {
+            const template = smsSettings?.template || 'Hi {firstName}, your order at {businessName} is ready for pick-up! Order: {orderNumber}. {balance}'
+            fetch(SMS_WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ to: order.customerPhone, senderName, template,
+                firstName: order.customerName || 'there', orderNumber: order.orderNumberString,
+                businessName: locationData?.businessName || accountProfile.businessName || 'Us',
+                stillDueAmount: order.stillDueAmount }) }).catch(() => {})
+          }
+        }
+      } finally { setSaving(false) }
+      return
+    }
     try {
       await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), {
         status: 'Ready for Pick Up',
@@ -564,8 +588,8 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
       setOrder(o => o ? { ...o, status: 'Picked Up' } : o)
     }
     await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), updates)
-    // Send SMS if "Ready for Pick Up"
-    if (status === 'Ready for Pick Up' && order.customerPhone && accountProfile) {
+    // Note: SMS for garment "Ready for Pick Up" is sent via confirmGarmentReadyForPickup after staff selection
+    if (false && status === 'Ready for Pick Up' && order.customerPhone && accountProfile) {
       const smsSettings = locationData?.sms || (accountProfile as any).sms
       const senderName = smsSettings?.senderName || ''
       if (senderName) {
@@ -761,7 +785,11 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
                       <p className="text-xs font-bold text-navy uppercase tracking-wide">{group.category}</p>
                       {!readOnly && groups.length > 1 && (
                         <button
-                          onClick={() => setActiveGarmentMenu(group.garmentId)}
+                          onClick={e => {
+                            const rect = e.currentTarget.getBoundingClientRect()
+                            setDropdownPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
+                            setActiveGarmentMenu(g => g === group.garmentId ? null : group.garmentId)
+                          }}
                           className={`text-xs font-semibold px-2.5 py-1 rounded-full ${(STATUS_COLOR[getGarmentStatus(group.garmentId)] ?? 'bg-blue-500')} text-white`}>
                           {getGarmentStatus(group.garmentId)} ▾
                         </button>
@@ -1097,29 +1125,35 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
       </div>
     </div>
 
-      {/* Garment status bottom sheet — rendered at root to avoid overflow clipping */}
-      {activeGarmentMenu && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setActiveGarmentMenu(null)}>
-          <div className="absolute inset-0 bg-black/30" />
-          <div className="relative z-10 bg-white rounded-t-3xl w-full max-w-sm pb-10 pt-4 shadow-2xl"
-            onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
-            <p className="text-center font-bold text-gray-900 text-base mb-4 px-4">Update Item Status</p>
-            <div className="flex flex-col px-4 gap-2">
-              {STATUS_OPTIONS.map(s => (
-                <button key={s}
-                  onClick={() => updateGarmentStatus(activeGarmentMenu, s)}
-                  className={`w-full py-3.5 rounded-2xl text-sm font-semibold transition-all active:scale-95 ${
-                    getGarmentStatus(activeGarmentMenu) === s
-                      ? `${STATUS_COLOR[s] ?? 'bg-blue-500'} text-white`
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}>
-                  {s}
-                </button>
-              ))}
-            </div>
+      {/* Garment status compact dropdown — fixed position to avoid overflow clipping */}
+      {activeGarmentMenu && dropdownPos && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => { setActiveGarmentMenu(null); setDropdownPos(null) }} />
+          <div className="fixed z-50 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden"
+            style={{ top: dropdownPos.top, right: dropdownPos.right, minWidth: 180 }}>
+            {STATUS_OPTIONS.map(s => (
+              <button key={s}
+                onClick={() => {
+                  if (s === 'Ready for Pick Up') {
+                    setGarmentReadyId(activeGarmentMenu)
+                    setActiveGarmentMenu(null); setDropdownPos(null)
+                    getDocs(collection(db, 'accounts', accountId!, 'staff')).then(snap => {
+                      const names = snap.docs.map(d => { const d2 = d.data(); return `${d2.firstName} ${d2.lastName}`.trim() }).filter(Boolean).sort()
+                      setStaffList(names); setSelectedEmployee('Select Your Name'); setShowCompletedByPopup(true)
+                    })
+                  } else {
+                    updateGarmentStatus(activeGarmentMenu!, s)
+                    setDropdownPos(null)
+                  }
+                }}
+                className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors hover:bg-gray-50 ${
+                  getGarmentStatus(activeGarmentMenu) === s ? 'text-navy font-semibold bg-navy/5' : 'text-gray-700'
+                }`}>
+                {s}
+              </button>
+            ))}
           </div>
-        </div>
+        </>
       )}
 
     {showSplit && order && (
