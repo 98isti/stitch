@@ -744,7 +744,7 @@ export default function POSPage() {
       await printer.printLabelsForOrder({
         orderNumberString: params.orderNumber,
         customerName,
-        pickupDate: pickupDate?.toLocaleDateString('en-CA'),
+        pickupDate: pickupDate?.toLocaleDateString('en-CA') ?? '',
         items: JSON.stringify(items.map(i => ({
           id: i.id, garmentId: i.garmentId, category: i.category,
           name: i.name, quantity: i.quantity, unitPrice: i.unitPrice, note: i.note,
@@ -1321,7 +1321,7 @@ export default function POSPage() {
                 ? 'bg-red-50 text-red-500 hover:bg-red-100'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}>
-            {pickupDate ? <>Pick up: {formatPickupDate(pickupDate)} <ChevronDown size={13} /></> : <>📅 Select pickup date</>}
+            {pickupDate ? <>Pick up: {pickupDate ? formatPickupDate(pickupDate) : ''} <ChevronDown size={13} /></> : <>📅 Select pickup date</>}
           </button>
 
           {items.length === 0 ? (

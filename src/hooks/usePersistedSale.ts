@@ -50,7 +50,7 @@ export function usePersistedSale(defaultPickupDate: Date | null) {
 
   // Persist whenever any sale state changes
   useEffect(() => {
-    save({ items, amount, customerName, customerPhone, pickupDate: pickupDate ? pickupDate.toISOString() : null, discount, orderNote })
+    save({ items, amount, customerName, customerPhone, pickupDate: pickupDate?.toISOString() ?? '', discount, orderNote })
   }, [items, amount, customerName, customerPhone, pickupDate, discount, orderNote])
 
   function clearSale() {
