@@ -588,26 +588,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
       setOrder(o => o ? { ...o, status: 'Picked Up' } : o)
     }
     await updateDoc(doc(db, 'accounts', accountId, 'orders', orderId), updates)
-    // Note: SMS for garment "Ready for Pick Up" is sent via confirmGarmentReadyForPickup after staff selection
-    if (false && status === 'Ready for Pick Up' && order.customerPhone && accountProfile) {
-      const smsSettings = locationData?.sms || (accountProfile as any).sms
-      const senderName = smsSettings?.senderName || ''
-      if (senderName) {
-        const template = smsSettings?.template ||
-          'Hi {firstName}, your order at {businessName} is ready for pick-up! Order: {orderNumber}. {balance}'
-        fetch(SMS_WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: order.customerPhone, senderName, template,
-            firstName: order.customerName || 'there',
-            orderNumber: order.orderNumberString,
-            businessName: locationData?.businessName || accountProfile.businessName || 'Us',
-            stillDueAmount: order.stillDueAmount,
-          })
-        }).catch(e => console.error('[SMS garment]', e))
-      }
-    }
+    // SMS for garment 'Ready for Pick Up' is sent via confirmReadyForPickup after staff selection
   }
 
   // Group by garmentId
