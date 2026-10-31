@@ -183,6 +183,8 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
           const orderData = { id: snap.id, ...snap.data() } as OrderDoc
           setOrder(orderData)
           setGarmentStatuses(orderData.garmentStatuses ?? {})
+          setActiveGarmentMenu(null)
+          setDropdownPos(null)
           // Fetch location doc for correct businessName + SMS settings.
           // Use locationId if present (new orders), else query by location name (old orders).
           if (orderData.locationId) {
@@ -1109,9 +1111,9 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
       {/* Garment status compact dropdown — fixed position to avoid overflow clipping */}
       {activeGarmentMenu && dropdownPos && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => { setActiveGarmentMenu(null); setDropdownPos(null) }} />
+          <div className="fixed inset-0 z-[49]" onClick={() => { setActiveGarmentMenu(null); setDropdownPos(null) }} />
           <div className="fixed z-50 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden"
-            style={{ top: dropdownPos.top, right: dropdownPos.right, minWidth: 180 }}>
+            style={{ top: dropdownPos.top, right: dropdownPos.right, width: 190 }}>
             {STATUS_OPTIONS.map(s => (
               <button key={s}
                 onClick={() => {
@@ -1127,7 +1129,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
                     setDropdownPos(null)
                   }
                 }}
-                className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors hover:bg-gray-50 ${
+                className={`w-full text-left px-3 py-2 text-sm font-medium transition-colors hover:bg-gray-50 ${
                   getGarmentStatus(activeGarmentMenu) === s ? 'text-navy font-semibold bg-navy/5' : 'text-gray-700'
                 }`}>
                 {s}
