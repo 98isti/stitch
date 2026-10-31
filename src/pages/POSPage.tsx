@@ -573,7 +573,7 @@ export default function POSPage() {
     })
   } // ISO date → count
   const [calMonth, setCalMonth] = useState(() => {
-    const d = defaultPickup(); return { year: d.getFullYear(), month: d.getMonth() }
+    const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }
   })
 
   const [showCustomerSheet, setShowCustomerSheet] = useState(false)
@@ -693,7 +693,7 @@ export default function POSPage() {
     clearPersistedSale()
     setPendingVoucher(null)
     setAppliedVoucher(null)
-    setCalMonth(() => { const d = defaultPickup(); return { year: d.getFullYear(), month: d.getMonth() } })
+    setCalMonth(() => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() } })
   }
 
   async function autoPrintReceipt(params: {
