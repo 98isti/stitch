@@ -8,7 +8,7 @@ import SplitPaymentSheet from '../components/SplitPaymentSheet'
 import { usePrinter } from '../context/PrinterContext'
 import {
   collection, query, getDocs, addDoc, serverTimestamp, orderBy, where,
-  doc, runTransaction, updateDoc
+  doc, runTransaction, updateDoc, setDoc, deleteDoc
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import ItemPickerSheet from '../components/ItemPickerSheet'
@@ -319,6 +319,7 @@ function CustomerSheet({
   const [addMode, setAddMode] = useState(false)
   const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', email: '' })
   const [saving, setSaving] = useState(false)
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { setTimeout(() => inputRef.current?.focus(), 100) }, [])
@@ -345,10 +346,33 @@ function CustomerSheet({
     if (!accountId || !form.firstName) return
     setSaving(true)
     try {
-      await addDoc(collection(db, 'accounts', accountId, 'customers'), {
-        ...form, createdAt: serverTimestamp()
-      })
-      onSelect(`${form.firstName} ${form.lastName}`.trim(), form.phone)
+      if (editingCustomer) {
+        // Editing existing customer
+        const newPhone = form.phone.trim()
+        if (newPhone && newPhone !== editingCustomer.id) {
+          // Phone changed — create new doc, delete old
+          await setDoc(doc(db, 'accounts', accountId, 'customers', newPhone), {
+            firstName: form.firstName.trim(), lastName: form.lastName.trim(),
+            name: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
+            phone: newPhone, email: form.email.trim() || null,
+            orderCount: (editingCustomer as any).orderCount ?? 0,
+          })
+          await deleteDoc(doc(db, 'accounts', accountId, 'customers', editingCustomer.id))
+        } else {
+          await updateDoc(doc(db, 'accounts', accountId, 'customers', editingCustomer.id), {
+            firstName: form.firstName.trim(), lastName: form.lastName.trim(),
+            name: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
+            email: form.email.trim() || null,
+          })
+        }
+        onSelect(`${form.firstName} ${form.lastName}`.trim(), newPhone || editingCustomer.phone)
+        setEditingCustomer(null)
+      } else {
+        await addDoc(collection(db, 'accounts', accountId, 'customers'), {
+          ...form, createdAt: serverTimestamp()
+        })
+        onSelect(`${form.firstName} ${form.lastName}`.trim(), form.phone)
+      }
     } catch { setSaving(false) }
   }
 
@@ -384,10 +408,15 @@ function CustomerSheet({
                   <div className="w-9 h-9 rounded-full bg-navy/10 flex items-center justify-center text-navy font-bold text-sm shrink-0">
                     {c.firstName[0]}{c.lastName?.[0] ?? ''}
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <p className="font-semibold text-sm text-gray-900">{c.firstName} {c.lastName}</p>
                     {c.phone && <p className="text-xs text-gray-400">{c.phone}</p>}
                   </div>
+                  <button
+                    onClick={e => { e.stopPropagation(); setEditingCustomer(c); setAddMode(true); setForm({ firstName: c.firstName, lastName: c.lastName ?? '', phone: c.phone ?? '', email: c.email ?? '' }) }}
+                    className="p-2 text-gray-400 hover:text-navy rounded-full hover:bg-white transition-colors shrink-0">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
                 </button>
               ))}
               {!searching && search.length >= 2 && results.length === 0 && (
@@ -586,6 +615,7 @@ export default function POSPage() {
   const [showDrawerSuccess, setShowDrawerSuccess] = useState(false)
   const printer = usePrinter()
   const [saving, setSaving] = useState(false)
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
   const [success, setSuccess] = useState<{ orderNumber: string; total: number; method: string } | null>(null)
 
   const rawTotal = items.reduce((sum, i) => sum + (i.unitPrice + (i.extras ?? []).reduce((s, e) => s + e.price, 0)) * i.quantity, 0)
