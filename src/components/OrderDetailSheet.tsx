@@ -109,7 +109,7 @@ function CashChangePanelDetail({ due, onConfirm, onBack }: {
       />
       <button
         onClick={() => setReceived(due.toFixed(2))}
-        className="text-navy text-sm font-medium hover:underline mt-0.5">
+        className="text-navy text-sm font-medium underline mt-0.5">
         Use exact amount
       </button>
       {received !== '' && (

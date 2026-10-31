@@ -226,7 +226,7 @@ function CashChangePanel({
         />
         <button
           onClick={() => setReceived(total.toFixed(2))}
-          className="text-navy text-sm font-medium hover:underline mt-0.5">
+          className="text-navy text-sm font-medium underline mt-0.5">
           Use exact amount
         </button>
       </div>
