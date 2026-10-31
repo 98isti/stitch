@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Search, RefreshCw, ChevronLeft } from 'lucide-react'
 import { useIsManagement } from '../context/ManagementContext'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import OrderDetailSheet from '../components/OrderDetailSheet'
 import EditOrderSheet from '../components/EditOrderSheet'
 import {
@@ -85,9 +85,19 @@ function tsToIso(ts: Timestamp | undefined): string {
 
 export default function OrdersPage() {
   const navigate   = useNavigate()
+  const location   = useLocation()
   const { accountId } = useAuth()
   const { activeLocation } = useLocations(accountId)
   const isManagement = useIsManagement()
+
+  // Auto-trigger edit if navigated here from scan result
+  useEffect(() => {
+    const editId = (location.state as any)?.editOrderId
+    if (editId) {
+      setEditingOrderId(editId)
+      window.history.replaceState({}, '') // clear state so it doesn't re-trigger
+    }
+  }, [])
 
   // ── Core data ──────────────────────────────────────────────────────────────
   const [orders,     setOrders]     = useState<Order[]>([])

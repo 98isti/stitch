@@ -1600,6 +1600,7 @@ export default function POSPage() {
           orderId={scannedOrderId}
           accountId={accountId}
           onClose={() => setScannedOrderId(null)}
+          onEdit={id => { setScannedOrderId(null); navigate('/orders', { state: { editOrderId: id } }) }}
         />
       )}
     </div>
