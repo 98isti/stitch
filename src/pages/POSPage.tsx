@@ -1500,7 +1500,7 @@ export default function POSPage() {
                 for (let d = 1; d <= daysTotal; d++) {
                   const date = new Date(calMonth.year, calMonth.month, d)
                   const isPast = date < today
-                  const isSelected = date.toDateString() === pickupDate.toDateString()
+                  const isSelected = pickupDate ? date.toDateString() === pickupDate.toDateString() : false
                   const isToday = date.toDateString() === today.toDateString()
                   const iso = `${calMonth.year}-${String(calMonth.month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
                   const dayData = workload[iso]
