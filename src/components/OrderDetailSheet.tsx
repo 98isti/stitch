@@ -107,6 +107,11 @@ function CashChangePanelDetail({ due, onConfirm, onBack }: {
         autoFocus
         className="w-full text-center text-3xl font-bold border-2 border-gray-200 rounded-2xl py-4 focus:outline-none focus:border-navy"
       />
+      <button
+        onClick={() => setReceived(due.toFixed(2))}
+        className="text-navy text-sm font-medium hover:underline mt-0.5">
+        Use exact amount
+      </button>
       {received !== '' && (
         change >= 0 ? (
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 text-center">
@@ -120,13 +125,9 @@ function CashChangePanelDetail({ due, onConfirm, onBack }: {
           </div>
         )
       )}
-      <button onClick={onConfirm}
-        className="w-full py-4 rounded-2xl bg-emerald-600 text-white font-bold transition-colors hover:bg-emerald-700 active:scale-95">
-        Exact Change — No change to give
-      </button>
       <button onClick={onConfirm} disabled={amount < due}
         className="w-full py-4 rounded-2xl bg-gray-800 text-white font-bold disabled:opacity-30 transition-opacity">
-        Confirm with amount above
+        Confirm Cash Payment
       </button>
       <button onClick={onBack} className="w-full py-2 text-sm text-gray-400 hover:text-gray-600">← Back</button>
     </div>

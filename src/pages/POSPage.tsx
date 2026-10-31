@@ -224,6 +224,11 @@ function CashChangePanel({
           autoFocus
           className="w-full text-center text-3xl font-bold border-2 border-gray-200 rounded-2xl py-4 focus:outline-none focus:border-navy"
         />
+        <button
+          onClick={() => setReceived(total.toFixed(2))}
+          className="text-navy text-sm font-medium hover:underline mt-0.5">
+          Use exact amount
+        </button>
       </div>
       {received !== '' && (
         change >= 0 ? (
@@ -247,7 +252,7 @@ function CashChangePanel({
         onClick={onConfirm}
         disabled={amount < total}
         className="w-full py-4 rounded-2xl bg-gray-800 text-white font-bold text-lg disabled:opacity-30 transition-opacity active:scale-95">
-        Confirm with amount above
+        Confirm Cash Payment
       </button>
       <button onClick={onBack} className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors">
         ← Back
