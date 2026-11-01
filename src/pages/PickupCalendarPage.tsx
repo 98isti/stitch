@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
@@ -13,6 +13,7 @@ interface Order {
   orderAmount: number
   status: string
   locationId?: string
+  items?: string
 }
 
 const DAY_LABELS = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri']
@@ -30,10 +31,10 @@ function todayYMD() {
 
 export default function PickupCalendarPage() {
   const { accountId } = useAuth()
-  const { locations } = useLocations(accountId)
+  const { locations, activeLocation } = useLocations(accountId)
   const navigate = useNavigate()
 
-  const [selectedLocationId, setSelectedLocationId] = useState<string>('all')
+  const [selectedLocationId, setSelectedLocationId] = useState<string>('')
   const [orders, setOrders] = useState<Order[]>([])
   const [_loading, setLoading] = useState(true)
 
@@ -41,18 +42,28 @@ export default function PickupCalendarPage() {
   const [viewYear, setViewYear] = useState(() => new Date().getFullYear())
   const [viewMonth, setViewMonth] = useState(() => new Date().getMonth()) // 0-based
 
-  // Load all pending orders (not Picked Up, not Cancelled)
+  // Default to active location once loaded
   useEffect(() => {
-    if (!accountId) return
+    if (activeLocation && !selectedLocationId) {
+      setSelectedLocationId(activeLocation.id)
+    }
+  }, [activeLocation, selectedLocationId])
+
+  // Load orders — scoped to selected location for speed, all when 'all' chosen
+  useEffect(() => {
+    if (!accountId || !selectedLocationId) return
     setLoading(true)
-    getDocs(collection(db, 'accounts', accountId, 'orders')).then(snap => {
+    const q = selectedLocationId === 'all'
+      ? getDocs(collection(db, 'accounts', accountId, 'orders'))
+      : getDocs(query(collection(db, 'accounts', accountId, 'orders'), where('locationId', '==', selectedLocationId)))
+    q.then(snap => {
       const pending = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as Order))
         .filter(o => o.status !== 'Picked Up' && o.status !== 'Cancelled' && o.status !== 'Ready for Pick Up')
       setOrders(pending)
       setLoading(false)
     }).catch(() => setLoading(false))
-  }, [accountId])
+  }, [accountId, selectedLocationId])
 
   // Filter by location
   const filteredOrders = useMemo(() => {
@@ -64,13 +75,19 @@ export default function PickupCalendarPage() {
 
   // Group pending orders by pickupDate for current month
   const calendarData = useMemo(() => {
-    const map: Record<string, { count: number; total: number }> = {}
+    const map: Record<string, { count: number; total: number; dcCount: number }> = {}
     const monthStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`
     filteredOrders.forEach(o => {
       if (!o.pickupDate?.startsWith(monthStr)) return
-      if (!map[o.pickupDate]) map[o.pickupDate] = { count: 0, total: 0 }
+      if (!map[o.pickupDate]) map[o.pickupDate] = { count: 0, total: 0, dcCount: 0 }
       map[o.pickupDate].count++
       map[o.pickupDate].total += o.orderAmount ?? 0
+      try {
+        const items = JSON.parse(o.items || '[]')
+        if (items.some((it: any) => String(it.category ?? '').startsWith('Dry Cleaning'))) {
+          map[o.pickupDate].dcCount++
+        }
+      } catch { /* ignore */ }
     })
     return map
   }, [filteredOrders, viewYear, viewMonth])
@@ -195,6 +212,11 @@ export default function PickupCalendarPage() {
                           ${isOverdue || isToday ? 'text-red-400' : 'text-blue-500'}`}>
                           ${Math.round(data.total).toLocaleString()}
                         </div>
+                        {data.dcCount > 0 && (
+                          <div className="text-xs leading-tight text-amber-600 font-medium mt-0.5">
+                            🧺 {data.dcCount}
+                          </div>
+                        )}
                       </div>
                     ) : null}
                   </div>
