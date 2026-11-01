@@ -9,7 +9,7 @@ import { todayLocal } from '../lib/dateUtils'
 import { usePrinter } from '../context/PrinterContext'
 import type { PickupSheetOrder } from '../lib/buildPickupSheet'
 
-interface DayData { count: number; total: number }
+interface DayData { count: number; total: number; dcCount: number }
 type CalendarData = Record<string, DayData> // key: "YYYY-MM-DD"
 
 const DAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -102,6 +102,11 @@ function CalendarMonth({
                   <p className="text-sm font-semibold leading-tight mt-0.5">
                     ${dayData.total.toFixed(2)}
                   </p>
+                  {dayData.dcCount > 0 && (
+                    <p className="text-xs font-semibold leading-tight mt-1 text-amber-600">
+                      🧺 {dayData.dcCount} DC
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -153,9 +158,15 @@ export default function PickUpPage() {
         const order = d.data()
         const date = order.pickupDate
         if (!date) return
-        if (!map[date]) map[date] = { count: 0, total: 0 }
+        if (!map[date]) map[date] = { count: 0, total: 0, dcCount: 0 }
         map[date].count++
         map[date].total += order.orderAmount ?? 0
+        try {
+          const items = JSON.parse(order.items || '[]')
+          if (items.some((it: any) => String(it.category ?? '').startsWith('Dry Cleaning'))) {
+            map[date].dcCount++
+          }
+        } catch { /* ignore parse errors */ }
       })
       setData(map)
       setLoading(false)
@@ -307,9 +318,13 @@ export default function PickUpPage() {
               ) : (
                 sheetOrders.map((order, i) => (
                   <div key={i} className="bg-gray-50 rounded-2xl p-4">
+                    {(() => { const hasDC = order.items.some(it => String(it.category ?? '').startsWith('Dry Cleaning')); return (
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="font-bold text-sm text-gray-900">{order.orderNumberString}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-bold text-sm text-gray-900">{order.orderNumberString}</p>
+                          {hasDC && <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">🧺 DC</span>}
+                        </div>
                         <p className="text-sm text-gray-600">{order.customerName}</p>
                         {order.customerPhone && (
                           <p className="text-xs text-gray-400">{order.customerPhone}</p>
@@ -317,6 +332,7 @@ export default function PickUpPage() {
                       </div>
                       <p className="font-semibold text-navy text-sm">${order.orderAmount.toFixed(2)}</p>
                     </div>
+                    )})()} 
                     {order.items.length > 0 && (
                       <div className="mt-2 space-y-0.5">
                         {order.items.slice(0, 3).map((it, j) => (
