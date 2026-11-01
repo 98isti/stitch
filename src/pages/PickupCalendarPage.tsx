@@ -3,7 +3,7 @@ import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { todayLocal } from '../lib/dateUtils'
 import { useNavigate } from 'react-router-dom'
 
@@ -14,6 +14,10 @@ interface Order {
   status: string
   locationId?: string
   items?: string
+  orderNumberString?: string
+  customerName?: string
+  customerPhone?: string
+  location?: string
 }
 
 const DAY_LABELS = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri']
@@ -35,8 +39,16 @@ export default function PickupCalendarPage() {
   const navigate = useNavigate()
 
   const [selectedLocationId, setSelectedLocationId] = useState<string>('')
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
   const [_loading, setLoading] = useState(true)
+
+  function formatDateLabel(iso: string) {
+    const [y, m, d] = iso.split('-').map(Number)
+    return new Date(y, m - 1, d).toLocaleDateString('en-AU', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    })
+  }
 
   // Current month view
   const [viewYear, setViewYear] = useState(() => new Date().getFullYear())
@@ -72,6 +84,19 @@ export default function PickupCalendarPage() {
   }, [orders, selectedLocationId])
 
   const today = todayYMD()
+
+  // Orders for selected day (derived from already-loaded orders)
+  const sheetOrders = useMemo(() => {
+    if (!selectedDate) return []
+    return filteredOrders
+      .filter(o => o.pickupDate === selectedDate)
+      .map(o => {
+        let items: any[] = []
+        try { items = JSON.parse(o.items || '[]') } catch { items = [] }
+        return { ...o, parsedItems: items }
+      })
+      .sort((a, b) => (a.orderNumberString ?? '').localeCompare(b.orderNumberString ?? ''))
+  }, [selectedDate, filteredOrders])
 
   // Group pending orders by pickupDate for current month
   const calendarData = useMemo(() => {
@@ -193,7 +218,8 @@ export default function PickupCalendarPage() {
                 const data = calendarData[dateStr!]
 
                 return (
-                  <div key={ci} className="flex flex-col items-center py-1">
+                  <div key={ci} className={`flex flex-col items-center py-1 ${data ? 'cursor-pointer active:scale-95 transition-transform' : ''}`}
+                    onClick={() => data && dateStr && setSelectedDate(dateStr)}>
                     {/* Day number */}
                     <div className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium mb-0.5
                       ${isToday ? 'bg-gray-700 text-white' : 'text-gray-700'}`}>
@@ -226,6 +252,67 @@ export default function PickupCalendarPage() {
           ))}
         </div>
       </div>
+
+      {/* ── Day sheet bottom sheet ── */}
+      {selectedDate && (
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40"
+          onClick={() => setSelectedDate(null)}>
+          <div className="relative bg-white rounded-t-3xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl"
+            onClick={e => e.stopPropagation()}>
+
+            {/* Sheet header */}
+            <div className="flex items-center px-5 pt-5 pb-3 shrink-0">
+              <div className="flex-1">
+                <p className="font-bold text-gray-900 text-base">{formatDateLabel(selectedDate)}</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {sheetOrders.length} order{sheetOrders.length !== 1 ? 's' : ''} In progress
+                </p>
+              </div>
+              <button onClick={() => setSelectedDate(null)} className="p-2 text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Order list */}
+            <div className="flex-1 overflow-y-auto px-5 pb-8 space-y-3">
+              {sheetOrders.length === 0 ? (
+                <p className="text-center text-gray-400 text-sm py-8">No In progress orders for this date</p>
+              ) : (
+                sheetOrders.map((order, i) => {
+                  const hasDC = order.parsedItems.some((it: any) => String(it.category ?? '').startsWith('Dry Cleaning'))
+                  return (
+                    <div key={i} className="bg-gray-50 rounded-2xl p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-bold text-sm text-gray-900">{order.orderNumberString}</p>
+                            {hasDC && <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">🧺 DC</span>}
+                          </div>
+                          <p className="text-sm text-gray-600">{order.customerName}</p>
+                          {order.customerPhone && (
+                            <p className="text-xs text-gray-400">{order.customerPhone}</p>
+                          )}
+                        </div>
+                        <p className="font-semibold text-navy text-sm">${(order.orderAmount ?? 0).toFixed(2)}</p>
+                      </div>
+                      {order.parsedItems.length > 0 && (
+                        <div className="mt-2 space-y-0.5">
+                          {order.parsedItems.slice(0, 3).map((it: any, j: number) => (
+                            <p key={j} className="text-xs text-gray-500 truncate">· {it.name}</p>
+                          ))}
+                          {order.parsedItems.length > 3 && (
+                            <p className="text-xs text-gray-400">+{order.parsedItems.length - 3} more items</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
