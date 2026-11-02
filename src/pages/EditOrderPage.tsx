@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
 import { useAuth } from '../context/AuthContext'
 import { useStaff } from '../context/StaffContext'
 import { ChevronLeft, Trash2 } from 'lucide-react'
@@ -43,7 +44,7 @@ export default function EditOrderPage() {
 
   useEffect(() => {
     if (!accountId || !id) return
-    getDoc(doc(db, 'accounts', accountId, 'orders', id)).then(snap => {
+    withRetry(() => getDoc(doc(db, 'accounts', accountId, 'orders', id))).then(snap => {
       if (snap.exists()) {
         const o = { id: snap.id, ...snap.data() } as OrderDoc
         setOrder(o)
@@ -53,7 +54,7 @@ export default function EditOrderPage() {
         try { setItems(JSON.parse(o.items)) } catch { setItems([]) }
       }
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { setLoading(false);  })
   }, [accountId, id])
 
   function updateItem(idx: number, field: keyof OrderItem, value: string | number) {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
 import { useAuth } from '../context/AuthContext'
 import { ChevronLeft, Check, Package, Phone, Calendar, CreditCard, MapPin, Pencil } from 'lucide-react'
 
@@ -40,7 +41,7 @@ export default function OrderDetailPage() {
 
   useEffect(() => {
     if (!accountId || !id) return
-    getDoc(doc(db, 'accounts', accountId, 'orders', id))
+    withRetry(() => getDoc(doc(db, 'accounts', accountId, 'orders', id)))
       .then(snap => {
         if (snap.exists()) setOrder({ id: snap.id, ...snap.data() } as OrderDoc)
         setLoading(false)

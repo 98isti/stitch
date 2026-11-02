@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 
@@ -216,9 +217,9 @@ export default function DashboardPage() {
 
     // ── Load core data in parallel (fast — no signIns) ──────────────────────
     const [paymentsSnap, ordersSnap, customersSnap] = await Promise.all([
-      getDocs(query(collection(db, 'accounts', accountId, 'payments'), where('paidDate', '>=', day30ago))),
-      getDocs(query(collection(db, 'accounts', accountId, 'orders'), where('orderDate', '>=', day30ago))),
-      getDocs(collection(db, 'accounts', accountId, 'customers')),
+      withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'payments'), where('paidDate', '>=', day30ago)))),
+      withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'orders'), where('orderDate', '>=', day30ago)))),
+      withRetry(() => getDocs(collection(db, 'accounts', accountId, 'customers'))),
     ])
 
     const payments  = paymentsSnap.docs.map(d => ({ ...d.data() } as any))
@@ -312,8 +313,8 @@ export default function DashboardPage() {
       try {
         const signInsStart = Timestamp.fromDate(new Date(day30ago + 'T00:00:00'))
         const [signInsSnap, staffSnap] = await Promise.all([
-          getDocs(query(collection(db, 'accounts', accountId, 'signIns'), where('timestamp', '>=', signInsStart))),
-          getDocs(collection(db, 'accounts', accountId, 'staff')),
+          withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'signIns'), where('timestamp', '>=', signInsStart)))),
+          withRetry(() => getDocs(collection(db, 'accounts', accountId, 'staff'))),
         ])
         const payRateMap: Record<string, number> = {}
         staffSnap.docs.forEach(d => {

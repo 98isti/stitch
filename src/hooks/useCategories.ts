@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
 
 export interface Category {
   id: string
@@ -24,7 +25,7 @@ export function useCategories(accountId: string | null, shopType?: string, locat
     // Timeout fallback — if Firestore hangs, unblock the UI after 10s
     const timeout = setTimeout(() => setLoading(false), 10_000)
 
-    getDocs(q).then(snap => {
+    withRetry(() => getDocs(q)).then(snap => {
       clearTimeout(timeout)
       const sorted = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as Category))

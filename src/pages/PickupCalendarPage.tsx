@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
@@ -42,6 +43,7 @@ export default function PickupCalendarPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
   const [_loading, setLoading] = useState(true)
+  const [_error, setError] = useState(false)
 
   function formatDateLabel(iso: string) {
     const [y, m, d] = iso.split('-').map(Number)
@@ -66,15 +68,15 @@ export default function PickupCalendarPage() {
     if (!accountId || !selectedLocationId) return
     setLoading(true)
     const q = selectedLocationId === 'all'
-      ? getDocs(collection(db, 'accounts', accountId, 'orders'))
-      : getDocs(query(collection(db, 'accounts', accountId, 'orders'), where('locationId', '==', selectedLocationId)))
+      ? withRetry(() => getDocs(collection(db, 'accounts', accountId, 'orders')))
+      : withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'orders'), where('locationId', '==', selectedLocationId))))
     q.then(snap => {
       const pending = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as Order))
         .filter(o => o.status !== 'Picked Up' && o.status !== 'Cancelled' && o.status !== 'Ready for Pick Up')
       setOrders(pending)
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { setLoading(false); setError(true) })
   }, [accountId, selectedLocationId])
 
   // Filter by location

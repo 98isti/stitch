@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
+import LoadError from '../components/LoadError'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { useNavigate } from 'react-router-dom'
@@ -25,6 +27,7 @@ export default function ReportsPage() {
   const navigate = useNavigate()
   const [rows, setRows] = useState<DaySummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     if (!accountId || !activeLocation) return
@@ -34,10 +37,10 @@ export default function ReportsPage() {
     since.setDate(since.getDate() - 30)
     const sinceIso = toLocalDate(since.getTime())
 
-    getDocs(query(
+    withRetry(() => getDocs(query(
       collection(db, 'accounts', accountId, 'payments'),
       where('location', '==', activeLocation.name),
-    )).then(snap => {
+    ))).then(snap => {
       const map: Record<string, { cash: number; card: number }> = {}
       snap.docs.forEach(d => {
         const p = d.data()
@@ -54,7 +57,7 @@ export default function ReportsPage() {
         .sort((a, b) => b.date.localeCompare(a.date))
       setRows(sorted)
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { setLoading(false); setError(true) })
   }, [accountId, activeLocation])
 
   return (
@@ -79,7 +82,9 @@ export default function ReportsPage() {
           <div className="flex justify-center py-20">
             <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : (
+        ) : error ? (
+          <LoadError onRetry={() => window.location.reload()} />
+          ) : (
           <div className="max-w-5xl mx-auto px-4 py-4">
 
             {/* Table */}

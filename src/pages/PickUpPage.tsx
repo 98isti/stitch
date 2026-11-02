@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
+import LoadError from '../components/LoadError'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { useNavigate } from 'react-router-dom'
@@ -127,6 +129,7 @@ export default function PickUpPage() {
 
   const [data, setData] = useState<CalendarData>({})
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   // Selected day sheet
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -148,11 +151,11 @@ export default function PickUpPage() {
   useEffect(() => {
     if (!accountId || !activeLocation) return
     setLoading(true)
-    getDocs(query(
+    withRetry(() => getDocs(query(
       collection(db, 'accounts', accountId, 'orders'),
       where('location', '==', activeLocation.name),
       where('status', 'in', ['In progress', 'Redo']),
-    )).then(snap => {
+    ))).then(snap => {
       const map: CalendarData = {}
       snap.docs.forEach(d => {
         const order = d.data()
@@ -170,7 +173,7 @@ export default function PickUpPage() {
       })
       setData(map)
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { setLoading(false); setError(true) })
   }, [accountId, activeLocation])
 
   // Load orders for selected date
@@ -181,12 +184,12 @@ export default function PickUpPage() {
     setSheetLoading(true)
     setPrintResult(null)
     try {
-      const snap = await getDocs(query(
+      const snap = await withRetry(() => getDocs(query(
         collection(db, 'accounts', accountId, 'orders'),
         where('location', '==', activeLocation.name),
         where('pickupDate', '==', iso),
         where('status', 'in', ['In progress', 'Redo']),
-      ))
+      )))
       const orders: PickupSheetOrder[] = snap.docs.map(d => {
         const o = d.data()
         let items = []
@@ -252,7 +255,9 @@ export default function PickUpPage() {
           <div className="flex justify-center py-20">
             <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : (
+        ) : error ? (
+          <LoadError onRetry={() => window.location.reload()} />
+          ) : (
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center gap-4 justify-center mb-6 text-xs text-gray-500">
               <div className="flex items-center gap-1.5">

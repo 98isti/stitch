@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
+import LoadError from '../components/LoadError'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { ChevronLeft, RefreshCw } from 'lucide-react'
@@ -82,15 +84,16 @@ export default function AvgSalesPage() {
   const navigate       = useNavigate()
 
   const [payments, setPayments] = useState<Payment[]>([])
+  const [error, _setError] = useState(false)
   const [loading,  setLoading]  = useState(true)
   const [filter,   setFilter]   = useState<FilterKey>('30d')
 
   async function load() {
     if (!accountId) return
     setLoading(true)
-    const snap = await getDocs(
+    const snap = await withRetry(() => getDocs(
       collection(db, 'accounts', accountId, 'payments')
-    ).catch(() => null)
+    )).catch(() => null)
     if (snap) setPayments(snap.docs.map(d => ({ ...d.data() } as Payment)))
     setLoading(false)
   }
@@ -189,7 +192,9 @@ export default function AvgSalesPage() {
             </div>
           ) : locationStats.length === 0 ? (
             <p className="text-center text-gray-400 text-sm py-8">No sales data for this period</p>
-          ) : (
+          ) : error ? (
+            <LoadError onRetry={() => window.location.reload()} />
+            ) : (
             <div className="overflow-x-auto">
               <table className="text-sm w-full" style={{ minWidth: 120 + locationStats.length * 110 }}>
                 <thead>

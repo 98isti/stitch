@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
 
 export interface PriceItem {
   id: string
@@ -30,7 +31,7 @@ export function useItems(accountId: string | null, locationId?: string | null, s
     const timeout = setTimeout(() => setLoading(false), 10_000)
 
     // getDocs uses Firestore cache first — faster than getDocsFromServer on repeat views
-    getDocs(q).then(snap => {
+    withRetry(() => getDocs(q)).then(snap => {
       clearTimeout(timeout)
       let items = snap.docs.map(d => ({ id: d.id, ...d.data() } as PriceItem))
       if (!locationId && shopType) {

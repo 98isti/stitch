@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
+import LoadError from '../components/LoadError'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { useNavigate } from 'react-router-dom'
@@ -31,6 +33,7 @@ export default function ManagementDailySalesPage() {
   const navigate = useNavigate()
   const [payments, setPayments] = useState<PaymentRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [selectedLocation, setSelectedLocation] = useState('All Locations')
 
   useEffect(() => {
@@ -41,13 +44,13 @@ export default function ManagementDailySalesPage() {
     since.setDate(since.getDate() - 30)
     const sinceIso = toLocalDate(since.getTime())
 
-    getDocs(query(
+    withRetry(() => getDocs(query(
       collection(db, 'accounts', accountId, 'payments'),
       where('paidDate', '>=', sinceIso),
-    )).then(snap => {
+    ))).then(snap => {
       setPayments(snap.docs.map(d => d.data() as PaymentRow))
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { setLoading(false); setError(true) })
   }, [accountId])
 
   const rows = useMemo<DaySummary[]>(() => {
@@ -109,7 +112,9 @@ export default function ManagementDailySalesPage() {
               <p className="text-4xl mb-3">📊</p>
               <p className="text-sm">No sales in the last 30 days</p>
             </div>
-          ) : (
+          ) : error ? (
+            <LoadError onRetry={() => window.location.reload()} />
+            ) : (
             <div className="space-y-2">
               {rows.map(row => {
                 const d = new Date(row.date + 'T00:00:00')

@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
+import LoadError from '../components/LoadError'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { RefreshCw } from 'lucide-react'
@@ -60,6 +62,7 @@ export default function ManagementSignInPage() {
   const [events, setEvents] = useState<SignInEvent[]>([])
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [selectedLocation, setSelectedLocation] = useState('All Locations')
 
   async function load() {
@@ -67,8 +70,8 @@ export default function ManagementSignInPage() {
     setLoading(true)
 
     const [eventsSnap, staffSnap] = await Promise.all([
-      getDocs(collection(db, 'accounts', accountId, 'signIns')).catch(() => null),
-      getDocs(collection(db, 'accounts', accountId, 'staff')).catch(() => null),
+      withRetry(() => getDocs(collection(db, 'accounts', accountId, 'signIns'))).catch(() => null),
+      withRetry(() => getDocs(collection(db, 'accounts', accountId, 'staff'))).catch(() => null),
     ])
 
     if (eventsSnap) setEvents(eventsSnap.docs.map(d => ({ id: d.id, ...d.data() } as SignInEvent)))
@@ -78,7 +81,7 @@ export default function ManagementSignInPage() {
 
   useEffect(() => {
     let mounted = true
-    load().catch(() => { if (mounted) setLoading(false) })
+    load().catch(() => { if (mounted) { setLoading(false); setError(true) } })
     return () => { mounted = false }
   }, [accountId])
 
@@ -182,6 +185,8 @@ export default function ManagementSignInPage() {
           <div className="flex items-center justify-center h-32">
             <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
           </div>
+        ) : error ? (
+          <LoadError onRetry={() => { setError(false); setLoading(true); load() }} />
         ) : filtered.length === 0 ? (
           <p className="text-center text-gray-400 text-sm mt-12">No sign-in records this week</p>
         ) : (

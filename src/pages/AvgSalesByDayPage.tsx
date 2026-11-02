@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { ChevronLeft, RefreshCw } from 'lucide-react'
@@ -151,7 +152,7 @@ export default function AvgSalesByDayPage() {
   async function load() {
     if (!accountId) return
     setLoading(true)
-    const snap = await getDocs(collection(db, 'accounts', accountId, 'payments')).catch(() => null)
+    const snap = await withRetry(() => getDocs(collection(db, 'accounts', accountId, 'payments'))).catch(() => null)
     if (snap) setPayments(snap.docs.map(d => ({ ...d.data() } as Payment)))
     setLoading(false)
   }

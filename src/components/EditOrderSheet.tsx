@@ -9,6 +9,7 @@ import { useItems } from '../hooks/useItems'
 import type { PriceItem } from '../hooks/useItems'
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
 
 interface OrderItem {
   id: string; garmentId?: string; category: string; name: string; quantity: number; unitPrice: number; note: string
@@ -64,7 +65,7 @@ export default function EditOrderSheet({ orderId, accountId, onClose, onBack }: 
     setItems([])
     if (!orderId || !accountId) return
     setLoading(true)
-    getDoc(doc(db, 'accounts', accountId, 'orders', orderId)).then(snap => {
+    withRetry(() => getDoc(doc(db, 'accounts', accountId, 'orders', orderId))).then(snap => {
       if (snap.exists()) {
         const o = { id: snap.id, ...snap.data() } as OrderDoc
         setOrder(o)
@@ -129,8 +130,8 @@ export default function EditOrderSheet({ orderId, accountId, onClose, onBack }: 
       let acctData: any = {}
       try {
         const [acctSnap, locSnap] = await Promise.all([
-          getDoc(doc(db, `accounts/${accountId}`)),
-          order.locationId ? getDoc(doc(db, `accounts/${accountId}/locations/${order.locationId}`)) : Promise.resolve(null),
+          withRetry(() => getDoc(doc(db, `accounts/${accountId}`))),
+          order.locationId ? withRetry(() => getDoc(doc(db, `accounts/${accountId}/locations/${order.locationId}`))) : Promise.resolve(null),
         ])
         if (acctSnap.exists()) acctData = acctSnap.data()
         if (locSnap?.exists()) locData = locSnap.data()

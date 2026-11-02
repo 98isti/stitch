@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
+import LoadError from '../components/LoadError'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react'
@@ -79,11 +81,12 @@ export default function ManagementLabourPage() {
   const [avgPayments, setAvgPayments] = useState<Payment[]>([])
   const [weekOffset, setWeekOffset] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     if (!accountId) return
     let mounted = true
-    load().catch(() => { if (mounted) setLoading(false) })
+    load().catch(() => { if (mounted) { setLoading(false); setError(true) } })
     return () => { mounted = false }
   }, [accountId, weekOffset])
 
@@ -97,17 +100,17 @@ export default function ManagementLabourPage() {
     const weekStartStr = days[0].date
     const weekEndStr   = days[6].date
     const [eventsSnap, staffSnap, paymentsSnap] = await Promise.all([
-      getDocs(query(
+      withRetry(() => getDocs(query(
         collection(db, 'accounts', accountId, 'signIns'),
         where('timestamp', '>=', Timestamp.fromDate(weekStart)),
         where('timestamp', '<=', Timestamp.fromDate(weekEnd))
-      )).catch(() => null),
-      getDocs(collection(db, 'accounts', accountId, 'staff')).catch(() => null),
-      getDocs(query(
+      ))).catch(() => null),
+      withRetry(() => getDocs(collection(db, 'accounts', accountId, 'staff'))).catch(() => null),
+      withRetry(() => getDocs(query(
         collection(db, 'accounts', accountId, 'payments'),
         where('paidDate', '>=', weekStartStr),
         where('paidDate', '<=', weekEndStr)
-      )).catch(() => null),
+      ))).catch(() => null),
     ])
 
     if (eventsSnap) setEvents(eventsSnap.docs.map(d => ({ id: d.id, ...d.data() } as SignInEvent)))
@@ -119,14 +122,14 @@ export default function ManagementLabourPage() {
     const avg30Start = new Date(today); avg30Start.setDate(today.getDate() - 30)
     const avg30StartStr = avg30Start.toLocaleDateString('en-CA')
     const [avgEventsSnap, avgPaymentsSnap] = await Promise.all([
-      getDocs(query(
+      withRetry(() => getDocs(query(
         collection(db, 'accounts', accountId, 'signIns'),
         where('timestamp', '>=', Timestamp.fromDate(avg30Start))
-      )).catch(() => null),
-      getDocs(query(
+      ))).catch(() => null),
+      withRetry(() => getDocs(query(
         collection(db, 'accounts', accountId, 'payments'),
         where('paidDate', '>=', avg30StartStr)
-      )).catch(() => null),
+      ))).catch(() => null),
     ])
     if (avgEventsSnap) setAvgEvents(avgEventsSnap.docs.map(d => ({ id: d.id, ...d.data() } as SignInEvent)))
     if (avgPaymentsSnap) setAvgPayments(avgPaymentsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Payment)))
@@ -297,7 +300,9 @@ export default function ManagementLabourPage() {
           <div className="flex items-center justify-center h-32">
             <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : (
+        ) : error ? (
+          <LoadError onRetry={() => window.location.reload()} />
+          ) : (
           <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
             {/* Section label */}
             <div className="bg-gray-100 px-3 py-2 border-b border-gray-200">

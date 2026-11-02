@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { ChevronLeft, RefreshCw } from 'lucide-react'
@@ -122,8 +123,8 @@ export default function ManagementPayrollPage() {
     if (!accountId) return
     setLoading(true)
     const [evSnap, stSnap] = await Promise.all([
-      getDocs(collection(db, 'accounts', accountId, 'signIns')).catch(() => null),
-      getDocs(collection(db, 'accounts', accountId, 'staff')).catch(() => null),
+      withRetry(() => getDocs(collection(db, 'accounts', accountId, 'signIns'))).catch(() => null),
+      withRetry(() => getDocs(collection(db, 'accounts', accountId, 'staff'))).catch(() => null),
     ])
     if (evSnap) setEvents(evSnap.docs.map(d => ({ id: d.id, ...d.data() } as SignInEvent)))
     if (stSnap) setStaff(stSnap.docs.map(d => ({ id: d.id, ...d.data() } as StaffMember)))

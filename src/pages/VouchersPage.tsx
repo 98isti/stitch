@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { collection, getDocs, addDoc, updateDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
+import LoadError from '../components/LoadError'
 import { useAuth } from '../context/AuthContext'
 import { usePrinter } from '../context/PrinterContext'
 import { useLocations } from '../hooks/useLocations'
@@ -43,6 +45,7 @@ export default function VouchersPage() {
   const accountProfile   = useAccountProfile(accountId)
 
   const [vouchers, setVouchers] = useState<Voucher[]>([])
+  const [error, _setError] = useState(false)
   const [loading, setLoading]   = useState(true)
   const [showSheet, setShowSheet] = useState(false)
   const [filter, setFilter]     = useState<'active' | 'redeemed' | 'all'>('active')
@@ -66,10 +69,10 @@ export default function VouchersPage() {
   async function fetchVouchers() {
     if (!accountId) return
     setLoading(true)
-    const snap = await getDocs(query(
+    const snap = await withRetry(() => getDocs(query(
       collection(db, 'accounts', accountId, 'vouchers'),
       orderBy('issueDate', 'desc')
-    ))
+    )))
     setVouchers(snap.docs.map(d => ({ id: d.id, ...d.data() } as Voucher)))
     setLoading(false)
   }
@@ -170,6 +173,8 @@ export default function VouchersPage() {
         {/* List */}
         {loading ? (
           <div className="text-center py-12 text-gray-400">Loading…</div>
+        ) : error ? (
+          <LoadError onRetry={() => window.location.reload()} />
         ) : filtered.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-4xl mb-2">🎟️</p>

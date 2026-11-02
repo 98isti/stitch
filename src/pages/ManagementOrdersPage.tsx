@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { collection, query, orderBy, limit, startAfter, getDocs, QueryDocumentSnapshot, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
+import LoadError from '../components/LoadError'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { CreditCard, DollarSign, AlertTriangle, ChevronRight, Archive, Search, X } from 'lucide-react'
@@ -71,6 +73,7 @@ export default function ManagementOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [drawerLogs, setDrawerLogs] = useState<DrawerLog[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, _setError] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null)
   const [hasMore, setHasMore] = useState(true)
@@ -117,9 +120,9 @@ export default function ManagementOrdersPage() {
     ]
     if (!reset && lastDoc) constraints.push(startAfter(lastDoc))
 
-    const snap = await getDocs(
+    const snap = await withRetry(() => getDocs(
       query(collection(db, 'accounts', accountId, 'orders'), ...constraints)
-    ).catch(() => null)
+    )).catch(() => null)
     if (!snap) { setLoading(false); setLoadingMore(false); return }
 
     const loaded = snap.docs.map(d => ({ id: d.id, ...d.data() } as Order))
@@ -132,9 +135,9 @@ export default function ManagementOrdersPage() {
 
   async function loadDrawerLogs() {
     if (!accountId) return
-    const snap = await getDocs(
+    const snap = await withRetry(() => getDocs(
       query(collection(db, 'accounts', accountId, 'drawerLogs'), orderBy('openedAt', 'desc'), limit(50))
-    ).catch(() => null)
+    )).catch(() => null)
     if (snap) setDrawerLogs(snap.docs.map(d => ({ id: d.id, ...d.data() } as DrawerLog)))
   }
 
@@ -177,18 +180,18 @@ export default function ManagementOrdersPage() {
       try {
         const upper = term.toUpperCase()
         const [orderSnap, phoneSnap] = await Promise.all([
-          getDocs(query(
+          withRetry(() => getDocs(query(
             collection(db, 'accounts', accountId, 'orders'),
             where('orderNumberString', '>=', upper),
             where('orderNumberString', '<=', upper + '\uf8ff'),
             limit(50)
-          )),
-          /\d{3,}/.test(term) ? getDocs(query(
+          ))),
+          /\d{3,}/.test(term) ? withRetry(() => getDocs(query(
             collection(db, 'accounts', accountId, 'orders'),
             where('customerPhone', '>=', term),
             where('customerPhone', '<=', term + '\uf8ff'),
             limit(50)
-          )) : Promise.resolve(null),
+          ))) : Promise.resolve(null),
         ])
         const seen = new Set<string>()
         const merged: Order[] = []
@@ -302,6 +305,8 @@ export default function ManagementOrdersPage() {
               )
             })}
           </div>
+        ) : error ? (
+          <LoadError onRetry={() => window.location.reload()} />
         ) : grouped.length === 0 ? (
           <p className="text-center text-gray-400 text-sm mt-12">No orders yet</p>
         ) : (

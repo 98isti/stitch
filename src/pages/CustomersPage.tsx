@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { collection, getDocs, query, orderBy, updateDoc, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import LoadError from '../components/LoadError'
+import { withRetry } from '../lib/withRetry'
 import { useAuth } from '../context/AuthContext'
 import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -12,6 +14,7 @@ export default function CustomersPage() {
   const navigate = useNavigate()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Customer | null>(null)
   const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', email: '' })
@@ -19,11 +22,11 @@ export default function CustomersPage() {
 
   useEffect(() => {
     if (!accountId) return
-    getDocs(query(collection(db, 'accounts', accountId, 'customers'), orderBy('firstName')))
+    withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'customers'), orderBy('firstName'))))
       .then(snap => {
         setCustomers(snap.docs.map(d => ({ id: d.id, ...d.data() } as Customer)))
         setLoading(false)
-      }).catch(() => setLoading(false))
+      }).catch(() => { setLoading(false); setError(true) })
   }, [accountId])
 
   function startEdit(c: Customer) {
@@ -101,6 +104,8 @@ export default function CustomersPage() {
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
         {loading ? (
           <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" /></div>
+        ) : error ? (
+          <LoadError onRetry={() => { setLoading(true); setError(false) }} />
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-400"><p className="text-4xl mb-3">👥</p><p className="text-sm">No customers found</p></div>
         ) : filtered.map(c => (

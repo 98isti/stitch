@@ -5,6 +5,7 @@ import {
   deleteDoc, doc, serverTimestamp, getDoc
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
 import { useAuth } from '../context/AuthContext'
 import { useStaff } from '../context/StaffContext'
 import { useLocations } from '../hooks/useLocations'
@@ -86,7 +87,7 @@ export default function LeavePage() {
 
   useEffect(() => {
     if (!accountId || !activeLocation) return
-    getDoc(doc(db, 'accounts', accountId, 'locations', activeLocation.id))
+    withRetry(() => getDoc(doc(db, 'accounts', accountId, 'locations', activeLocation.id)))
       .then(snap => { if (snap.exists()) setMaxPerDay(snap.data().maxLeavePerDay ?? 3) })
   }, [accountId, activeLocation?.id])
 
@@ -95,11 +96,11 @@ export default function LeavePage() {
   async function load() {
     if (!accountId || !activeLocation) return
     setLoading(true)
-    const snap = await getDocs(query(
+    const snap = await withRetry(() => getDocs(query(
       collection(db, 'accounts', accountId, 'leaveRequests'),
       where('locationId', '==', activeLocation.id),
       where('status', 'in', ['pending', 'approved'])
-    ))
+    )))
     setRequests(snap.docs.map(d => ({ id: d.id, ...d.data() } as LeaveRequest)))
     setLoading(false)
   }

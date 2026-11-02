@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import { collection, getDocs, updateDoc, doc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
+import LoadError from '../components/LoadError'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { ChevronLeft, RefreshCw, CheckCircle, XCircle } from 'lucide-react'
@@ -39,6 +41,7 @@ export default function ManagementLeavePage() {
 
   const [requests, setRequests] = useState<LeaveRequest[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [actioningId, setActioningId] = useState<string | null>(null)
   const [selectedLocationId, setSelectedLocationId] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState<'pending' | 'approved' | 'denied' | 'all'>('pending')
@@ -46,7 +49,7 @@ export default function ManagementLeavePage() {
   async function load() {
     if (!accountId) return
     setLoading(true)
-    const snap = await getDocs(collection(db, 'accounts', accountId, 'leaveRequests')).catch(() => null)
+    const snap = await withRetry(() => getDocs(collection(db, 'accounts', accountId, 'leaveRequests'))).catch(() => null)
     if (snap) setRequests(snap.docs.map(d => ({ id: d.id, ...d.data() } as LeaveRequest)))
     setLoading(false)
   }
@@ -146,6 +149,8 @@ export default function ManagementLeavePage() {
           <div className="flex items-center justify-center h-32">
             <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
           </div>
+        ) : error ? (
+          <LoadError onRetry={() => { setError(false); setLoading(true); load() }} />
         ) : filtered.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 text-center shadow-sm border border-gray-200">
             <p className="text-gray-400 text-sm">

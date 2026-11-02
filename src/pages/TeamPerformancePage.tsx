@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import { collection, getDocs, orderBy, query } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
+import LoadError from '../components/LoadError'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { ChevronLeft } from 'lucide-react'
@@ -61,17 +63,18 @@ export default function TeamPerformancePage() {
   const [selectedLocationId, setSelectedLocationId] = useState<string>('all')
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     if (!accountId) return
     setLoading(true)
-    getDocs(query(
+    withRetry(() => getDocs(query(
       collection(db, 'accounts', accountId, 'orders'),
       orderBy('createdAt', 'desc')
-    )).then(snap => {
+    ))).then(snap => {
       setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Order)))
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { setLoading(false); setError(true) })
   }, [accountId])
 
   // Filter by location
@@ -184,7 +187,9 @@ export default function TeamPerformancePage() {
         <div className="flex items-center justify-center h-32">
           <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : (
+      ) : error ? (
+        <LoadError onRetry={() => window.location.reload()} />
+        ) : (
         <div className="px-3 pb-6 flex flex-col gap-4">
           {groupedWeeks.map(week => (
             <div key={week.label} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200">

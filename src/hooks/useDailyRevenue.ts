@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
 
 export function useDailyRevenue(accountId: string | null, locationName: string | null) {
   const [revenue, setRevenue] = useState(0)
@@ -14,13 +15,13 @@ export function useDailyRevenue(accountId: string | null, locationName: string |
       collection(db, 'accounts', accountId, 'payments'),
       where('paidDate', '==', today)
     )
-    getDocs(q).then(snap => {
+    withRetry(() => getDocs(q)).then(snap => {
       const all = snap.docs.map(d => d.data())
       const filtered = locationName ? all.filter(p => p.location === locationName) : all
       const total = filtered.reduce((s, p) => s + (p.amount ?? 0), 0)
       setRevenue(total)
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { setLoading(false);  })
   }, [accountId, locationName])
 
   return { revenue, loading }

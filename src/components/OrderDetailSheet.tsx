@@ -8,6 +8,7 @@ import CancelOrderSheet from './CancelOrderSheet'
 import { usePrinter } from '../context/PrinterContext'
 
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
 import { useStaff } from '../context/StaffContext'
 import { useAccountProfile } from '../hooks/useAccountProfile'
 
@@ -177,7 +178,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
     setShowSplit(false)
     if (!orderId || !accountId) { return }
     setLoading(true)
-    getDoc(doc(db, 'accounts', accountId, 'orders', orderId))
+    withRetry(() => getDoc(doc(db, 'accounts', accountId, 'orders', orderId)))
       .then(snap => {
         if (snap.exists()) {
           const orderData = { id: snap.id, ...snap.data() } as OrderDoc
@@ -188,7 +189,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
           // Fetch location doc for correct businessName + SMS settings.
           // Use locationId if present (new orders), else query by location name (old orders).
           if (orderData.locationId) {
-            getDoc(doc(db, `accounts/${accountId}/locations/${orderData.locationId}`))
+            withRetry(() => getDoc(doc(db, `accounts/${accountId}/locations/${orderData.locationId}`)))
               .then(s => { if (s.exists()) setLocationData(s.data()) })
               .catch(() => {})
           } else if (orderData.location) {
@@ -216,7 +217,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
       }
       setSaving(true)
       try {
-        const snap = await getDocs(collection(db, 'accounts', accountId, 'staff'))
+        const snap = await withRetry(() => getDocs(collection(db, 'accounts', accountId, 'staff')))
         const names = snap.docs
           .map(d => { const s = d.data(); return `${s.firstName} ${s.lastName}`.trim() })
           .filter(Boolean)
@@ -404,8 +405,8 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
       let acctData: any = {}
       try {
         const [acctSnap, locSnap] = await Promise.all([
-          getDoc(doc(db, `accounts/${accountId}`)),
-          order.locationId ? getDoc(doc(db, `accounts/${accountId}/locations/${order.locationId}`)) : Promise.resolve(null),
+          withRetry(() => getDoc(doc(db, `accounts/${accountId}`))),
+          order.locationId ? withRetry(() => getDoc(doc(db, `accounts/${accountId}/locations/${order.locationId}`))) : Promise.resolve(null),
         ])
         if (acctSnap.exists()) acctData = acctSnap.data()
         if (locSnap?.exists()) locData = locSnap.data()
@@ -467,8 +468,8 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
       let locData: any = {}; let acctData: any = {}
       try {
         const [acctSnap, locSnap] = await Promise.all([
-          getDoc(doc(db, `accounts/${accountId}`)),
-          order.locationId ? getDoc(doc(db, `accounts/${accountId}/locations/${order.locationId}`)) : Promise.resolve(null),
+          withRetry(() => getDoc(doc(db, `accounts/${accountId}`))),
+          order.locationId ? withRetry(() => getDoc(doc(db, `accounts/${accountId}/locations/${order.locationId}`))) : Promise.resolve(null),
         ])
         if (acctSnap.exists()) acctData = acctSnap.data()
         if (locSnap?.exists()) locData = locSnap.data()
@@ -1061,8 +1062,8 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
                   let acctData: any = {}
                   try {
                     const [acctSnap, locSnap] = await Promise.all([
-                      getDoc(doc(db, `accounts/${accountId}`)),
-                      order.locationId ? getDoc(doc(db, `accounts/${accountId}/locations/${order.locationId}`)) : Promise.resolve(null),
+                      withRetry(() => getDoc(doc(db, `accounts/${accountId}`))),
+                      order.locationId ? withRetry(() => getDoc(doc(db, `accounts/${accountId}/locations/${order.locationId}`))) : Promise.resolve(null),
                     ])
                     if (acctSnap.exists()) acctData = acctSnap.data()
                     if (locSnap?.exists()) locData = locSnap.data()
@@ -1120,7 +1121,7 @@ export default function OrderDetailSheet({ orderId, accountId, onClose, onEdit, 
                   if (s === 'Ready for Pick Up') {
                     setGarmentReadyId(activeGarmentMenu)
                     setActiveGarmentMenu(null); setDropdownPos(null)
-                    getDocs(collection(db, 'accounts', accountId!, 'staff')).then(snap => {
+                    withRetry(() => getDocs(collection(db, 'accounts', accountId!, 'staff'))).then(snap => {
                       const names = snap.docs.map(d => { const d2 = d.data(); return `${d2.firstName} ${d2.lastName}`.trim() }).filter(Boolean).sort()
                       setStaffList(names); setSelectedEmployee('Select Your Name'); setShowCompletedByPopup(true)
                     })

@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
+import LoadError from '../components/LoadError'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 
@@ -194,6 +196,7 @@ export default function ManagementReportPage() {
   const [payments, setPayments]   = useState<Payment[]>([])
   const [signIns, setSignIns]     = useState<SignIn[]>([])
   const [staff, setStaff]         = useState<StaffMember[]>([])
+  const [error, setError] = useState(false)
   const [loading, setLoading]     = useState(true)
   const [showLifetime, setShowLifetime]         = useState(false)
   const [lifetimePayments, setLifetimePayments] = useState<Payment[]>([])
@@ -204,18 +207,18 @@ export default function ManagementReportPage() {
     if (!accountId) return
     const cutoff = toStr(addDays(new Date(), -150))
     Promise.all([
-      getDocs(query(collection(db, 'accounts', accountId, 'payments'), where('paidDate', '>=', cutoff))),
-      getDocs(collection(db, 'accounts', accountId, 'staff')),
+      withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'payments'), where('paidDate', '>=', cutoff)))),
+      withRetry(() => getDocs(collection(db, 'accounts', accountId, 'staff'))),
       // sign-ins: Firestore Timestamp comparison — use ISO date cutoff via string workaround:
       // fetch all and filter client-side to avoid Timestamp import
-      getDocs(collection(db, 'accounts', accountId, 'signIns')),
+      withRetry(() => getDocs(collection(db, 'accounts', accountId, 'signIns'))),
     ]).then(([pmtSnap, staffSnap, siSnap]) => {
       setPayments(pmtSnap.docs.map(d => d.data() as Payment))
       setStaff(staffSnap.docs.map(d => d.data() as StaffMember))
       const cutoffSec = new Date(cutoff + 'T00:00:00').getTime() / 1000
       setSignIns(siSnap.docs.map(d => d.data() as SignIn).filter(s => (s.timestamp?.seconds ?? 0) >= cutoffSec))
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { setLoading(false); setError(true) })
   }, [accountId])
 
   async function loadLifetime() {
@@ -223,8 +226,8 @@ export default function ManagementReportPage() {
     setLoadingLifetime(true)
     try {
     const [pmtSnap, siSnap] = await Promise.all([
-      getDocs(collection(db, 'accounts', accountId, 'payments')).catch(() => null),
-      getDocs(collection(db, 'accounts', accountId, 'signIns')).catch(() => null),
+      withRetry(() => getDocs(collection(db, 'accounts', accountId, 'payments'))).catch(() => null),
+      withRetry(() => getDocs(collection(db, 'accounts', accountId, 'signIns'))).catch(() => null),
     ])
     if (pmtSnap) setLifetimePayments(pmtSnap.docs.map(d => d.data() as Payment))
     if (siSnap)  setLifetimeSignIns(siSnap.docs.map(d => d.data() as SignIn))
@@ -333,7 +336,9 @@ export default function ManagementReportPage() {
 
         {showLifetime ? (
           <TableSection label="Yearly" rows={data.yearlyRows} columns={data.yearlyCols} showPL={true} />
-        ) : (
+        ) : error ? (
+          <LoadError onRetry={() => window.location.reload()} />
+          ) : (
           <div className="mt-2 pb-8">
             <button onClick={loadLifetime} disabled={loadingLifetime}
               className="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl disabled:opacity-50">

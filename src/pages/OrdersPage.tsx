@@ -9,6 +9,8 @@ import {
   startAfter, Timestamp, type QueryDocumentSnapshot, type DocumentData,
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { withRetry } from '../lib/withRetry'
+import LoadError from '../components/LoadError'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -111,6 +113,7 @@ export default function OrdersPage() {
   // Loading states
   const [loading,     setLoading]     = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [error, _setError] = useState(false)
 
   // ── Search ─────────────────────────────────────────────────────────────────
   const [search,        setSearch]        = useState('')
@@ -133,13 +136,13 @@ export default function OrdersPage() {
     from: Date, to: Date, locId: string, acctId: string
   ): Promise<DrawerLog[]> {
     try {
-      const snap = await getDocs(query(
+      const snap = await withRetry(() => getDocs(query(
         collection(db, 'accounts', acctId, 'drawerLogs'),
         where('locationId', '==', locId),
         where('openedAt', '>=', Timestamp.fromDate(from)),
         where('openedAt', '<=', Timestamp.fromDate(to)),
         orderBy('openedAt', 'desc'),
-      ))
+      )))
       return snap.docs.map(d => ({ id: d.id, ...d.data() } as DrawerLog))
     } catch (e) {
       console.error('Drawer log fetch error:', e)
@@ -158,12 +161,12 @@ export default function OrdersPage() {
     setOldestLoadedAt(null)
     setHasMore(true)
     try {
-      const snap = await getDocs(query(
+      const snap = await withRetry(() => getDocs(query(
         collection(db, 'accounts', accountId, 'orders'),
         where('locationId', '==', activeLocation.id),
         orderBy('createdAt', 'desc'),
         limit(INITIAL_LOAD),
-      ))
+      )))
 
       const fetched = snap.docs.map(d => ({ id: d.id, ...d.data() } as Order))
       setOrders(fetched)
@@ -193,13 +196,13 @@ export default function OrdersPage() {
     if (!accountId || !activeLocation || !lastDoc || loadingMore || !hasMore) return
     setLoadingMore(true)
     try {
-      const snap = await getDocs(query(
+      const snap = await withRetry(() => getDocs(query(
         collection(db, 'accounts', accountId, 'orders'),
         where('locationId', '==', activeLocation.id),
         orderBy('createdAt', 'desc'),
         startAfter(lastDoc),
         limit(PAGE_SIZE),
-      ))
+      )))
 
       const fetched = snap.docs.map(d => ({ id: d.id, ...d.data() } as Order))
       setOrders(prev => [...prev, ...fetched])
@@ -259,24 +262,24 @@ export default function OrdersPage() {
         const upper = term.toUpperCase()
         const isNumeric = /^\d+$/.test(term)
         const [orderSnap, phoneSnap, numericSnap] = await Promise.all([
-          getDocs(query(
+          withRetry(() => getDocs(query(
             collection(db, 'accounts', accountId, 'orders'),
             where('orderNumberString', '>=', upper),
             where('orderNumberString', '<=', upper + '\uf8ff'),
             limit(50),
-          )),
-          /\d{3,}/.test(term) ? getDocs(query(
+          ))),
+          /\d{3,}/.test(term) ? withRetry(() => getDocs(query(
             collection(db, 'accounts', accountId, 'orders'),
             where('customerPhone', '>=', term),
             where('customerPhone', '<=', term + '\uf8ff'),
             limit(50),
-          )) : Promise.resolve(null),
+          ))) : Promise.resolve(null),
           // Also search by integer orderNumber — finds PREFIX-NNNN format when user types just the number
-          isNumeric ? getDocs(query(
+          isNumeric ? withRetry(() => getDocs(query(
             collection(db, 'accounts', accountId, 'orders'),
             where('orderNumber', '==', parseInt(term, 10)),
             limit(50),
-          )) : Promise.resolve(null),
+          ))) : Promise.resolve(null),
         ])
         const seen = new Set<string>()
         const merged: Order[] = []
@@ -403,7 +406,9 @@ export default function OrdersPage() {
           <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
         </div>
 
-      ) : rows.length === 0 ? (
+      ) : error ? (
+          <LoadError onRetry={() => window.location.reload()} />
+        ) : rows.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
           <p className="text-4xl mb-3">🧵</p>
           <p className="text-sm">
