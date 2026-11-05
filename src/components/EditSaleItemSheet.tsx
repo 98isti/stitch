@@ -10,7 +10,7 @@ const COLOURS: { name: string; bg: string; text: string; border: string }[] = [
   { name: 'Beige',  bg: 'bg-amber-100',   text: 'text-gray-800', border: 'border-amber-200' },
   { name: 'Grey',   bg: 'bg-gray-400',    text: 'text-white',    border: 'border-gray-400' },
   { name: 'Green',  bg: 'bg-green-600',   text: 'text-white',    border: 'border-green-600' },
-  { name: 'Olive',  bg: 'bg-yellow-800',  text: 'text-white',    border: 'border-yellow-800' },
+  { name: 'Olive',  bg: 'bg-[#6B7A2A]',   text: 'text-white',    border: 'border-[#6B7A2A]' },
   { name: 'Brown',  bg: 'bg-amber-800',   text: 'text-white',    border: 'border-amber-800' },
   { name: 'Pink',   bg: 'bg-pink-400',    text: 'text-white',    border: 'border-pink-400' },
   { name: 'Red',    bg: 'bg-red-500',     text: 'text-white',    border: 'border-red-500' },
