@@ -3,7 +3,18 @@ import { Minus, Plus } from 'lucide-react'
 import type { SaleItem } from '../types/sale'
 import { useExtras } from '../hooks/useExtras'
 
-const COLOURS = ['White', 'Black', 'Blue', 'Beige', 'Grey', 'Green', 'Olive', 'Brown', 'Pink', 'Red']
+const COLOURS: { name: string; bg: string; text: string; border: string }[] = [
+  { name: 'White',  bg: 'bg-white',       text: 'text-gray-800', border: 'border-gray-300' },
+  { name: 'Black',  bg: 'bg-gray-900',    text: 'text-white',    border: 'border-gray-900' },
+  { name: 'Blue',   bg: 'bg-blue-500',    text: 'text-white',    border: 'border-blue-500' },
+  { name: 'Beige',  bg: 'bg-amber-100',   text: 'text-gray-800', border: 'border-amber-200' },
+  { name: 'Grey',   bg: 'bg-gray-400',    text: 'text-white',    border: 'border-gray-400' },
+  { name: 'Green',  bg: 'bg-green-600',   text: 'text-white',    border: 'border-green-600' },
+  { name: 'Olive',  bg: 'bg-yellow-800',  text: 'text-white',    border: 'border-yellow-800' },
+  { name: 'Brown',  bg: 'bg-amber-800',   text: 'text-white',    border: 'border-amber-800' },
+  { name: 'Pink',   bg: 'bg-pink-400',    text: 'text-white',    border: 'border-pink-400' },
+  { name: 'Red',    bg: 'bg-red-500',     text: 'text-white',    border: 'border-red-500' },
+]
 
 const FABRICS = [
   { name: 'Cotton', price: 0 },
@@ -40,7 +51,7 @@ export default function EditSaleItemSheet({ item, accountId, onClose, onSave }: 
   const [selectedColour, setSelectedColour] = useState<string | undefined>(undefined)
   const [selectedFabric, setSelectedFabric] = useState<{ name: string; price: number } | undefined>(undefined)
   const [selectedStains, setSelectedStains] = useState<string[]>([])
-  const [activeTab, setActiveTab] = useState<OptionsTab>('extras')
+  const [activeTab, setActiveTab] = useState<OptionsTab | null>(null)
 
   const availableExtras = useExtras(accountId)
 
@@ -105,6 +116,10 @@ export default function EditSaleItemSheet({ item, accountId, onClose, onSave }: 
     { key: 'stain', label: 'Stain', hasDot: selectedStains.length > 0 },
   ]
 
+  function toggleTab(key: OptionsTab) {
+    setActiveTab(prev => prev === key ? null : key)
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -142,22 +157,24 @@ export default function EditSaleItemSheet({ item, accountId, onClose, onSave }: 
             </div>
           </div>
 
-          {/* Options — horizontal tab switcher */}
-          <div>
+          {/* Options — horizontal tab switcher inside a card */}
+          <div className="rounded-xl border border-gray-200 bg-gray-50 overflow-hidden">
             {/* Tab row */}
-            <div className="flex gap-1.5 mb-3">
-              {tabs.map(tab => (
+            <div className="flex gap-0 border-b border-gray-200">
+              {tabs.map((tab, i) => (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`relative flex-1 py-1.5 text-sm font-semibold rounded-lg transition-all ${
+                  onClick={() => toggleTab(tab.key)}
+                  className={`relative flex-1 py-2.5 text-sm font-semibold transition-all ${
+                    i > 0 ? 'border-l border-gray-200' : ''
+                  } ${
                     activeTab === tab.key
                       ? 'bg-navy text-white'
-                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
                   }`}>
                   {tab.label}
                   {tab.hasDot && (
-                    <span className={`absolute top-1 right-1.5 w-1.5 h-1.5 rounded-full ${
+                    <span className={`absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full ${
                       activeTab === tab.key ? 'bg-white' : 'bg-navy'
                     }`} />
                   )}
@@ -165,66 +182,73 @@ export default function EditSaleItemSheet({ item, accountId, onClose, onSave }: 
               ))}
             </div>
 
-            {/* Chip panel */}
-            <div className="flex flex-wrap gap-2 min-h-[44px]">
+            {/* Chip panel — only shown when a tab is active */}
+            {activeTab !== null && (
+              <div className="flex flex-wrap gap-2 p-3">
 
-              {activeTab === 'extras' && (
-                availableExtras.length === 0
-                  ? <p className="text-sm text-gray-400 py-1">No extras configured. Add them in More → Extras.</p>
-                  : availableExtras.map(extra => {
-                    const selected = selectedExtras.some(e => e.name === extra.name)
-                    return (
-                      <button key={extra.name} onClick={() => toggleExtra(extra)}
-                        className={`px-4 py-2 rounded-full text-sm font-semibold border-2 transition-all active:scale-95 ${
-                          selected
-                            ? 'bg-navy border-navy text-white'
-                            : 'bg-white border-gray-200 text-gray-600 hover:border-navy/40'
-                        }`}>
-                        {extra.name}{extra.price > 0 ? ` +$${extra.price.toFixed(0)}` : ''}
-                      </button>
-                    )
-                  })
-              )}
+                {activeTab === 'extras' && (
+                  availableExtras.length === 0
+                    ? <p className="text-sm text-gray-400 py-1">No extras configured. Add them in More → Extras.</p>
+                    : availableExtras.map(extra => {
+                      const selected = selectedExtras.some(e => e.name === extra.name)
+                      return (
+                        <button key={extra.name} onClick={() => toggleExtra(extra)}
+                          className={`px-4 py-2 rounded-full text-sm font-semibold border-2 transition-all active:scale-95 ${
+                            selected
+                              ? 'bg-navy border-navy text-white'
+                              : 'bg-white border-gray-200 text-gray-600 hover:border-navy/40'
+                          }`}>
+                          {extra.name}{extra.price > 0 ? ` +$${extra.price.toFixed(0)}` : ''}
+                        </button>
+                      )
+                    })
+                )}
 
-              {activeTab === 'colour' && COLOURS.map(colour => (
-                <button key={colour}
-                  onClick={() => setSelectedColour(c => c === colour ? undefined : colour)}
-                  className={`px-4 py-2 rounded-full text-sm font-semibold border-2 transition-all active:scale-95 ${
-                    selectedColour === colour
-                      ? 'bg-navy border-navy text-white'
-                      : 'bg-white border-gray-200 text-gray-600 hover:border-navy/40'
-                  }`}>
-                  {colour}
-                </button>
-              ))}
+                {activeTab === 'colour' && COLOURS.map(colour => {
+                  const isSelected = selectedColour === colour.name
+                  return (
+                    <button key={colour.name}
+                      onClick={() => setSelectedColour(c => c === colour.name ? undefined : colour.name)}
+                      className={`px-4 py-2 rounded-full text-sm font-semibold border-2 transition-all active:scale-95 ${
+                        colour.bg
+                      } ${
+                        colour.text
+                      } ${
+                        isSelected ? 'ring-2 ring-offset-1 ring-navy border-navy' : colour.border
+                      }`}>
+                      {colour.name}
+                    </button>
+                  )
+                })}
 
-              {activeTab === 'fabric' && FABRICS.map(fabric => (
-                <button key={fabric.name}
-                  onClick={() => setSelectedFabric(f => f?.name === fabric.name ? undefined : fabric)}
-                  className={`px-4 py-2 rounded-full text-sm font-semibold border-2 transition-all active:scale-95 ${
-                    selectedFabric?.name === fabric.name
-                      ? 'bg-navy border-navy text-white'
-                      : 'bg-white border-gray-200 text-gray-600 hover:border-navy/40'
-                  }`}>
-                  {fabric.name}{fabric.price > 0 ? ` +$${fabric.price}` : ''}
-                </button>
-              ))}
-
-              {activeTab === 'stain' && STAINS.map(stain => {
-                const selected = selectedStains.includes(stain)
-                return (
-                  <button key={stain} onClick={() => toggleStain(stain)}
+                {activeTab === 'fabric' && FABRICS.map(fabric => (
+                  <button key={fabric.name}
+                    onClick={() => setSelectedFabric(f => f?.name === fabric.name ? undefined : fabric)}
                     className={`px-4 py-2 rounded-full text-sm font-semibold border-2 transition-all active:scale-95 ${
-                      selected
+                      selectedFabric?.name === fabric.name
                         ? 'bg-navy border-navy text-white'
                         : 'bg-white border-gray-200 text-gray-600 hover:border-navy/40'
                     }`}>
-                    {stain} +${STAIN_PRICE}
+                    {fabric.name}{fabric.price > 0 ? ` +$${fabric.price}` : ''}
                   </button>
-                )
-              })}
+                ))}
 
-            </div>
+                {activeTab === 'stain' && STAINS.map(stain => {
+                  const selected = selectedStains.includes(stain)
+                  return (
+                    <button key={stain} onClick={() => toggleStain(stain)}
+                      className={`px-4 py-2 rounded-full text-sm font-semibold border-2 transition-all active:scale-95 ${
+                        selected
+                          ? 'bg-navy border-navy text-white'
+                          : 'bg-white border-gray-200 text-gray-600 hover:border-navy/40'
+                      }`}>
+                      {stain} +${STAIN_PRICE}
+                    </button>
+                  )
+                })}
+
+              </div>
+            )}
           </div>
 
           {/* Note */}
