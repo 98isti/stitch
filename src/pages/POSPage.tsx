@@ -22,7 +22,7 @@ import { useAuth } from '../context/AuthContext'
 import { useStaff } from '../context/StaffContext'
 
 import type { SaleItem } from '../types/sale'
-import { totalPieceCount } from '../types/sale'
+import { totalPieceCount } from '../types/sale'  // itemEffectivePrice available if needed
 
 interface Customer {
   id: string
@@ -617,7 +617,12 @@ export default function POSPage() {
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState<{ orderNumber: string; total: number; method: string } | null>(null)
 
-  const rawTotal = items.reduce((sum, i) => sum + (i.unitPrice + (i.extras ?? []).reduce((s, e) => s + e.price, 0)) * i.quantity, 0)
+  const rawTotal = items.reduce((sum, i) => {
+    const extrasP = (i.extras ?? []).reduce((s, e) => s + e.price, 0)
+    const fabricP = i.fabric?.price ?? 0
+    const stainsP = (i.stains?.length ?? 0) * 2
+    return sum + (i.unitPrice + extrasP + fabricP + stainsP) * i.quantity
+  }, 0)
   const discountAmount = discount
     ? discount.type === 'percent' ? rawTotal * discount.value / 100 : Math.min(discount.value, rawTotal)
     : 0
@@ -723,7 +728,7 @@ export default function POSPage() {
         customerPhone,
         pickupDay: pickupDate?.toLocaleDateString('en-AU', { weekday:'long' }) ?? '',
         pickupDateFull: pickupDate?.toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }) ?? '',
-        items: params.items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, unitPrice: i.unitPrice + (i.extras ?? []).reduce((s: number, e: any) => s + e.price, 0), note: i.note, extras: i.extras ?? [], components: i.components ?? [] })),
+        items: params.items.map((i: any) => ({ category: i.category, name: i.name, qty: i.quantity, unitPrice: i.unitPrice + (i.extras ?? []).reduce((s: number, e: any) => s + e.price, 0) + (i.fabric?.price ?? 0) + (i.stains?.length ?? 0) * 2, note: i.note, extras: i.extras ?? [], components: i.components ?? [] })),
         subtotal: params.subtotal,
         discount: (params.discount ?? 0) > 0 ? params.discount : undefined,
         voucherCode: params.voucherCode,

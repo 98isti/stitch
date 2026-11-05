@@ -8,12 +8,17 @@ export interface SaleItem {
   note: string
   components?: string[]  // physical pieces e.g. ["Jacket","Trousers"] for a suit
   extras?: { name: string; price: number }[]  // add-ons e.g. Deluxe, Express
+  colour?: string                             // e.g. "White", "Black" — no price impact
+  fabric?: { name: string; price: number }   // single-select, may add to price
+  stains?: string[]                          // multi-select, each +$2
 }
 
-/** Effective price including extras */
+/** Effective price including extras, fabric surcharge, and stain treatments */
 export function itemEffectivePrice(item: SaleItem): number {
   const extrasTotal = (item.extras ?? []).reduce((s, e) => s + e.price, 0)
-  return item.unitPrice + extrasTotal
+  const fabricPrice = item.fabric?.price ?? 0
+  const stainsTotal = (item.stains?.length ?? 0) * 2
+  return item.unitPrice + extrasTotal + fabricPrice + stainsTotal
 }
 
 /** Physical piece count for a single SaleItem */
