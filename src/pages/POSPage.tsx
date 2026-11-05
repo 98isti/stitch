@@ -137,6 +137,9 @@ async function saveOrder({
         quantity: i.quantity, unitPrice: i.unitPrice, note: i.note,
         ...(i.components?.length ? { components: i.components } : {}),
         ...(i.extras?.length ? { extras: i.extras } : {}),
+        ...(i.colour ? { colour: i.colour } : {}),
+        ...(i.fabric ? { fabric: i.fabric } : {}),
+        ...(i.stains?.length ? { stains: i.stains } : {}),
       }))),
       subTotalAmount: Math.round(subTotalAmount * 100) / 100,
       discountApplied: discountAmount,          // actual amount, not boolean
@@ -1380,9 +1383,14 @@ export default function POSPage() {
                           {item.extras?.map(e => (
                             <p key={e.name} className="text-xs text-navy/60 mt-0.5">+ {e.name} ${e.price.toFixed(0)}</p>
                           ))}
+                          {item.colour && <p className="text-xs text-navy/60 mt-0.5">🎨 {item.colour}</p>}
+                          {item.fabric && <p className="text-xs text-navy/60 mt-0.5">🧵 {item.fabric.name}{item.fabric.price > 0 ? ` +$${item.fabric.price}` : ''}</p>}
+                          {item.stains?.map(s => (
+                            <p key={s} className="text-xs text-navy/60 mt-0.5">🧼 {s} +$2</p>
+                          ))}
                           {item.note ? <p className="text-xs text-amber-500 truncate mt-0.5">{item.note}</p> : null}
                         </div>
-                        <span className="text-sm text-gray-500 shrink-0 cursor-pointer" onClick={() => setEditingItem(item)}>${(item.unitPrice + (item.extras ?? []).reduce((s, e) => s + e.price, 0)).toFixed(2)}</span>
+                        <span className="text-sm text-gray-500 shrink-0 cursor-pointer" onClick={() => setEditingItem(item)}>${(item.unitPrice + (item.extras ?? []).reduce((s, e) => s + e.price, 0) + (item.fabric?.price ?? 0) + (item.stains?.length ?? 0) * 2).toFixed(2)}</span>
                         <button onClick={() => setItems(prev => { const next = prev.filter(it => it.id !== item.id); if (next.length === 0) { setDiscount(null); setOrderNote('') } return next })}
                           className="w-6 h-6 rounded-full flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors shrink-0 ml-1">
                           <X size={13} />
