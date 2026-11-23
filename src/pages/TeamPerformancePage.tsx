@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { collection, getDocs, orderBy, query } from 'firebase/firestore'
+import { collection, getDocs, orderBy, query, where, Timestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { withRetry } from '../lib/withRetry'
 import LoadError from '../components/LoadError'
@@ -68,8 +68,11 @@ export default function TeamPerformancePage() {
   useEffect(() => {
     if (!accountId) return
     setLoading(true)
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - 90)
     withRetry(() => getDocs(query(
       collection(db, 'accounts', accountId, 'orders'),
+      where('createdAt', '>=', Timestamp.fromDate(cutoff)),
       orderBy('createdAt', 'desc')
     ))).then(snap => {
       setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Order)))
