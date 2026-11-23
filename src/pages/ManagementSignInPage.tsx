@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { withRetry } from '../lib/withRetry'
 import LoadError from '../components/LoadError'
@@ -69,8 +69,10 @@ export default function ManagementSignInPage() {
     if (!accountId) return
     setLoading(true)
 
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - 30)
     const [eventsSnap, staffSnap] = await Promise.all([
-      withRetry(() => getDocs(collection(db, 'accounts', accountId, 'signIns'))).catch(() => null),
+      withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'signIns'), where('timestamp', '>=', Timestamp.fromDate(cutoff))))).catch(() => null),
       withRetry(() => getDocs(collection(db, 'accounts', accountId, 'staff'))).catch(() => null),
     ])
 
