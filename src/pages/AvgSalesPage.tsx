@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { withRetry } from '../lib/withRetry'
 import LoadError from '../components/LoadError'
@@ -91,8 +91,12 @@ export default function AvgSalesPage() {
   async function load() {
     if (!accountId) return
     setLoading(true)
+    // Load 1 year of payments — covers all selectable date ranges
+    const cutoff = new Date()
+    cutoff.setFullYear(cutoff.getFullYear() - 1)
+    const cutoffStr = cutoff.toISOString().slice(0, 10)
     const snap = await withRetry(() => getDocs(
-      collection(db, 'accounts', accountId, 'payments')
+      query(collection(db, 'accounts', accountId, 'payments'), where('paidDate', '>=', cutoffStr))
     )).catch(() => null)
     if (snap) setPayments(snap.docs.map(d => ({ ...d.data() } as Payment)))
     setLoading(false)

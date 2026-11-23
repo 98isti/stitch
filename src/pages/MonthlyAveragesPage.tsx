@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { useLocations } from '../hooks/useLocations'
@@ -58,7 +58,11 @@ export default function MonthlyAveragesPage() {
   useEffect(() => {
     if (!accountId) return
     setLoading(true)
-    getDocs(collection(db, 'accounts', accountId, 'orders'))
+    // Load last 12 months of orders only
+    const cutoff = new Date()
+    cutoff.setFullYear(cutoff.getFullYear() - 1)
+    const cutoffStr = cutoff.toISOString().slice(0, 10)
+    getDocs(query(collection(db, 'accounts', accountId, 'orders'), where('orderDate', '>=', cutoffStr)))
       .then(snap => {
         setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Order)))
         setLoading(false)

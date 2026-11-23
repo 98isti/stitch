@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { withRetry } from '../lib/withRetry'
 import { useAuth } from '../context/AuthContext'
@@ -152,7 +152,11 @@ export default function AvgSalesByDayPage() {
   async function load() {
     if (!accountId) return
     setLoading(true)
-    const snap = await withRetry(() => getDocs(collection(db, 'accounts', accountId, 'payments'))).catch(() => null)
+    // Load last 60 days — covers this week + last month averages
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - 60)
+    const cutoffStr = cutoff.toISOString().slice(0, 10)
+    const snap = await withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'payments'), where('paidDate', '>=', cutoffStr)))).catch(() => null)
     if (snap) setPayments(snap.docs.map(d => ({ ...d.data() } as Payment)))
     setLoading(false)
   }

@@ -67,9 +67,13 @@ export default function PickupCalendarPage() {
   useEffect(() => {
     if (!accountId || !selectedLocationId) return
     setLoading(true)
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - 60)
+    const cutoffStr = cutoff.toISOString().slice(0, 10)
+    const baseConstraints = [where('pickupDate', '>=', cutoffStr)]
     const q = selectedLocationId === 'all'
-      ? withRetry(() => getDocs(collection(db, 'accounts', accountId, 'orders')))
-      : withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'orders'), where('locationId', '==', selectedLocationId))))
+      ? withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'orders'), ...baseConstraints)))
+      : withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'orders'), ...baseConstraints, where('locationId', '==', selectedLocationId))))
     q.then(snap => {
       const pending = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as Order))
