@@ -82,7 +82,7 @@ function AppRoutes() {
         !onboarded ? <Navigate to="/onboarding" /> :
         (() => {
           const mode = localStorage.getItem(DEVICE_MODE_KEY)
-          if (mode === 'management') return <Navigate to="/dashboard" />
+          if (mode === 'management') return <Navigate to="/mgmt-orders" />
           return <Navigate to="/pos" />
         })()
       } />

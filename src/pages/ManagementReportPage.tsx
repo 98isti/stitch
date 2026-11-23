@@ -197,7 +197,8 @@ export default function ManagementReportPage() {
   const [signIns, setSignIns]     = useState<SignIn[]>([])
   const [staff, setStaff]         = useState<StaffMember[]>([])
   const [error, setError] = useState(false)
-  const [loading, setLoading]     = useState(true)
+  const [loadingQuick, setLoadingQuick] = useState(true)
+  const [loadingFull, setLoadingFull]   = useState(true)
   const [showLifetime, setShowLifetime]         = useState(false)
   const [lifetimePayments, setLifetimePayments] = useState<Payment[]>([])
   const [lifetimeSignIns, setLifetimeSignIns]   = useState<SignIn[]>([])
@@ -205,20 +206,29 @@ export default function ManagementReportPage() {
 
   useEffect(() => {
     if (!accountId) return
-    const cutoff = toStr(addDays(new Date(), -150))
+    const cutoffQuick = toStr(addDays(new Date(), -14))
+    const cutoffFull  = toStr(addDays(new Date(), -150))
+
+    // Phase 1: last 14 days payments + staff → unlocks Daily + Weekly quickly
     Promise.all([
-      withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'payments'), where('paidDate', '>=', cutoff)))),
+      withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'payments'), where('paidDate', '>=', cutoffQuick)))),
       withRetry(() => getDocs(collection(db, 'accounts', accountId, 'staff'))),
-      // sign-ins: Firestore Timestamp comparison — use ISO date cutoff via string workaround:
-      // fetch all and filter client-side to avoid Timestamp import
-      withRetry(() => getDocs(collection(db, 'accounts', accountId, 'signIns'))),
-    ]).then(([pmtSnap, staffSnap, siSnap]) => {
+    ]).then(([pmtSnap, staffSnap]) => {
       setPayments(pmtSnap.docs.map(d => d.data() as Payment))
       setStaff(staffSnap.docs.map(d => d.data() as StaffMember))
-      const cutoffSec = new Date(cutoff + 'T00:00:00').getTime() / 1000
-      setSignIns(siSnap.docs.map(d => d.data() as SignIn).filter(s => (s.timestamp?.seconds ?? 0) >= cutoffSec))
-      setLoading(false)
-    }).catch(() => { setLoading(false); setError(true) })
+      setLoadingQuick(false)
+
+      // Phase 2: full 150 days payments + all sign-ins → unlocks Monthly + P/L
+      Promise.all([
+        withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'payments'), where('paidDate', '>=', cutoffFull)))),
+        withRetry(() => getDocs(collection(db, 'accounts', accountId, 'signIns'))),
+      ]).then(([fullPmtSnap, siSnap]) => {
+        setPayments(fullPmtSnap.docs.map(d => d.data() as Payment))
+        const cutoffSec = new Date(cutoffFull + 'T00:00:00').getTime() / 1000
+        setSignIns(siSnap.docs.map(d => d.data() as SignIn).filter(s => (s.timestamp?.seconds ?? 0) >= cutoffSec))
+        setLoadingFull(false)
+      }).catch(() => { setLoadingFull(false); setError(true) })
+    }).catch(() => { setLoadingQuick(false); setLoadingFull(false); setError(true) })
   }, [accountId])
 
   async function loadLifetime() {
@@ -316,7 +326,7 @@ export default function ManagementReportPage() {
     return { dailyRows, dailyCols, weeklyRows, weeklyCols, monthlyRows, monthlyCols, yearlyRows, yearlyCols }
   }, [activePmts, activeSIs, locationNames, payRateMap, locationExpenses])
 
-  if (loading) return (
+  if (loadingQuick) return (
     <div className="flex items-center justify-center h-full">
       <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
     </div>
@@ -332,20 +342,29 @@ export default function ManagementReportPage() {
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <TableSection label="Daily"   rows={data.dailyRows}   columns={data.dailyCols}   showPL={false} />
         <TableSection label="Weekly"  rows={data.weeklyRows}  columns={data.weeklyCols}  showPL={true} />
-        <TableSection label="Monthly" rows={data.monthlyRows} columns={data.monthlyCols} showPL={true} />
-
-        {showLifetime ? (
-          <TableSection label="Yearly" rows={data.yearlyRows} columns={data.yearlyCols} showPL={true} />
-        ) : error ? (
-          <LoadError onRetry={() => window.location.reload()} />
-          ) : (
-          <div className="mt-2 pb-8">
-            <button onClick={loadLifetime} disabled={loadingLifetime}
-              className="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl disabled:opacity-50">
-              {loadingLifetime ? 'Loading…' : 'Load Lifetime Data'}
-            </button>
-            <p className="text-xs text-red-500 mt-2">⚠️ This will take some time and may slow the app.</p>
+        {loadingFull ? (
+          <div className="flex items-center justify-center py-10">
+            <div className="w-5 h-5 border-2 border-gray-300 border-t-navy rounded-full animate-spin" />
+            <span className="ml-2 text-sm text-gray-400">Loading monthly data…</span>
           </div>
+        ) : (
+          <>
+            <TableSection label="Monthly" rows={data.monthlyRows} columns={data.monthlyCols} showPL={true} />
+
+            {showLifetime ? (
+              <TableSection label="Yearly" rows={data.yearlyRows} columns={data.yearlyCols} showPL={true} />
+            ) : error ? (
+              <LoadError onRetry={() => window.location.reload()} />
+            ) : (
+              <div className="mt-2 pb-8">
+                <button onClick={loadLifetime} disabled={loadingLifetime}
+                  className="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl disabled:opacity-50">
+                  {loadingLifetime ? 'Loading…' : 'Load Lifetime Data'}
+                </button>
+                <p className="text-xs text-red-500 mt-2">⚠️ This will take some time and may slow the app.</p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
