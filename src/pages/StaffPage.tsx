@@ -21,10 +21,10 @@ async function hashPin(pin: string): Promise<string> {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
-const ROLES = ['Team Member', 'Manager', 'Owner', 'Other']
+const ROLES = ['Customer Service', 'Tailor', 'All-Rounder', 'Manager']
 
 interface FormState { firstName: string; lastName: string; pin: string; payRate: string; role: string; isActive: boolean }
-const EMPTY_FORM: FormState = { firstName: '', lastName: '', pin: '', payRate: '', role: 'Team Member', isActive: true }
+const EMPTY_FORM: FormState = { firstName: '', lastName: '', pin: '', payRate: '', role: 'Customer Service', isActive: true }
 
 export default function StaffPage() {
   const { accountId } = useAuth()
