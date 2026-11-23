@@ -70,10 +70,9 @@ export default function PickupCalendarPage() {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - 60)
     const cutoffStr = cutoff.toISOString().slice(0, 10)
-    const baseConstraints = [where('pickupDate', '>=', cutoffStr)]
-    const q = selectedLocationId === 'all'
-      ? withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'orders'), ...baseConstraints)))
-      : withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'orders'), ...baseConstraints, where('locationId', '==', selectedLocationId))))
+    // Single where clause only — combining pickupDate range + locationId equality
+    // requires a composite index. Filter locationId client-side instead.
+    const q = withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'orders'), where('pickupDate', '>=', cutoffStr))))
     q.then(snap => {
       const pending = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as Order))
