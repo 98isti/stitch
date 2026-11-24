@@ -25,7 +25,7 @@ interface LocationMetrics {
   labourPct: number
   pl30d: number
   onTimePct: number
-  returnCustomerPct: number | null
+  returnCustomerPct: number
   refundPct: number
   googleRating: number | null
   googleReviewCount: number | null
@@ -176,8 +176,8 @@ function LocationCard({ m, loading }: { m: LocationMetrics; loading: boolean }) 
           </div>
           <div>
             <p className="text-xs text-gray-400 mb-0.5">Repeat</p>
-            <p className={`text-sm font-bold ${(m.returnCustomerPct ?? 0) > 40 ? 'text-emerald-600' : 'text-gray-700'}`}>
-              {loading || m.returnCustomerPct === null ? '—' : pct(m.returnCustomerPct)}
+            <p className={`text-sm font-bold ${m.returnCustomerPct > 40 ? 'text-emerald-600' : 'text-gray-700'}`}>
+              {loading ? '—' : pct(m.returnCustomerPct)}
             </p>
           </div>
         </div>
@@ -215,14 +215,16 @@ export default function DashboardPage() {
     // ── Fetch Google API key from account doc ─────────────────────────────
     const googleApiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY ?? ''
 
-    // ── Load core data in parallel (fast — customers loaded in background) ───
-    const [paymentsSnap, ordersSnap] = await Promise.all([
+    // ── Load core data in parallel (fast — no signIns) ──────────────────────
+    const [paymentsSnap, ordersSnap, customersSnap] = await Promise.all([
       withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'payments'), where('paidDate', '>=', day30ago)))),
       withRetry(() => getDocs(query(collection(db, 'accounts', accountId, 'orders'), where('orderDate', '>=', day30ago)))),
+      withRetry(() => getDocs(collection(db, 'accounts', accountId, 'customers'))),
     ])
 
-    const payments = paymentsSnap.docs.map(d => ({ ...d.data() } as any))
-    const orders   = ordersSnap.docs.map(d => ({ ...d.data() } as any))
+    const payments  = paymentsSnap.docs.map(d => ({ ...d.data() } as any))
+    const orders    = ordersSnap.docs.map(d => ({ ...d.data() } as any))
+    const customers = customersSnap.docs.map(d => ({ ...d.data() } as any))
 
     // Labour cost — computed later in background (non-blocking)
     const labourCostByLoc: Record<string, number> = {}
@@ -231,6 +233,7 @@ export default function DashboardPage() {
     const results: LocationMetrics[] = await Promise.all(locations.map(async loc => {
       const locPayments = payments.filter(p => p.locationId === loc.id || p.location === loc.name)
       const locOrders   = orders.filter(o => o.locationId === loc.id || o.location === loc.name)
+      const locCustomers = customers.filter(c => c.locationId === loc.id || c.locationName === loc.name)
 
       // Today
       const todayPayments = locPayments.filter(p => p.paidDate === today)
@@ -264,8 +267,18 @@ export default function DashboardPage() {
       const onTime = completedOrders.filter(o => o.jobCompletedDate <= o.pickupDate).length
       const onTimePct = completedOrders.length > 0 ? (onTime / completedOrders.length) * 100 : 100
 
-      // Repeat % — computed in background once customers load; null = not yet available
-      const returnCustomerPct = null
+      // Return customer %
+      // Repeat %: of unique customers who ordered in last 30d, how many are repeats (orderCount > 1)
+      const recentCustomerKeys = new Set(
+        locOrders.map(o => o.customerPhone || o.customerId || o.customerName).filter(Boolean)
+      )
+      const repeatCustomers = locCustomers.filter(c => {
+        const key = c.phone || c.id || c.customerName || c.name
+        return recentCustomerKeys.has(key) && (c.orderCount ?? 1) > 1
+      }).length
+      const returnCustomerPct = recentCustomerKeys.size > 0
+        ? (repeatCustomers / recentCustomerKeys.size) * 100
+        : 0
 
       // Refund %
       const ordersWithRefund = locOrders.filter(o => (o.refundAmount ?? 0) > 0).length
@@ -294,37 +307,6 @@ export default function DashboardPage() {
     if (!_mounted) return
     setMetrics(results)
     setLoading(false)
-
-    // ── Fetch customers in background for Repeat % ───────────────────────
-    ;(async () => {
-      try {
-        const customersSnap = await withRetry(() => getDocs(collection(db, 'accounts', accountId, 'customers')))
-        const customers = customersSnap.docs.map(d => ({ ...d.data() } as any))
-        setMetrics(prev => prev.map(m => {
-          const loc = locations.find(l => l.id === m.locationId)
-          if (!loc) return m
-          const locOrders   = orders.filter(o => o.locationId === loc.id || o.location === loc.name)
-          // Match customers by phone key — do NOT filter by locationId
-          // A customer's locationId reflects where they first registered, not where they shop
-          const customerByPhone: Record<string, any> = {}
-          customers.forEach((c: any) => {
-            const key = c.phone || c.id || c.customerName || c.name
-            if (key) customerByPhone[key] = c
-          })
-          const recentCustomerKeys = new Set(
-            locOrders.map((o: any) => o.customerPhone || o.customerId || o.customerName).filter(Boolean)
-          )
-          const repeatCustomers = Array.from(recentCustomerKeys).filter(key => {
-            const c = customerByPhone[key as string]
-            return c && (c.orderCount ?? 1) > 1
-          }).length
-          const returnCustomerPct = recentCustomerKeys.size > 0
-            ? (repeatCustomers / recentCustomerKeys.size) * 100
-            : 0
-          return { ...m, returnCustomerPct }
-        }))
-      } catch { /* ignore — Repeat % will stay blank */ }
-    })()
 
     // ── Fetch signIns + staff in background for labour % ─────────────────
     ;(async () => {
