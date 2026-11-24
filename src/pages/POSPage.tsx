@@ -7,7 +7,7 @@ import OrderDetailSheet from '../components/OrderDetailSheet'
 import SplitPaymentSheet from '../components/SplitPaymentSheet'
 import { usePrinter } from '../context/PrinterContext'
 import {
-  collection, query, getDocs, addDoc, serverTimestamp, orderBy, where,
+  collection, query, getDocs, addDoc, serverTimestamp, where, limit,
   doc, runTransaction, updateDoc, setDoc, deleteDoc
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
@@ -328,21 +328,29 @@ function CustomerSheet({
   useEffect(() => { setTimeout(() => inputRef.current?.focus(), 100) }, [])
 
   useEffect(() => {
-    if (!accountId || search.length < 2) { setResults([]); return }
+    if (!accountId || search.length < 3) { setResults([]); return }
     setSearching(true)
-    getDocs(query(collection(db, 'accounts', accountId, 'customers'), orderBy('firstName')))
-      .then(snap => {
-        const all = snap.docs.map(d => ({ id: d.id, ...d.data() } as Customer))
-        const term = search.trim().toLowerCase()
-        setResults(all.filter(c => {
-          // Phone: partial match anywhere (e.g. "9366" finds "04009366")
-          if (c.phone?.includes(term)) return true
-          // Name: starts-with match at the beginning of each word (industry standard)
-          const nameParts = `${c.firstName ?? ''} ${c.lastName ?? ''}`.toLowerCase().trim().split(/\s+/)
-          return nameParts.some(part => part.startsWith(term))
-        }).slice(0, 8))
-        setSearching(false)
-      }).catch(() => setSearching(false))
+    const term = search.trim()
+    const stripped = term.replace(/\D/g, '')
+    const cap = term.charAt(0).toUpperCase() + term.slice(1)
+    const col = collection(db, 'accounts', accountId, 'customers')
+    Promise.all([
+      stripped.length >= 3
+        ? getDocs(query(col, where('phone', '>=', stripped), where('phone', '<=', stripped + '\uf8ff'), limit(20)))
+        : Promise.resolve(null),
+      getDocs(query(col, where('firstName', '>=', cap), where('firstName', '<=', cap + '\uf8ff'), limit(20))),
+    ]).then(([phoneSnap, nameSnap]) => {
+      const seen = new Set<string>()
+      const merged: Customer[] = []
+      for (const snap of [phoneSnap, nameSnap]) {
+        if (!snap) continue
+        snap.docs.forEach((d: any) => {
+          if (!seen.has(d.id)) { seen.add(d.id); merged.push({ id: d.id, ...d.data() } as Customer) }
+        })
+      }
+      setResults(merged.slice(0, 8))
+      setSearching(false)
+    }).catch(() => setSearching(false))
   }, [search, accountId])
 
   async function saveNewCustomer() {
