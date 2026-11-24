@@ -8,7 +8,7 @@ import SplitPaymentSheet from '../components/SplitPaymentSheet'
 import { usePrinter } from '../context/PrinterContext'
 import {
   collection, query, getDocs, addDoc, serverTimestamp, orderBy, where,
-  doc, runTransaction, updateDoc, setDoc, deleteDoc
+  doc, runTransaction, updateDoc, setDoc, deleteDoc, increment
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import ItemPickerSheet from '../components/ItemPickerSheet'
@@ -790,6 +790,24 @@ export default function POSPage() {
         voucherCode: appliedVoucher?.code,
         voucherDeduction: voucherDeduction > 0 ? voucherDeduction : undefined,
       })
+      // Upsert customer doc — increment orderCount, preserve locationId (Option A: first location stays)
+      if (customerPhone && accountId) {
+        const stripped = customerPhone.replace(/\D/g, '')
+        if (stripped && stripped.length >= 8) {
+          setDoc(
+            doc(db, 'accounts', accountId, 'customers', stripped),
+            {
+              name: customerName || '',
+              firstName: (customerName || '').split(' ')[0] || '',
+              lastName: (customerName || '').split(' ').slice(1).join(' ') || '',
+              phone: stripped,
+              orderCount: increment(1),
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          ).catch(() => {}) // fire and forget — don't block order save
+        }
+      }
       if (appliedVoucher && voucherDeduction > 0 && accountId) {
         const newBalance = Math.round((appliedVoucher.balance - voucherDeduction) * 100) / 100
         await updateDoc(doc(db, 'accounts', accountId, 'vouchers', appliedVoucher.id), {
