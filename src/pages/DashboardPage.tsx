@@ -304,13 +304,19 @@ export default function DashboardPage() {
           const loc = locations.find(l => l.id === m.locationId)
           if (!loc) return m
           const locOrders   = orders.filter(o => o.locationId === loc.id || o.location === loc.name)
-          const locCustomers = customers.filter(c => c.locationId === loc.id || c.locationName === loc.name)
+          // Match customers by phone key — do NOT filter by locationId
+          // A customer's locationId reflects where they first registered, not where they shop
+          const customerByPhone: Record<string, any> = {}
+          customers.forEach((c: any) => {
+            const key = c.phone || c.id || c.customerName || c.name
+            if (key) customerByPhone[key] = c
+          })
           const recentCustomerKeys = new Set(
             locOrders.map((o: any) => o.customerPhone || o.customerId || o.customerName).filter(Boolean)
           )
-          const repeatCustomers = locCustomers.filter((c: any) => {
-            const key = c.phone || c.id || c.customerName || c.name
-            return recentCustomerKeys.has(key) && (c.orderCount ?? 1) > 1
+          const repeatCustomers = Array.from(recentCustomerKeys).filter(key => {
+            const c = customerByPhone[key as string]
+            return c && (c.orderCount ?? 1) > 1
           }).length
           const returnCustomerPct = recentCustomerKeys.size > 0
             ? (repeatCustomers / recentCustomerKeys.size) * 100
