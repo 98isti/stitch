@@ -97,6 +97,40 @@ export default function ManagementLeavePage() {
 
   const pendingCount = requests.filter(r => r.status === 'pending').length
 
+  // ── Calendar state ────────────────────────────────────────────────────────
+  const today = new Date()
+  const [calYear,  setCalYear]  = useState(today.getFullYear())
+  const [calMonth, setCalMonth] = useState(today.getMonth()) // 0-based
+
+  // Build dot map: 'YYYY-MM-DD' -> Set of statuses (pending, approved)
+  const dotMap = useMemo(() => {
+    const map: Record<string, Set<string>> = {}
+    requests.forEach(r => {
+      if (r.status === 'denied') return
+      if (selectedLocationId !== 'all' && r.locationId !== selectedLocationId) return
+      const s = new Date(r.startDate), e = new Date(r.endDate)
+      for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+        if (!map[key]) map[key] = new Set()
+        map[key].add(r.status)
+      }
+    })
+    return map
+  }, [requests, selectedLocationId])
+
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate()
+  const offset = (new Date(calYear, calMonth, 1).getDay() + 6) % 7 // Mon-first
+
+  function prevMonth() {
+    if (calMonth === 0) { setCalYear(y => y - 1); setCalMonth(11) }
+    else setCalMonth(m => m - 1)
+  }
+  function nextMonth() {
+    if (calMonth === 11) { setCalYear(y => y + 1); setCalMonth(0) }
+    else setCalMonth(m => m + 1)
+  }
+
   return (
     <div className="flex flex-col h-full bg-gray-100">
       {/* Header */}
@@ -141,6 +175,57 @@ export default function ManagementLeavePage() {
           <option value="denied">Denied</option>
           <option value="all">All</option>
         </select>
+      </div>
+
+      {/* Calendar */}
+      <div className="bg-white border-b border-gray-100 px-4 pt-3 pb-4 flex-shrink-0">
+        {/* Month nav */}
+        <div className="flex items-center justify-between mb-3">
+          <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 text-sm font-bold">‹</button>
+          <span className="text-sm font-semibold text-gray-800">{MONTH_NAMES[calMonth]} {calYear}</span>
+          <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 text-sm font-bold">›</button>
+        </div>
+        {/* Day-of-week headers */}
+        <div className="grid grid-cols-7 mb-1">
+          {['M','T','W','T','F','S','S'].map((d, i) => (
+            <div key={i} className="text-center text-xs text-gray-400 font-medium py-1">{d}</div>
+          ))}
+        </div>
+        {/* Day cells */}
+        <div className="grid grid-cols-7 gap-y-1">
+          {/* Empty offset cells */}
+          {Array.from({ length: offset }).map((_, i) => <div key={`e${i}`} />)}
+          {Array.from({ length: daysInMonth }).map((_, i) => {
+            const day = i + 1
+            const key = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+            const dots = dotMap[key]
+            const isToday = calYear === today.getFullYear() && calMonth === today.getMonth() && day === today.getDate()
+            return (
+              <div key={day} className="flex flex-col items-center py-0.5">
+                <span className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-medium ${
+                  isToday ? 'bg-gray-800 text-white' : 'text-gray-700'
+                }`}>{day}</span>
+                {dots && (
+                  <div className="flex gap-0.5 mt-0.5">
+                    {dots.has('pending')  && <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />}
+                    {dots.has('approved') && <div className="w-1.5 h-1.5 rounded-full bg-green-400" />}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+        {/* Legend */}
+        <div className="flex gap-4 justify-center mt-3">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-orange-400" />
+            <span className="text-xs text-gray-400">Pending</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-green-400" />
+            <span className="text-xs text-gray-400">Approved</span>
+          </div>
+        </div>
       </div>
 
       {/* List */}
