@@ -101,6 +101,7 @@ export default function ManagementLeavePage() {
   const today = new Date()
   const [calYear,  setCalYear]  = useState(today.getFullYear())
   const [calMonth, setCalMonth] = useState(today.getMonth()) // 0-based
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
   // Build dot map: 'YYYY-MM-DD' -> Set of statuses (pending, approved)
   const dotMap = useMemo(() => {
@@ -201,8 +202,9 @@ export default function ManagementLeavePage() {
             const dots = dotMap[key]
             const isToday = calYear === today.getFullYear() && calMonth === today.getMonth() && day === today.getDate()
             return (
-              <div key={day} className="flex flex-col items-center py-0.5">
+              <button key={day} onClick={() => setSelectedDate(dots ? key : null)} className="flex flex-col items-center py-0.5 w-full">
                 <span className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-medium ${
+                  selectedDate === key ? 'bg-blue-600 text-white' :
                   isToday ? 'bg-gray-800 text-white' : 'text-gray-700'
                 }`}>{day}</span>
                 {dots && (
@@ -211,7 +213,7 @@ export default function ManagementLeavePage() {
                     {dots.has('approved') && <div className="w-1.5 h-1.5 rounded-full bg-green-400" />}
                   </div>
                 )}
-              </div>
+              </button>
             )
           })}
         </div>
@@ -227,6 +229,52 @@ export default function ManagementLeavePage() {
           </div>
         </div>
       </div>
+
+      {/* Date detail sheet */}
+      {selectedDate && (() => {
+        const dayRequests = requests.filter(r => {
+          if (selectedLocationId !== 'all' && r.locationId !== selectedLocationId) return false
+          return r.startDate <= selectedDate && r.endDate >= selectedDate && r.status !== 'denied'
+        })
+        return (
+          <div className="bg-white border-b border-gray-200 px-4 py-3 flex-shrink-0">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-bold text-gray-800">{formatDisplay(selectedDate)}</span>
+              <button onClick={() => setSelectedDate(null)} className="text-xs text-gray-400 font-medium">✕ Close</button>
+            </div>
+            {dayRequests.length === 0 ? (
+              <p className="text-xs text-gray-400">No leave requests for this day.</p>
+            ) : (
+              <div className="space-y-2">
+                {dayRequests.map(req => (
+                  <div key={req.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{req.employeeName}</p>
+                      <p className="text-xs text-gray-400">{req.locationName} · {formatDisplay(req.startDate)}{req.startDate !== req.endDate ? ` → ${formatDisplay(req.endDate)}` : ''}</p>
+                    </div>
+                    {req.status === 'pending' ? (
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => handleAction(req, 'denied')}
+                          disabled={actioningId === req.id}
+                          className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-xs font-semibold disabled:opacity-40"
+                        >Deny</button>
+                        <button
+                          onClick={() => handleAction(req, 'approved')}
+                          disabled={actioningId === req.id}
+                          className="px-3 py-1.5 rounded-lg bg-green-500 text-white text-xs font-semibold disabled:opacity-40"
+                        >Approve</button>
+                      </div>
+                    ) : (
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700">Approved</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* List */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
