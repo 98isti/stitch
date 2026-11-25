@@ -102,6 +102,7 @@ export default function ManagementLeavePage() {
   const [calYear,  setCalYear]  = useState(today.getFullYear())
   const [calMonth, setCalMonth] = useState(today.getMonth()) // 0-based
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [view, setView] = useState<'calendar' | 'list'>('list')
 
   // Build dot map: 'YYYY-MM-DD' -> Set of statuses (pending, approved)
   const dotMap = useMemo(() => {
@@ -178,8 +179,28 @@ export default function ManagementLeavePage() {
         </select>
       </div>
 
-      {/* Calendar */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-3 pb-4 flex-shrink-0">
+      {/* Tab switcher */}
+      <div className="flex bg-gray-100 mx-4 mt-3 mb-1 rounded-xl p-1 flex-shrink-0">
+        <button
+          onClick={() => setView('list')}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+            view === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+          }`}
+        >
+          List {pendingCount > 0 && view !== 'list' ? `(${pendingCount})` : ''}
+        </button>
+        <button
+          onClick={() => setView('calendar')}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+            view === 'calendar' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+          }`}
+        >
+          Calendar
+        </button>
+      </div>
+
+      {/* Calendar — only shown in calendar view */}
+      {view === 'calendar' && <div className="bg-white border-b border-gray-100 px-4 pt-3 pb-4 flex-shrink-0">
         {/* Month nav */}
         <div className="flex items-center justify-between mb-3">
           <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 text-sm font-bold">‹</button>
@@ -228,10 +249,10 @@ export default function ManagementLeavePage() {
             <span className="text-xs text-gray-400">Approved</span>
           </div>
         </div>
-      </div>
+      </div>}
 
-      {/* Date detail sheet */}
-      {selectedDate && (() => {
+      {/* Date detail sheet — calendar view only */}
+      {view === 'calendar' && selectedDate && (() => {
         const dayRequests = requests.filter(r => {
           if (selectedLocationId !== 'all' && r.locationId !== selectedLocationId) return false
           return r.startDate <= selectedDate && r.endDate >= selectedDate && r.status !== 'denied'
@@ -276,8 +297,8 @@ export default function ManagementLeavePage() {
         )
       })()}
 
-      {/* List */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      {/* List — only shown in list view */}
+      {view === 'list' && <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {loading ? (
           <div className="flex items-center justify-center h-32">
             <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
@@ -359,7 +380,7 @@ export default function ManagementLeavePage() {
             </div>
           ))
         )}
-      </div>
+      </div>}
     </div>
   )
 }
